@@ -89,7 +89,7 @@ export function ProductCard({
             <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint rtl:tracking-normal">
               {m.categories[product.category].name}
             </p>
-            <h3 className="mt-1 line-clamp-1 text-sm font-semibold leading-snug text-foreground">{product.name}</h3>
+            <h3 dir="ltr" className="mt-1 line-clamp-1 text-sm font-semibold leading-snug text-foreground rtl:text-right">{product.name}</h3>
             <div className="mt-1.5">
               <Rating value={product.rating} count={product.reviews} size={13} />
             </div>

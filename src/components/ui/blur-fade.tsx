@@ -5,6 +5,7 @@ import {
   AnimatePresence,
   motion,
   useInView,
+  useReducedMotion,
   type MotionProps,
   type UseInViewOptions,
   type Variants,
@@ -46,6 +47,7 @@ export function BlurFade({
   ...props
 }: BlurFadeProps) {
   const ref = useRef<HTMLDivElement>(null);
+  const reduce = useReducedMotion();
   const inViewResult = useInView(ref, { once: true, margin: inViewMargin });
   const isInView = !inView || inViewResult;
   const defaultVariants: Variants = {
@@ -73,8 +75,8 @@ export function BlurFade({
     <AnimatePresence>
       <motion.div
         ref={ref}
-        initial="hidden"
-        animate={isInView ? "visible" : "hidden"}
+        initial={reduce ? false : "hidden"}
+        animate={reduce || isInView ? "visible" : "hidden"}
         exit="hidden"
         variants={combinedVariants}
         transition={{

@@ -1,367 +1,378 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import {
+  Check,
   ChevronDown,
-  Clock,
+  ChevronRight,
+  Heart,
+  Loader2,
   LogOut,
   MapPin,
-  Package,
   PackageCheck,
+  PackageOpen,
   Settings,
   ShoppingBag,
   Truck,
+  User,
 } from "lucide-react";
-import { useStore, type Order } from "@/lib/store";
-import { cn, formatDate, formatDateTime, formatPrice } from "@/lib/utils";
-import { Button, Input, Select, buttonClasses, Badge } from "@/components/ui/primitives";
-import { BlurFade } from "@/components/ui/blur-fade";
+import { getProduct } from "@/lib/products";
+import { useStore, type Address, type Order, type OrderStatus } from "@/lib/store";
+import { useI18n } from "@/i18n/provider";
+import { WILAYAS } from "@/lib/wilayas";
+import { Button, buttonClasses, Input, Select } from "@/components/ui/primitives";
+import { ProductCard } from "@/components/product-card";
 import { NavTransition } from "@/components/nav-transition";
+import { BlurFade } from "@/components/ui/blur-fade";
+import { TextAnimate } from "@/components/ui/text-animate";
 import { useToast } from "@/components/ui/toast";
+import { cn } from "@/lib/utils";
 
-const STATUS_META = {
-  processing: { label: "Processing", tone: "accent" as const },
-  shipped: { label: "Shipped", tone: "accent" as const },
-  delivered: { label: "Delivered", tone: "success" as const },
-};
+type Tab = "orders" | "favorites" | "settings";
+const TABS: { id: Tab; Icon: typeof ShoppingBag }[] = [
+  { id: "orders", Icon: ShoppingBag },
+  { id: "favorites", Icon: Heart },
+  { id: "settings", Icon: Settings },
+];
 
-function OrderCard({ order, index }: { order: Order; index: number }) {
-  const [open, setOpen] = useState(index === 0);
-  const meta = STATUS_META[order.status];
+export default function ProfilePage() {
   return (
-    <BlurFade inView delay={index * 0.06}>
-      <div className="overflow-hidden rounded-card border border-line bg-background">
-        <button
-          type="button"
-          onClick={() => setOpen((o) => !o)}
-          aria-expanded={open}
-          className="flex w-full cursor-pointer flex-wrap items-center gap-x-4 gap-y-2 p-4 text-left transition-colors hover:bg-surface/60 md:p-5"
-        >
-          <span className="flex -space-x-3">
-            {order.items.slice(0, 3).map((item) => (
-              <span
-                key={`${item.productId}-${item.variant}`}
-                className="relative h-10 w-10 overflow-hidden rounded-lg border-2 border-background bg-surface"
-              >
-                <Image src={item.image} alt="" fill sizes="40px" className="object-cover" />
-              </span>
-            ))}
-            {order.items.length > 3 && (
-              <span className="grid h-10 w-10 place-items-center rounded-lg border-2 border-background bg-surface font-mono text-[10px] text-muted">
-                +{order.items.length - 3}
-              </span>
-            )}
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block font-mono text-sm font-medium">{order.id}</span>
-            <span className="block text-xs text-muted">{formatDate(order.createdAt)}</span>
-          </span>
-          <Badge tone={meta.tone}>{meta.label}</Badge>
-          <span className="font-mono text-sm font-medium">{formatPrice(order.total)}</span>
-          <motion.span animate={{ rotate: open ? 180 : 0 }} transition={{ duration: 0.25 }}>
-            <ChevronDown size={16} className="text-muted" />
-          </motion.span>
-        </button>
-        <AnimatePresence initial={false}>
-          {open && (
-            <motion.div
-              initial={{ height: 0, opacity: 0 }}
-              animate={{ height: "auto", opacity: 1 }}
-              exit={{ height: 0, opacity: 0 }}
-              transition={{ duration: 0.3, ease: [0.22, 1, 0.36, 1] }}
-              className="overflow-hidden"
-            >
-              <div className="border-t border-line p-4 md:p-5">
-                <ul className="space-y-2.5">
-                  {order.items.map((item) => (
-                    <li key={`${item.productId}-${item.variant}`} className="flex items-center justify-between gap-3 text-sm">
-                      <span className="min-w-0 truncate">
-                        {item.name} <span className="text-muted">· {item.variant} × {item.qty}</span>
-                      </span>
-                      <span className="shrink-0 font-mono text-[13px]">{formatPrice(item.price * item.qty)}</span>
-                    </li>
-                  ))}
-                </ul>
-
-                <div className="mt-5 rounded-xl bg-surface/70 p-4">
-                  <p className="mb-3 text-xs font-medium text-muted">Tracking</p>
-                  <ol className="space-y-2.5">
-                    {order.events.map((ev) => (
-                      <li key={ev.label} className="flex items-center gap-2.5 text-[13px]">
-                        <span className="h-1.5 w-1.5 shrink-0 rounded-full bg-success" />
-                        <span className="font-medium">{ev.label}</span>
-                        <span className="truncate text-xs text-muted">{ev.detail}</span>
-                        <span className="ml-auto shrink-0 font-mono text-[11px] text-faint">
-                          {ev.at ? formatDateTime(ev.at) : "Pending"}
-                        </span>
-                      </li>
-                    ))}
-                    {order.status !== "delivered" && (
-                      <li className="flex items-center gap-2.5 text-[13px] text-faint">
-                        <Clock size={11} className="shrink-0" />
-                        <span>Delivery estimated {formatDate(new Date(new Date(order.createdAt).getTime() + 4 * 86400000).toISOString())}</span>
-                      </li>
-                    )}
-                  </ol>
-                </div>
-
-                <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
-                  <p className="flex items-center gap-1.5 text-xs text-muted">
-                    <MapPin size={12} />
-                    {order.address.fullName}, {order.address.city}, {order.address.country}
-                  </p>
-                  <Link
-                    href={`/order/${order.id}`}
-                    transitionTypes={["nav-forward"]}
-                    className="text-xs font-medium text-accent-ink hover:underline"
-                  >
-                    Full tracking →
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
-      </div>
-    </BlurFade>
+    <Suspense fallback={null}>
+      <ProfileInner />
+    </Suspense>
   );
 }
 
-export default function ProfilePage() {
-  const { user, orders, ready, logout, updateProfile } = useStore();
+function ProfileInner() {
+  const { user, orders, favorites, logout, updateProfile, ready } = useStore();
+  const { m, locale, price } = useI18n();
   const router = useRouter();
   const toast = useToast();
-  const [tab, setTab] = useState<"orders" | "settings">("orders");
-
-  const [profile, setProfile] = useState({
-    name: user?.name ?? "",
-    email: user?.email ?? "",
-    phone: user?.phone ?? "",
-    fullName: user?.address?.fullName ?? user?.name ?? "",
-    line1: user?.address?.line1 ?? "",
-    city: user?.address?.city ?? "",
-    postcode: user?.address?.postcode ?? "",
-    country: user?.address?.country ?? "Ireland",
-  });
+  const tabParam = useSearchParams().get("tab") as Tab | null;
+  const [tab, setTab] = useState<Tab>(tabParam && TABS.some((t) => t.id === tabParam) ? tabParam : "orders");
 
   useEffect(() => {
     if (ready && !user) router.replace("/login?next=/profile");
   }, [ready, user, router]);
 
-  useEffect(() => {
-    if (user) {
-      setProfile({
-        name: user.name,
-        email: user.email,
-        phone: user.phone ?? "",
-        fullName: user.address?.fullName ?? user.name,
-        line1: user.address?.line1 ?? "",
-        city: user.address?.city ?? "",
-        postcode: user.address?.postcode ?? "",
-        country: user.address?.country ?? "Ireland",
-      });
-    }
-  }, [user]);
-
   if (!ready || !user) {
     return (
-      <div className="mx-auto max-w-4xl px-4 py-24 md:px-6">
-        <div className="h-9 w-56 animate-pulse rounded-lg bg-surface" />
+      <div className="mx-auto max-w-5xl space-y-4 px-4 py-12 md:px-6">
+        <div className="h-9 w-56 animate-pulse rounded-lg bg-line/60" />
+        <div className="h-64 animate-pulse rounded-card bg-line/40" />
       </div>
     );
   }
 
-  const initials = user.name
-    .split(" ")
-    .map((w) => w[0])
-    .slice(0, 2)
-    .join("")
-    .toUpperCase();
-
-  const saveProfile = (e: React.FormEvent) => {
-    e.preventDefault();
-    updateProfile({
-      name: profile.name.trim(),
-      email: profile.email.trim(),
-      phone: profile.phone.trim(),
-      address: {
-        fullName: profile.fullName.trim(),
-        line1: profile.line1,
-        city: profile.city,
-        postcode: profile.postcode,
-        country: profile.country,
-      },
-    });
-    toast("Profile updated");
+  const STATUS_META: Record<OrderStatus, { label: string; dot: string; Icon: typeof Truck }> = {
+    processing: { label: m.profile.statusProcessing, dot: "bg-muted", Icon: Loader2 },
+    shipped: { label: m.order.statusShipped, dot: "bg-foreground", Icon: Truck },
+    delivered: { label: m.order.statusDelivered, dot: "bg-foreground", Icon: PackageCheck },
   };
+  const TAB_LABEL: Record<Tab, string> = { orders: m.profile.orders, favorites: m.profile.favorites, settings: m.profile.settings };
 
-  const set = (key: keyof typeof profile) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
-    setProfile((p) => ({ ...p, [key]: e.target.value }));
+  const trkL = m.order.trkLabel as Record<string, string>;
+  const trkD = m.order.trkDetail as Record<string, string>;
+  const fmtDay = (iso: string) =>
+    new Date(iso).toLocaleDateString(locale === "ar" ? "ar-DZ" : "fr-DZ", { day: "numeric", month: "short", year: "numeric" });
+
+  const favoriteProducts = favorites.map(getProduct).filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   return (
     <NavTransition>
-      <div className="mx-auto max-w-4xl px-4 py-10 md:px-6 md:py-14">
-        <BlurFade duration={0.4}>
-          <div className="flex flex-wrap items-center gap-4">
-            <span className="grid h-14 w-14 place-items-center rounded-full bg-volt font-mono text-lg font-semibold text-accent">
-              {initials || "H"}
-            </span>
-            <div className="min-w-0 flex-1">
-              <h1 className="truncate text-2xl font-semibold tracking-tight">{user.name}</h1>
-              <p className="truncate text-sm text-muted">{user.email}</p>
+      <div className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-14">
+        <BlurFade duration={0.5}>
+          <div className="flex flex-wrap items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-foreground font-display text-xl font-semibold text-background">
+                {user.name.charAt(0).toUpperCase()}
+              </span>
+              <div>
+                <TextAnimate as="h1" by="word" className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
+                  {`${m.profile.welcome}, ${user.name.split(" ")[0]}`}
+                </TextAnimate>
+                <p className="mt-0.5 text-sm text-muted" dir="ltr">{user.email}</p>
+              </div>
             </div>
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="gap-2 text-muted"
+              className="gap-1.5"
               onClick={() => {
                 logout();
-                toast("Signed out");
-                router.replace("/");
+                toast(m.profile.signedOut);
+                router.push("/");
               }}
             >
-              <LogOut size={14} /> Sign out
+              <LogOut size={14} className="rtl:rotate-180" aria-hidden /> {m.profile.logout}
             </Button>
           </div>
         </BlurFade>
 
-        <BlurFade delay={0.1} duration={0.4}>
-          <div className="mt-8 inline-flex rounded-full border border-line bg-surface p-1" role="tablist" aria-label="Account sections">
-            {(
-              [
-                { id: "orders", label: "Orders", icon: Package },
-                { id: "settings", label: "Settings", icon: Settings },
-              ] as const
-            ).map((t) => (
+        <BlurFade delay={0.1}>
+          <div role="tablist" aria-label={m.profile.accountSections} className="mt-8 flex gap-1 overflow-x-auto border-b border-line [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+            {TABS.map(({ id, Icon }) => (
               <button
-                key={t.id}
-                type="button"
+                key={id}
                 role="tab"
-                aria-selected={tab === t.id}
-                onClick={() => setTab(t.id)}
+                aria-selected={tab === id}
+                onClick={() => setTab(id)}
                 className={cn(
-                  "relative flex h-9 cursor-pointer items-center gap-2 rounded-full px-5 text-[13px] font-medium transition-colors",
-                  tab === t.id ? "text-foreground" : "text-muted hover:text-foreground",
+                  "relative flex cursor-pointer items-center gap-2 px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors",
+                  tab === id ? "text-foreground" : "text-faint hover:text-muted",
                 )}
               >
-                {tab === t.id && (
-                  <motion.span
-                    layoutId="profile-tab"
-                    className="absolute inset-0 rounded-full bg-background shadow-sm"
-                    transition={{ type: "spring", stiffness: 400, damping: 32 }}
-                  />
+                <Icon size={15} aria-hidden />
+                {TAB_LABEL[id]}
+                {id === "favorites" && favorites.length > 0 && (
+                  <span className="rounded-full bg-accent-soft px-1.5 text-[10px] font-semibold text-accent-ink tabular-nums">{favorites.length}</span>
                 )}
-                <t.icon size={14} className="relative z-10" />
-                <span className="relative z-10">{t.label}</span>
+                {tab === id && (
+                  <motion.span layoutId="profile-tab" className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-foreground" transition={{ type: "spring", stiffness: 420, damping: 34 }} />
+                )}
               </button>
             ))}
           </div>
         </BlurFade>
 
-        <div className="mt-8">
-          <AnimatePresence mode="wait" initial={false}>
-            {tab === "orders" ? (
-              <motion.div
-                key="orders"
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              >
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={tab}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -6 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="mt-7"
+          >
+            {tab === "orders" && (
+              <div className="space-y-4">
                 {orders.length === 0 ? (
-                  <div className="flex flex-col items-center gap-4 rounded-card border border-dashed border-line py-20 text-center">
-                    <ShoppingBag size={26} className="text-faint" />
-                    <div>
-                      <p className="font-medium">No orders yet</p>
-                      <p className="mt-1 text-sm text-muted">Your order history and tracking will live here.</p>
-                    </div>
-                    <Link href="/products" transitionTypes={["nav-forward"]} className={buttonClasses("dark")}>
-                      Start shopping
+                  <EmptyState Icon={PackageOpen} title={m.profile.noOrders} desc={m.profile.noOrdersDesc}>
+                    <Link href="/products" transitionTypes={["nav-forward"]} className={buttonClasses("primary", "md")}>
+                      {m.profile.startShopping}
                     </Link>
-                  </div>
+                  </EmptyState>
                 ) : (
-                  <div className="space-y-4">
-                    {orders.map((order, i) => (
-                      <OrderCard key={order.id} order={order} index={i} />
-                    ))}
-                  </div>
+                  orders.map((order, i) => (
+                    <BlurFade key={order.id} delay={0.05 * i}>
+                      <OrderCard order={order} STATUS_META={STATUS_META} trkL={trkL} trkD={trkD} fmtDay={fmtDay} price={price} m={m} />
+                    </BlurFade>
+                  ))
                 )}
-              </motion.div>
-            ) : (
-              <motion.div
-                key="settings"
-                initial={{ opacity: 0, x: 16 }}
-                animate={{ opacity: 1, x: 0 }}
-                exit={{ opacity: 0, x: -16 }}
-                transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-              >
-                <form onSubmit={saveProfile} className="space-y-8">
-                  <section className="rounded-card border border-line p-5 md:p-6">
-                    <h2 className="text-base font-semibold">Account</h2>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-medium text-muted">Display name</span>
-                        <Input value={profile.name} onChange={set("name")} />
-                      </label>
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-medium text-muted">Email</span>
-                        <Input type="email" value={profile.email} onChange={set("email")} />
-                      </label>
-                      <label className="block sm:col-span-2">
-                        <span className="mb-1.5 block text-xs font-medium text-muted">Phone</span>
-                        <Input type="tel" value={profile.phone} onChange={set("phone")} placeholder="Optional" />
-                      </label>
-                    </div>
-                  </section>
-
-                  <section className="rounded-card border border-line p-5 md:p-6">
-                    <h2 className="flex items-center gap-2 text-base font-semibold">
-                      <Truck size={16} className="text-accent-ink" /> Default shipping address
-                    </h2>
-                    <div className="mt-4 grid gap-4 sm:grid-cols-2">
-                      <label className="block sm:col-span-2">
-                        <span className="mb-1.5 block text-xs font-medium text-muted">Full name</span>
-                        <Input value={profile.fullName} onChange={set("fullName")} />
-                      </label>
-                      <label className="block sm:col-span-2">
-                        <span className="mb-1.5 block text-xs font-medium text-muted">Address</span>
-                        <Input value={profile.line1} onChange={set("line1")} placeholder="Street and number" />
-                      </label>
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-medium text-muted">City</span>
-                        <Input value={profile.city} onChange={set("city")} />
-                      </label>
-                      <label className="block">
-                        <span className="mb-1.5 block text-xs font-medium text-muted">Postcode</span>
-                        <Input value={profile.postcode} onChange={set("postcode")} />
-                      </label>
-                      <label className="block sm:col-span-2">
-                        <span className="mb-1.5 block text-xs font-medium text-muted">Country</span>
-                        <Select value={profile.country} onChange={set("country")}>
-                          {["Ireland", "Germany", "France", "Netherlands", "Spain", "Italy", "Belgium"].map((c) => (
-                            <option key={c}>{c}</option>
-                          ))}
-                        </Select>
-                      </label>
-                    </div>
-                  </section>
-
-                  <div className="flex items-center gap-3">
-                    <Button type="submit">Save changes</Button>
-                    <p className="flex items-center gap-1.5 text-xs text-faint">
-                      <PackageCheck size={13} /> Stored locally in this browser only
-                    </p>
-                  </div>
-                </form>
-              </motion.div>
+              </div>
             )}
-          </AnimatePresence>
-        </div>
+
+            {tab === "favorites" &&
+              (favoriteProducts.length === 0 ? (
+                <EmptyState Icon={Heart} title={m.favorites.emptyTitle} desc={m.favorites.emptyDesc}>
+                  <Link href="/products" transitionTypes={["nav-forward"]} className={buttonClasses("primary", "md")}>
+                    {m.favorites.browseCta}
+                  </Link>
+                </EmptyState>
+              ) : (
+                <div className="grid grid-cols-2 gap-4 md:grid-cols-3 md:gap-5">
+                  {favoriteProducts.map((p, i) => (
+                    <BlurFade key={p.slug} delay={0.05 * i}>
+                      <ProductCard product={p} />
+                    </BlurFade>
+                  ))}
+                </div>
+              ))}
+
+            {tab === "settings" && (
+              <SettingsForm
+                name={user.name}
+                email={user.email}
+                phone={user.phone ?? ""}
+                address={user.address}
+                m={m}
+                onSave={(patch) => {
+                  updateProfile(patch);
+                  toast(m.profile.profileUpdated);
+                }}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
       </div>
     </NavTransition>
+  );
+}
+
+function OrderCard({
+  order,
+  STATUS_META,
+  trkL,
+  trkD,
+  fmtDay,
+  price,
+  m,
+}: {
+  order: Order;
+  STATUS_META: Record<OrderStatus, { label: string; dot: string; Icon: typeof Truck }>;
+  trkL: Record<string, string>;
+  trkD: Record<string, string>;
+  fmtDay: (iso: string) => string;
+  price: (n: number) => string;
+  m: ReturnType<typeof useI18n>["m"];
+}) {
+  const [open, setOpen] = useState(false);
+  const meta = STATUS_META[order.status];
+  const doneCount = order.events.filter((e) => e.at).length;
+  const itemCount = order.items.reduce((s, i) => s + i.qty, 0);
+  const eta = new Date(new Date(order.createdAt).getTime() + 4 * 86400000).toISOString();
+
+  return (
+    <article className="overflow-hidden rounded-card border border-line bg-background">
+      <div className="flex flex-wrap items-center gap-x-5 gap-y-2 p-5">
+        <div className="min-w-0">
+          <p className="font-display text-sm font-semibold">{order.id}</p>
+          <p className="mt-0.5 text-xs text-faint">
+            {m.order.placedOn} {fmtDay(order.createdAt)} · {itemCount} {itemCount === 1 ? m.order.itemOne : m.order.items.toLowerCase()}
+          </p>
+        </div>
+        <span className="inline-flex items-center gap-1.5 rounded-full bg-surface px-3 py-1 text-xs font-medium">
+          <span className={cn("h-1.5 w-1.5 rounded-full", meta.dot, order.status === "processing" && "animate-pulse")} aria-hidden />
+          {meta.label}
+        </span>
+        <span className="ms-auto font-display text-base font-semibold tabular-nums">{price(order.total)}</span>
+        <Link
+          href={`/order/${order.id}`}
+          transitionTypes={["nav-forward"]}
+          className="inline-flex items-center gap-1 text-sm font-medium text-accent-ink hover:underline"
+        >
+          {m.profile.fullTracking} <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />
+        </Link>
+      </div>
+
+      <div className="border-t border-line bg-surface/50 px-5 py-4">
+        <div className="flex items-center gap-1.5" aria-hidden>
+          {order.events.map((ev, i) => (
+            <span key={i} className="flex flex-1 items-center gap-1.5 last:flex-none">
+              <span className={cn("grid h-5 w-5 shrink-0 place-items-center rounded-full", ev.at ? "bg-foreground text-background" : "border border-line bg-background text-faint")}>
+                {ev.at ? <Check size={10} /> : <span className="h-1 w-1 rounded-full bg-current" />}
+              </span>
+              {i < order.events.length - 1 && <span className={cn("h-px flex-1", ev.at ? "bg-foreground" : "bg-line")} />}
+            </span>
+          ))}
+        </div>
+        <div className="mt-2 flex items-center justify-between text-[11px] text-faint">
+          <span>{trkL[order.events[Math.max(0, doneCount - 1)].label] ?? ""}</span>
+          {order.status !== "delivered" && <span>{m.profile.deliveryEstimated.replace("{date}", fmtDay(eta))}</span>}
+        </div>
+
+        <button
+          onClick={() => setOpen((o) => !o)}
+          aria-expanded={open}
+          className="mt-3 inline-flex cursor-pointer items-center gap-1 text-xs font-medium text-muted transition-colors hover:text-foreground"
+        >
+          {m.profile.tracking}
+          <ChevronDown size={13} className={cn("transition-transform duration-300", open && "rotate-180")} aria-hidden />
+        </button>
+        <AnimatePresence initial={false}>
+          {open && (
+            <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }} className="overflow-hidden">
+              <ol className="mt-3 space-y-2.5 border-t border-line pt-3">
+                {order.events.map((ev, i) => (
+                  <li key={i} className={cn("flex items-baseline justify-between gap-3 text-xs", !ev.at && "opacity-50")}>
+                    <span>
+                      <span className="font-medium">{trkL[ev.label] ?? ev.label}</span>
+                      <span className="text-faint"> — {trkD[ev.detail] ?? ev.detail}</span>
+                    </span>
+                    <span className="shrink-0 text-faint tabular-nums" dir="ltr">{ev.at ? fmtDay(ev.at) : m.profile.pending}</span>
+                  </li>
+                ))}
+              </ol>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </article>
+  );
+}
+
+function SettingsForm({
+  name,
+  email,
+  phone,
+  address,
+  m,
+  onSave,
+}: {
+  name: string;
+  email: string;
+  phone: string;
+  address?: Address;
+  m: ReturnType<typeof useI18n>["m"];
+  onSave: (patch: { name?: string; phone?: string; address?: Address }) => void;
+}) {
+  const { locale } = useI18n();
+  const [displayName, setDisplayName] = useState(name);
+  const [phoneVal, setPhoneVal] = useState(phone);
+  const [addr, setAddr] = useState<Address>(
+    address ?? { fullName: name, line1: "", city: "", postcode: "", country: "Algérie", wilaya: "16" },
+  );
+  const set = (k: keyof Address) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setAddr((a) => ({ ...a, [k]: e.target.value }));
+
+  return (
+    <form
+      className="grid max-w-2xl gap-6"
+      onSubmit={(e) => {
+        e.preventDefault();
+        onSave({ name: displayName.trim() || name, phone: phoneVal, address: addr });
+      }}
+    >
+      <section className="rounded-card border border-line bg-background p-6">
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+          <User size={16} className="text-accent-ink" aria-hidden /> {m.profile.accountSection}
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Input label={m.profile.displayName} value={displayName} onChange={(e) => setDisplayName(e.target.value)} />
+          <Input label={m.auth.email} value={email} readOnly className="opacity-60" dir="ltr" />
+          <Input label={`${m.profile.phone} · ${m.profile.optional}`} value={phoneVal} onChange={(e) => setPhoneVal(e.target.value)} placeholder="0550 00 00 00" dir="ltr" />
+        </div>
+      </section>
+
+      <section className="rounded-card border border-line bg-background p-6">
+        <h2 className="flex items-center gap-2 font-display text-lg font-semibold">
+          <MapPin size={16} className="text-accent-ink" aria-hidden /> {m.profile.defaultAddress}
+        </h2>
+        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+          <Input label={m.profile.fullName} value={addr.fullName} onChange={set("fullName")} className="sm:col-span-2" />
+          <Input label={m.profile.address} value={addr.line1} onChange={set("line1")} placeholder={m.profile.addressPlaceholder} className="sm:col-span-2" />
+          <Input label={m.profile.city} value={addr.city} onChange={set("city")} />
+          <Input label={m.profile.postcode} value={addr.postcode} onChange={set("postcode")} dir="ltr" />
+          <Select label={m.profile.wilaya} name="wilaya" value={addr.wilaya ?? "16"} onChange={set("wilaya")} className="sm:col-span-2">
+            {WILAYAS.map((w) => (
+              <option key={w.code} value={w.code}>
+                {w.code} — {locale === "ar" ? w.ar : w.fr}
+              </option>
+            ))}
+          </Select>
+        </div>
+      </section>
+
+      <div>
+        <Button type="submit" size="lg">{m.profile.saveChanges}</Button>
+        <p className="mt-2 text-[11px] text-faint">{m.profile.storedLocally}</p>
+      </div>
+    </form>
+  );
+}
+
+function EmptyState({ Icon, title, desc, children }: { Icon: typeof Heart; title: string; desc: string; children: React.ReactNode }) {
+  return (
+    <div className="rounded-card border border-dashed border-line bg-surface/40 px-6 py-16 text-center">
+      <span className="mx-auto grid h-14 w-14 place-items-center rounded-full bg-accent-soft text-accent-ink">
+        <Icon size={22} aria-hidden />
+      </span>
+      <h2 className="mt-4 font-display text-lg font-semibold">{title}</h2>
+      <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted">{desc}</p>
+      <div className="mt-6">{children}</div>
+    </div>
   );
 }

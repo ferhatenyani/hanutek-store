@@ -33,7 +33,7 @@ export function MenuSheet({ open, onClose }: { open: boolean; onClose: () => voi
               h
             </span>
             <span className="font-display text-lg font-bold">
-              hanutek<span className="text-volt">.</span>
+              hanutek<span className="text-accent">.</span>
             </span>
           </Link>
           <button

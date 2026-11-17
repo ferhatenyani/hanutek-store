@@ -28,7 +28,7 @@ export function Rating({
   return (
     <span className={cn("inline-flex items-center gap-1.5", className)} role="img" aria-label={`${value.toFixed(1)} / 5`}>
       <span className="relative inline-flex leading-none" aria-hidden>
-        <span className="text-line">{row(false)}</span>
+        <span className="text-faint">{row(false)}</span>
         <span className="absolute inset-0 overflow-hidden text-foreground" style={{ width: `${pct}%` }}>
           {row(true)}
         </span>

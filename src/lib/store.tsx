@@ -6,6 +6,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
@@ -31,6 +32,8 @@ export interface Address {
   city: string;
   postcode: string;
   country: string;
+  wilaya?: string;
+  phone?: string;
 }
 
 export interface User {
@@ -136,10 +139,12 @@ function seedOrders(): Order[] {
   };
   const address: Address = {
     fullName: "Demo Driver",
-    line1: "12 Rue de la Route",
-    city: "Lyon",
-    postcode: "69002",
-    country: "France",
+    line1: "12 Rue Didouche Mourad",
+    city: "Alger Centre",
+    postcode: "16000",
+    country: "Algérie",
+    wilaya: "16",
+    phone: "0550 00 00 00",
   };
   const p3 = getProduct("gripdash-phone-mount")!;
   const p12 = getProduct("sportgrip-wheel-cover")!;
@@ -159,11 +164,11 @@ function seedOrders(): Order[] {
         },
       ],
       [
-        { label: "Order placed", detail: "Payment confirmed", at: daysAgo(3, 9) },
-        { label: "Packed", detail: "Hanutek warehouse, Lyon", at: daysAgo(2, 14) },
-        { label: "Shipped", detail: "Carrier: Colissimo · track HT251904FR", at: daysAgo(1, 8) },
-        { label: "Out for delivery", detail: "Local depot", at: null },
-        { label: "Delivered", detail: "Signature on receipt", at: null },
+        { label: "placed", detail: "paymentConfirmed", at: daysAgo(3, 9) },
+        { label: "packed", detail: "warehouse", at: daysAgo(2, 14) },
+        { label: "shipped", detail: "carrier", at: daysAgo(1, 8) },
+        { label: "out", detail: "depot", at: null },
+        { label: "delivered", detail: "signature", at: null },
       ],
       address,
     ),
@@ -189,11 +194,11 @@ function seedOrders(): Order[] {
         },
       ],
       [
-        { label: "Order placed", detail: "Payment confirmed", at: daysAgo(18, 11) },
-        { label: "Packed", detail: "Hanutek warehouse, Lyon", at: daysAgo(17, 15) },
-        { label: "Shipped", detail: "Carrier: Colissimo · track HT248173FR", at: daysAgo(16, 9) },
-        { label: "Out for delivery", detail: "Local depot", at: daysAgo(14, 8) },
-        { label: "Delivered", detail: "Left with recipient", at: daysAgo(14, 13) },
+        { label: "placed", detail: "paymentConfirmed", at: daysAgo(18, 11) },
+        { label: "packed", detail: "warehouse", at: daysAgo(17, 15) },
+        { label: "shipped", detail: "carrier", at: daysAgo(16, 9) },
+        { label: "out", detail: "depot", at: daysAgo(14, 8) },
+        { label: "delivered", detail: "leftRecipient", at: daysAgo(14, 13) },
       ],
       address,
     ),
@@ -217,6 +222,9 @@ export const promoDiscountRate = (promo: string | null) => (promo ? PROMO_RATE :
 export function StoreProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<StoreState>(EMPTY);
   const [ready, setReady] = useState(false);
+  // Skip the first persist after hydration so StrictMode's double-mount can't
+  // overwrite saved storage with the initial EMPTY state before it loads.
+  const skipPersist = useRef(true);
 
   useEffect(() => {
     try {
@@ -239,6 +247,10 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (!ready) return;
+    if (skipPersist.current) {
+      skipPersist.current = false;
+      return;
+    }
     try {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
     } catch {
@@ -355,11 +367,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         total: Math.max(0, base.subtotal - discountAmount + shipping),
         status: "processing",
         events: [
-          { label: "Order placed", detail: "Payment confirmed", at: new Date().toISOString() },
-          { label: "Packed", detail: "Hanutek warehouse, Lyon", at: null },
-          { label: "Shipped", detail: "Carrier assignment pending", at: null },
-          { label: "Out for delivery", detail: "Local depot", at: null },
-          { label: "Delivered", detail: "Signature on receipt", at: null },
+          { label: "placed", detail: "paymentConfirmed", at: new Date().toISOString() },
+          { label: "packed", detail: "warehouse", at: null },
+          { label: "shipped", detail: "carrierPending", at: null },
+          { label: "out", detail: "depot", at: null },
+          { label: "delivered", detail: "signature", at: null },
         ],
         address,
         payment,

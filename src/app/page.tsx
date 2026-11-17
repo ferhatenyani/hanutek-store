@@ -1,12 +1,20 @@
+"use client";
+
+import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, ArrowUpRight, Lock, PackageCheck, RotateCcw, ShieldCheck, Truck } from "lucide-react";
-import { categories, products, productsInCategory, variantPrice } from "@/lib/products";
-import { formatPrice } from "@/lib/utils";
-import { buttonClasses, SectionHead, Badge } from "@/components/ui/primitives";
+import {
+  ArrowRight,
+  Headphones,
+  RotateCcw,
+  ShieldCheck,
+  Star,
+  Truck,
+} from "lucide-react";
+import { products, variantPrice } from "@/lib/products";
+import { useI18n } from "@/i18n";
+import { buttonClasses, Badge } from "@/components/ui/primitives";
 import { BlurFade } from "@/components/ui/blur-fade";
-import { TextAnimate } from "@/components/ui/text-animate";
-import { Marquee } from "@/components/ui/marquee";
 import { Shimmer } from "@/components/ui/shimmer";
 import { BorderBeam } from "@/components/ui/border-beam";
 import { ProductCard } from "@/components/product-card";
@@ -28,178 +36,200 @@ const newArrivals = (() => {
   return [...fresh, ...fill].slice(0, 4);
 })();
 
-const trust = [
-  { icon: Truck, label: "Free shipping over €50" },
-  { icon: ShieldCheck, label: "2-year warranty" },
-  { icon: RotateCcw, label: "30-day returns" },
-  { icon: Lock, label: "Secure checkout" },
-  { icon: PackageCheck, label: "Ships within 24 h" },
-];
+const trustIcons = [Truck, ShieldCheck, RotateCcw, Headphones];
+
+function ViewAll({ href }: { href: string }) {
+  const { t } = useI18n();
+  return (
+    <Link
+      href={href}
+      transitionTypes={["nav-forward"]}
+      className="group inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-accent-ink transition-colors duration-200 hover:border-foreground/25 hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt/60"
+    >
+      {t("home.viewAll")}
+      <ArrowRight size={14} className="transition-transform duration-200 group-hover:translate-x-0.5 rtl:-scale-x-100 rtl:group-hover:-translate-x-0.5" />
+    </Link>
+  );
+}
+
+function SectionIntro({
+  eyebrow,
+  title,
+  sub,
+  action,
+}: {
+  eyebrow: string;
+  title: string;
+  sub?: string;
+  action?: ReactNode;
+}) {
+  return (
+    <div className="mb-8 flex flex-wrap items-end justify-between gap-x-6 gap-y-4 md:mb-10">
+      <div className="max-w-xl">
+        <p className="mb-2.5 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.18em] text-accent-ink rtl:tracking-normal">
+          <span className="h-1.5 w-1.5 rounded-[2px] bg-volt" aria-hidden />
+          {eyebrow}
+        </p>
+        <h2 className="text-balance text-2xl font-bold tracking-tight md:text-[30px] rtl:tracking-normal">{title}</h2>
+        {sub && <p className="mt-2 text-sm leading-relaxed text-muted">{sub}</p>}
+      </div>
+      {action}
+    </div>
+  );
+}
 
 export default function HomePage() {
+  const { t, m, price } = useI18n();
+  const heroMsg = m.products[hero.slug as keyof typeof m.products];
+
   return (
     <NavTransition>
       {/* ---------- Hero ---------- */}
-      <section className="mx-auto grid max-w-6xl items-center gap-10 px-4 pt-10 pb-12 md:grid-cols-[1.05fr_1fr] md:gap-14 md:px-6 md:pt-16 md:pb-20">
-        <div>
-          <BlurFade duration={0.5}>
-            <p className="mb-5 flex items-center gap-2.5 font-mono text-[11px] tracking-[0.2em] text-accent-ink uppercase">
-              <span className="h-2 w-2 rounded-[2px] bg-volt" aria-hidden />
-              Automotive gear, considered
-            </p>
-          </BlurFade>
-          <TextAnimate
-            as="h1"
-            by="word"
-            animation="blurInUp"
-            duration={0.5}
-            className="text-[42px] leading-[1.02] font-bold tracking-[-0.03em] text-balance md:text-[62px]"
-          >
-            Gear that earns its place in your car.
-          </TextAnimate>
-          <BlurFade delay={0.25} duration={0.5}>
-            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-muted">
-              Dash cams, jump starters, mounts and detailing tools — picked for build quality, tested on real roads, and
-              nothing you don&apos;t need.
-            </p>
-          </BlurFade>
-          <BlurFade delay={0.35} duration={0.5}>
-            <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-              <Link
-                href="/products"
-                transitionTypes={["nav-forward"]}
-                className={buttonClasses("primary", "lg", "relative z-0 w-full overflow-hidden sm:w-auto")}
-              >
-                <span className="relative z-10 flex items-center gap-2">
-                  Shop all products <ArrowRight size={16} />
-                </span>
-                <Shimmer color="#ffffff" background="var(--accent)" duration="3.2s" />
+      <section className="relative overflow-hidden bg-foreground text-background">
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0 opacity-[0.05]"
+          style={{
+            backgroundImage:
+              "linear-gradient(rgba(212,236,36,0.7) 1px, transparent 1px), linear-gradient(90deg, rgba(212,236,36,0.7) 1px, transparent 1px)",
+            backgroundSize: "46px 46px",
+          }}
+        />
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-0"
+          style={{ background: "radial-gradient(760px circle at 84% 8%, rgba(212,236,36,0.16), transparent 62%)" }}
+        />
+        <div className="relative mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-20">
+          {/* headline band */}
+          <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
+            <div className="max-w-2xl">
+              <BlurFade duration={0.5}>
+                <p className="mb-5 inline-flex items-center gap-2.5 rounded-full border border-volt/30 bg-volt/10 px-3.5 py-1.5 font-mono text-[11px] uppercase tracking-[0.18em] text-volt rtl:tracking-normal">
+                  <span className="h-1.5 w-1.5 rounded-full bg-volt" aria-hidden />
+                  {m.home.heroEyebrow}
+                </p>
+              </BlurFade>
+              <BlurFade duration={0.55}>
+                <h1 className="text-balance text-[42px] font-bold leading-[1.03] tracking-[-0.03em] md:text-[68px] rtl:tracking-normal">
+                  <span className="block text-background">{m.home.heroTitleA}</span>
+                  <span className="block text-volt">{m.home.heroTitleB}</span>
+                </h1>
+              </BlurFade>
+              <BlurFade delay={0.2} duration={0.5}>
+                <p className="mt-5 max-w-md text-[15px] leading-relaxed text-background/70">{m.home.heroBody}</p>
+              </BlurFade>
+            </div>
+            <BlurFade delay={0.3} duration={0.5} className="flex flex-col gap-3 sm:flex-row lg:w-60 lg:flex-col">
+              <Link href="/products" transitionTypes={["nav-forward"]} className={buttonClasses("volt", "lg", "w-full")}>
+                {m.home.heroCtaPrimary} <ArrowRight size={16} className="rtl:-scale-x-100" />
               </Link>
-              <a href="#categories" className={buttonClasses("outline", "lg", "w-full sm:w-auto")}>
-                Browse categories
+              <a
+                href="#best"
+                className="inline-flex h-12 w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-background/25 px-6 text-[15px] font-semibold text-background transition-colors duration-150 hover:bg-background/10 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt/60"
+              >
+                {m.home.heroCtaSecondary}
               </a>
+            </BlurFade>
+          </div>
+
+          {/* product stage */}
+          <BlurFade delay={0.25} duration={0.6}>
+            <div className="mt-10 overflow-hidden rounded-[24px] border border-background/12 bg-background/[0.04] md:mt-12">
+              <div className="grid md:grid-cols-[1.35fr_1fr]">
+                <div className="relative aspect-[16/11] md:aspect-auto md:min-h-[360px]">
+                  <Image
+                    src={hero.image}
+                    alt={hero.name}
+                    fill
+                    priority
+                    sizes="(min-width: 768px) 58vw, 92vw"
+                    className="object-cover"
+                  />
+                  <span className="absolute top-4 start-4 rounded-full bg-foreground/85 px-3 py-1.5 font-mono text-[11px] font-bold text-volt backdrop-blur" dir="ltr">
+                    {heroMsg.specs[0][1]}
+                  </span>
+                  <span className="absolute bottom-4 end-4 rounded-full bg-volt px-3 py-1.5 font-mono text-[11px] font-bold text-foreground" dir="ltr">
+                    {heroMsg.specs[3][1]}
+                  </span>
+                </div>
+                <div className="flex flex-col justify-center gap-4 border-t border-background/12 p-6 md:border-s md:border-t-0 md:p-8">
+                  <div>
+                    <Badge tone="volt">{m.categories[hero.category].name}</Badge>
+                  </div>
+                  <div>
+                    <h2 className="text-xl font-bold tracking-tight rtl:tracking-normal">{hero.name}</h2>
+                    <p className="mt-1.5 text-sm leading-relaxed text-background/70">{heroMsg.short}</p>
+                  </div>
+                  <div className="flex items-center gap-2 font-mono text-xs">
+                    <Star size={13} className="fill-volt text-volt" aria-hidden />
+                    <span dir="ltr" className="font-semibold text-background">{hero.rating}</span>
+                    <span dir="ltr" className="text-background/60">({hero.reviews})</span>
+                  </div>
+                  <div className="mt-1 font-mono text-[28px] font-bold leading-none text-volt" dir="ltr">
+                    {price(variantPrice(hero, hero.variants[0].id))}
+                  </div>
+                  <Link
+                    href={`/products/${hero.slug}`}
+                    transitionTypes={["nav-forward"]}
+                    className="inline-flex h-11 w-full cursor-pointer items-center justify-center gap-2 rounded-control border border-background/25 bg-background/5 px-5 text-sm font-semibold text-background transition-colors duration-150 hover:bg-background/12 active:scale-[0.97] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt/60"
+                  >
+                    {m.home.spotCta} <ArrowRight size={15} className="rtl:-scale-x-100" />
+                  </Link>
+                </div>
+              </div>
             </div>
           </BlurFade>
-          <BlurFade delay={0.45} duration={0.5}>
-            <div className="mt-9 flex flex-wrap gap-x-3 gap-y-2 font-mono text-[10px] tracking-wide text-faint">
-              <span>{products.length} road-tested products</span>
-              <span>{categories.length} categories</span>
-              <span>2-year warranty</span>
+
+          {/* stat strip */}
+          <BlurFade delay={0.35} duration={0.5}>
+            <div className="mt-7 flex flex-wrap items-center gap-x-5 gap-y-2 font-mono text-[11px] text-background/60">
+              <span className="inline-flex items-center gap-1.5">
+                <Star size={12} className="fill-volt text-volt" aria-hidden />
+                {m.home.heroRating}
+              </span>
+              <span className="h-1 w-1 rounded-full bg-volt/60" aria-hidden />
+              <span>{t("listing.resultsCount", { n: products.length })}</span>
+              <span className="h-1 w-1 rounded-full bg-volt/60" aria-hidden />
+              <span>{m.home.trust[0].title}</span>
             </div>
           </BlurFade>
         </div>
-
-        <BlurFade delay={0.2} duration={0.6} className="relative">
-          <div className="relative overflow-hidden rounded-[22px] bg-volt p-3.5 md:p-7">
-            <div className="relative overflow-hidden rounded-xl">
-              <div className="relative aspect-[4/3]">
-                <Image
-                  src={hero.image}
-                  alt={hero.name}
-                  fill
-                  priority
-                  sizes="(min-width: 768px) 50vw, 100vw"
-                  className="object-cover object-top"
-                />
-              </div>
-              <div className="absolute top-3 left-3">
-                <Badge tone="dark">Featured</Badge>
-              </div>
-            </div>
-            <Link
-              href={`/products/${hero.slug}`}
-              transitionTypes={["nav-forward"]}
-              className="mt-4 flex items-center justify-between gap-4 rounded-xl bg-accent px-4 py-3 text-background transition-transform duration-300 hover:-translate-y-0.5"
-            >
-              <span>
-                <span className="block text-sm font-medium">{hero.name}</span>
-                <span className="mt-0.5 block font-mono text-xs text-background/70">
-                  from {formatPrice(variantPrice(hero, hero.variants[0].id))}
-                </span>
-              </span>
-              <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-volt text-accent">
-                <ArrowUpRight size={15} />
-              </span>
-            </Link>
-            <p className="mt-3 text-center font-mono text-[10px] tracking-[0.22em] text-accent/70 uppercase">
-              Road-tested · 2-year warranty
-            </p>
-          </div>
-        </BlurFade>
       </section>
 
-      {/* ---------- Trust marquee ---------- */}
-      <section className="bg-volt py-1" aria-label="Store promises">
-        <Marquee
-          pauseOnHover
-          className="[--duration:36s] [--gap:3rem] [mask-image:linear-gradient(to_right,transparent,black_6%,black_94%,transparent)]"
-        >
-          {trust.map((t) => (
-            <span key={t.label} className="flex items-center gap-2.5 px-2 text-sm font-medium text-accent">
-              <t.icon size={16} />
-              {t.label}
-            </span>
-          ))}
-        </Marquee>
-      </section>
-
-      {/* ---------- Categories ---------- */}
-      <section id="categories" className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-24">
-        <BlurFade inView>
-          <SectionHead eyebrow="Browse" title="Shop by category" />
-        </BlurFade>
-        <div className="grid grid-cols-2 gap-4 md:grid-cols-4 md:gap-5">
-          {categories.map((c, i) => (
-            <BlurFade key={c.slug} inView delay={i * 0.08}>
-              <Link
-                href={`/products?category=${c.slug}`}
-                transitionTypes={["nav-forward"]}
-                className="group block overflow-hidden rounded-card border border-line bg-background transition-colors duration-300 hover:border-foreground/25"
-              >
-                <div className="relative aspect-[4/3] overflow-hidden bg-surface">
-                  <Image
-                    src={c.image}
-                    alt={c.name}
-                    fill
-                    sizes="(min-width: 768px) 25vw, 50vw"
-                    className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.05]"
-                  />
+      {/* ---------- Trust ---------- */}
+      <section className="border-y border-line bg-surface/60" aria-label={m.home.whyTitle}>
+        <div className="mx-auto grid max-w-6xl grid-cols-2 gap-x-5 gap-y-7 px-4 py-9 md:grid-cols-4 md:px-6 md:py-11">
+          {m.home.trust.map((item, i) => {
+            const Icon = trustIcons[i] ?? Truck;
+            return (
+              <BlurFade key={item.title} inView delay={i * 0.06}>
+                <div className="flex items-start gap-3">
+                  <span className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-volt-soft text-accent-ink">
+                    <Icon size={18} aria-hidden />
+                  </span>
+                  <span className="min-w-0">
+                    <span className="block text-sm font-semibold">{item.title}</span>
+                    <span className="mt-0.5 block text-xs leading-relaxed text-muted">{item.body}</span>
+                  </span>
                 </div>
-                <div className="p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="text-sm font-semibold">{c.name}</h3>
-                    <ArrowUpRight
-                      size={15}
-                      className="shrink-0 text-faint transition-all duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-accent-ink"
-                    />
-                  </div>
-                  <p className="mt-1 line-clamp-2 text-xs leading-relaxed text-muted">{c.tagline}</p>
-                  <p className="mt-2 font-mono text-[10px] text-faint">{productsInCategory(c.slug).length} products</p>
-                </div>
-              </Link>
-            </BlurFade>
-          ))}
+              </BlurFade>
+            );
+          })}
         </div>
       </section>
 
       {/* ---------- Best sellers ---------- */}
-      <section className="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
+      <section id="best" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-16 md:px-6 md:py-24">
         <BlurFade inView>
-          <SectionHead
-            eyebrow="Curated"
-            title="Best sellers"
-            action={
-              <Link
-                href="/products"
-                transitionTypes={["nav-forward"]}
-                className="flex shrink-0 items-center gap-1 text-sm font-medium text-accent-ink transition-colors hover:text-accent"
-              >
-                View all <ArrowRight size={14} />
-              </Link>
-            }
+          <SectionIntro
+            eyebrow={t("common.bestSeller")}
+            title={m.home.bestTitle}
+            sub={m.home.bestSub}
+            action={<ViewAll href="/products" />}
           />
         </BlurFade>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-5">
+        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-5 lg:grid-cols-4">
           {bestSellers.map((p, i) => (
             <ProductCard key={p.slug} product={p} index={i} />
           ))}
@@ -216,27 +246,33 @@ export default function HomePage() {
               style={{ background: "radial-gradient(600px circle at 85% 20%, rgba(212,236,36,0.28), transparent 65%)" }}
               aria-hidden
             />
-            <div className="relative grid items-center gap-8 p-8 md:grid-cols-2 md:p-12">
+            <div className="relative grid items-center gap-8 p-7 md:grid-cols-2 md:p-12">
               <div>
-                <p className="mb-3 font-mono text-[11px] tracking-[0.2em] text-volt uppercase">
-                  Spotlight · Power & Diagnostics
+                <p className="mb-3 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-volt rtl:tracking-normal">
+                  <span className="h-1.5 w-1.5 rounded-[2px] bg-volt" aria-hidden />
+                  {m.home.spotEyebrow}
                 </p>
-                <h2 className="text-3xl font-semibold tracking-tight text-balance md:text-4xl">
-                  Never get stranded again.
+                <h2 className="text-balance text-3xl font-bold tracking-tight md:text-4xl rtl:tracking-normal">
+                  {m.categories[spotlight.category].tagline}
                 </h2>
-                <p className="mt-4 max-w-md text-sm leading-relaxed text-background/70">
-                  {spotlight.short} {spotlight.description.split(". ")[1] ?? ""}
-                </p>
-                <div className="mt-7 flex flex-wrap items-center gap-4">
+                <p className="mt-4 max-w-md text-sm leading-relaxed text-background/70">{m.home.spotBody}</p>
+                <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1.5">
+                  <span className="text-sm font-semibold">{spotlight.name}</span>
+                  <span className="inline-flex items-center gap-1 font-mono text-xs text-background/70">
+                    <Star size={12} className="fill-volt text-volt" aria-hidden />
+                    <span dir="ltr">{spotlight.rating}</span>
+                  </span>
+                </div>
+                <div className="mt-6 flex flex-wrap items-center gap-4">
                   <Link
                     href={`/products/${spotlight.slug}`}
                     transitionTypes={["nav-forward"]}
                     className={buttonClasses("volt", "lg")}
                   >
-                    Shop {spotlight.name.split(" ")[0]} <ArrowRight size={16} />
+                    {m.home.spotCta} <ArrowRight size={16} className="rtl:-scale-x-100" />
                   </Link>
-                  <span className="font-mono text-sm text-background/70">
-                    from {formatPrice(variantPrice(spotlight, spotlight.variants[0].id))}
+                  <span className="font-mono text-sm text-background/80" dir="ltr">
+                    {price(variantPrice(spotlight, spotlight.variants[0].id))}
                   </span>
                 </div>
               </div>
@@ -257,55 +293,57 @@ export default function HomePage() {
       </section>
 
       {/* ---------- New arrivals ---------- */}
-      <section className="mx-auto max-w-6xl px-4 pb-16 md:px-6 md:pb-24">
-        <BlurFade inView>
-          <SectionHead
-            eyebrow="Just landed"
-            title="New arrivals"
-            action={
-              <Link
-                href="/products"
-                transitionTypes={["nav-forward"]}
-                className="flex shrink-0 items-center gap-1 text-sm font-medium text-accent-ink transition-colors hover:text-accent"
-              >
-                View all <ArrowRight size={14} />
-              </Link>
-            }
-          />
-        </BlurFade>
-        <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-4 md:gap-x-5">
-          {newArrivals.map((p, i) => (
-            <ProductCard key={p.slug} product={p} index={i} morph={false} />
-          ))}
+      <section className="border-t border-line bg-surface/50">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-24">
+          <BlurFade inView>
+            <SectionIntro
+              eyebrow={t("common.new")}
+              title={m.home.newTitle}
+              sub={m.home.newSub}
+              action={<ViewAll href="/products" />}
+            />
+          </BlurFade>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-8 md:grid-cols-3 md:gap-x-5 lg:grid-cols-4">
+            {newArrivals.map((p, i) => (
+              <ProductCard key={p.slug} product={p} index={i} morph={false} />
+            ))}
+          </div>
         </div>
       </section>
 
       {/* ---------- Why hanutek ---------- */}
-      <section className="border-t border-line bg-surface/50">
-        <div className="mx-auto grid max-w-6xl gap-10 px-4 py-16 md:grid-cols-3 md:px-6 md:py-20">
-          {[
-            {
-              n: "01",
-              title: "Road-tested, not shelf-tested",
-              copy: "Every product spends a week in a real car before it earns a spot in the catalog. If it rattles, it's out.",
-            },
-            {
-              n: "02",
-              title: "Fit-first thinking",
-              copy: "Variants for sockets, sizes and kits — so what arrives is what fits your car, not a compromise.",
-            },
-            {
-              n: "03",
-              title: "Built to outlast the lease",
-              copy: "Two-year warranty on everything, 30-day returns, and spare parts that stay available.",
-            },
-          ].map((v, i) => (
-            <BlurFade key={v.n} inView delay={i * 0.1}>
-              <p className="font-mono text-xs text-accent-ink">{v.n}</p>
-              <h3 className="mt-3 text-base font-semibold tracking-tight">{v.title}</h3>
-              <p className="mt-2 text-sm leading-relaxed text-muted">{v.copy}</p>
-            </BlurFade>
-          ))}
+      <section className="border-t border-line">
+        <div className="mx-auto max-w-6xl px-4 py-16 md:px-6 md:py-20">
+          <BlurFade inView>
+            <h2 className="mb-10 text-balance text-2xl font-bold tracking-tight md:text-[30px] rtl:tracking-normal">
+              {m.home.whyTitle}
+            </h2>
+          </BlurFade>
+          <div className="grid gap-8 md:grid-cols-3 md:gap-10">
+            {m.home.why.map((v, i) => (
+              <BlurFade key={v.title} inView delay={i * 0.1}>
+                <div className="border-t-2 border-volt pt-5">
+                  <p className="font-mono text-xs text-accent-ink" dir="ltr">{String(i + 1).padStart(2, "0")}</p>
+                  <h3 className="mt-3 text-base font-semibold tracking-tight rtl:tracking-normal">{v.title}</h3>
+                  <p className="mt-2 text-sm leading-relaxed text-muted">{v.body}</p>
+                </div>
+              </BlurFade>
+            ))}
+          </div>
+          <BlurFade inView delay={0.2}>
+            <div className="mt-12 flex justify-center">
+              <Link
+                href="/products"
+                transitionTypes={["nav-forward"]}
+                className={buttonClasses("primary", "lg", "relative z-0 overflow-hidden")}
+              >
+                <span className="relative z-10 flex items-center gap-2">
+                  {m.home.heroCtaPrimary} <ArrowRight size={16} className="rtl:-scale-x-100" />
+                </span>
+                <Shimmer color="#ffffff" background="var(--accent)" duration="3.2s" />
+              </Link>
+            </div>
+          </BlurFade>
         </div>
       </section>
     </NavTransition>

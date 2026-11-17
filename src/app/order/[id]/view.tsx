@@ -1,233 +1,247 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
-import { motion } from "motion/react";
-import { Check, CheckCircle2, Clock, MapPin, Package, PackageCheck, Truck } from "lucide-react";
-import { useStore } from "@/lib/store";
-import { getProduct } from "@/lib/products";
-import { cn, formatDate, formatDateTime, formatPrice } from "@/lib/utils";
-import { buttonClasses, Badge } from "@/components/ui/primitives";
-import { BlurFade } from "@/components/ui/blur-fade";
+import { Check, CheckCircle2, ChevronRight, Clock, Loader2, MapPin, PackageCheck, Truck } from "lucide-react";
+import { useStore, type OrderStatus, type TrackingEvent } from "@/lib/store";
+import { useI18n } from "@/i18n/provider";
+import { WILAYAS } from "@/lib/wilayas";
+import { Button } from "@/components/ui/primitives";
 import { NavTransition } from "@/components/nav-transition";
-
-const STATUS_META = {
-  processing: { label: "Processing", tone: "accent" as const },
-  shipped: { label: "Shipped", tone: "accent" as const },
-  delivered: { label: "Delivered", tone: "success" as const },
-};
+import { BlurFade } from "@/components/ui/blur-fade";
+import { TextAnimate } from "@/components/ui/text-animate";
 
 export function OrderView() {
-  const { id } = useParams<{ id: string }>();
-  const isNew = useSearchParams().get("new") === "1";
+  const id = useParams().id as string;
   const { orders, ready } = useStore();
+  const { m, locale, price } = useI18n();
+  const justConfirmed = useSearchParams().get("confirmed") === "1";
   const order = orders.find((o) => o.id === id);
+
+  const fmt = (iso: string) =>
+    new Date(iso).toLocaleString(locale === "ar" ? "ar-DZ" : "fr-DZ", {
+      day: "numeric",
+      month: "short",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: locale === "ar" ? undefined : false,
+    });
+  const fmtDay = (iso: string) =>
+    new Date(iso).toLocaleDateString(locale === "ar" ? "ar-DZ" : "fr-DZ", { day: "numeric", month: "short" });
 
   if (!ready) {
     return (
-      <div className="mx-auto max-w-3xl px-4 py-24 md:px-6">
-        <div className="h-9 w-64 animate-pulse rounded-lg bg-surface" />
+      <div className="mx-auto max-w-3xl space-y-4 px-4 py-12 md:px-6">
+        <div className="h-8 w-64 animate-pulse rounded-lg bg-line/60" />
+        <div className="h-48 animate-pulse rounded-card bg-line/40" />
+        <div className="h-64 animate-pulse rounded-card bg-line/40" />
       </div>
     );
   }
 
   if (!order) {
     return (
-      <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-4 py-28 text-center md:px-6">
-        <Package size={28} className="text-faint" />
-        <h1 className="text-xl font-semibold">Order not found</h1>
-        <p className="text-sm text-muted">Orders live in this browser only — this one may have been placed elsewhere.</p>
-        <Link href="/products" transitionTypes={["nav-forward"]} className={buttonClasses("dark")}>
-          Browse products
-        </Link>
-      </div>
+      <NavTransition>
+        <div className="mx-auto max-w-md px-4 py-20 text-center md:px-6">
+          <TextAnimate as="h1" by="word" className="text-3xl font-semibold tracking-tight">
+            {m.order.notFoundTitle}
+          </TextAnimate>
+          <p className="mt-3 text-sm text-muted">{m.order.notFoundDesc}</p>
+          <Link href="/products" transitionTypes={["nav-forward"]} className="mt-7 inline-block">
+            <Button size="lg">{m.order.browseProducts}</Button>
+          </Link>
+        </div>
+      </NavTransition>
     );
   }
 
-  const placed = new Date(order.createdAt);
-  const future = [
-    {
-      label: "Out for delivery",
-      detail: "With the local courier",
-      at: new Date(placed.getTime() + 3 * 86400000).toISOString(),
-      icon: Truck,
-    },
-    {
-      label: "Delivered",
-      detail: "Estimated arrival",
-      at: new Date(placed.getTime() + 4 * 86400000).toISOString(),
-      icon: PackageCheck,
-    },
+  const statusMeta: Record<OrderStatus, { label: string; cls: string; Icon: typeof Truck }> = {
+    processing: { label: m.order.statusProcessing, cls: "bg-accent-soft text-accent-ink", Icon: Loader2 },
+    shipped: { label: m.order.statusShipped, cls: "bg-foreground text-background", Icon: Truck },
+    delivered: { label: m.order.statusDelivered, cls: "bg-foreground text-background", Icon: PackageCheck },
+  };
+  const meta = statusMeta[order.status];
+
+  const lastDoneAt = order.events.filter((e) => e.at).at(-1)?.at;
+  const future: TrackingEvent[] = [];
+  if (order.status !== "delivered" && lastDoneAt) {
+    const base = new Date(lastDoneAt).getTime();
+    const doneLabels = new Set(order.events.map((e) => e.label));
+    if (!doneLabels.has("out")) future.push({ label: "out", detail: "withCourier", at: new Date(base + 86400000).toISOString() });
+    if (!doneLabels.has("delivered")) future.push({ label: "delivered", detail: "estimatedArrival", at: new Date(base + 2 * 86400000).toISOString() });
+  }
+  const timeline: (TrackingEvent & { state: "done" | "next" | "pending" })[] = [
+    ...order.events.map((e) => ({ ...e, state: (e.at ? "done" : "pending") as "done" | "pending" })),
+    ...future.map((e, i) => ({ ...e, state: (i === 0 ? "next" : "pending") as "next" | "pending" })),
   ];
-  const doneIcons = [Check, Package, Truck];
-  const meta = STATUS_META[order.status];
+
+  const trkL = m.order.trkLabel as Record<string, string>;
+  const trkD = m.order.trkDetail as Record<string, string>;
+  const wilayaName = order.address.wilaya
+    ? WILAYAS.find((w) => w.code === order.address.wilaya)?.[locale === "ar" ? "ar" : "fr"]
+    : undefined;
+
+  const doneIcons = [Check, PackageCheck, Truck, Truck, CheckCircle2];
 
   return (
     <NavTransition>
       <div className="mx-auto max-w-3xl px-4 py-10 md:px-6 md:py-14">
-        <BlurFade duration={0.45}>
-          <div className="flex items-start gap-4">
-            <motion.span
-              initial={{ scale: 0.6, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              transition={{ type: "spring", stiffness: 260, damping: 18, delay: 0.1 }}
-              className="grid h-12 w-12 shrink-0 place-items-center rounded-full bg-success/10 text-success"
-            >
-              <CheckCircle2 size={24} />
-            </motion.span>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight md:text-3xl">
-                {isNew ? "Thanks — order confirmed" : "Order details"}
-              </h1>
-              <p className="mt-1 text-sm text-muted">
-                <span className="font-mono text-foreground">{order.id}</span> · placed {formatDateTime(order.createdAt)}
-              </p>
-              {isNew && (
-                <p className="mt-1 text-xs text-faint">
-                  A confirmation email would land in your inbox — this demo keeps everything in your browser.
-                </p>
-              )}
+        {justConfirmed && (
+          <BlurFade duration={0.5}>
+            <div className="mb-8 flex items-start gap-3.5 rounded-card bg-accent-soft p-5 text-accent-ink">
+              <CheckCircle2 size={22} className="mt-0.5 shrink-0" aria-hidden />
+              <div>
+                <p className="font-display text-lg font-semibold">{m.order.confirmedTitle}</p>
+                <p className="mt-1 text-sm opacity-80">{m.order.confirmationNote}</p>
+              </div>
             </div>
-            <span className="ml-auto">
-              <Badge tone={meta.tone}>{meta.label}</Badge>
+          </BlurFade>
+        )}
+
+        <BlurFade duration={0.5} delay={0.05}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <TextAnimate as="h1" by="word" className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
+                {justConfirmed ? m.order.confirmedTitle : m.order.detailsTitle}
+              </TextAnimate>
+              <p className="mt-1.5 text-sm text-muted">
+                <span className="font-medium text-foreground">{order.id}</span> · {m.order.placedOn} {fmt(order.createdAt)}
+              </p>
+            </div>
+            <span className={`inline-flex items-center gap-1.5 rounded-full px-3.5 py-1.5 text-xs font-semibold ${meta.cls}`}>
+              <meta.Icon size={13} className={order.status === "processing" ? "animate-spin" : ""} aria-hidden />
+              {meta.label}
             </span>
           </div>
         </BlurFade>
 
-        {/* Tracking */}
-        <BlurFade delay={0.15} className="mt-10">
-          <h2 className="mb-5 text-base font-semibold">Tracking</h2>
-          <ol className="relative space-y-0">
-            {order.events.map((ev, i) => {
-              const Icon = doneIcons[i] ?? Check;
-              const last = i === order.events.length - 1 && order.status !== "delivered";
-              return (
-                <li key={ev.label} className="relative flex gap-4 pb-8 last:pb-0">
-                  {i < order.events.length - 1 && (
-                    <span className="absolute top-9 left-[15px] h-[calc(100%-24px)] w-px bg-line" aria-hidden />
-                  )}
-                  <span
-                    className={cn(
-                      "relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border",
-                      last
-                        ? "border-accent bg-accent-soft text-accent-ink"
-                        : "border-success/30 bg-success/10 text-success",
-                    )}
-                  >
-                    <Icon size={14} />
-                    {last && (
-                      <span className="absolute inset-0 animate-ping rounded-full bg-accent/20" aria-hidden />
-                    )}
-                  </span>
-                  <div className="pt-1">
-                    <p className="text-sm font-medium">{ev.label}</p>
-                    <p className="text-xs text-muted">{ev.detail}</p>
-                    <p className="mt-0.5 font-mono text-[11px] text-faint">{ev.at ? formatDateTime(ev.at) : "Pending"}</p>
-                  </div>
-                </li>
-              );
-            })}
-            {order.status !== "delivered" &&
-              future.map((ev, i) => (
-                <li key={ev.label} className="relative flex gap-4 pb-8 last:pb-0">
-                  {i === 0 && <span className="absolute top-9 left-[15px] h-[calc(100%-24px)] w-px bg-line" aria-hidden />}
-                  <span className="relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border border-line bg-background text-faint">
-                    <ev.icon size={14} />
-                  </span>
-                  <div className="pt-1">
-                    <p className="text-sm font-medium text-muted">{ev.label}</p>
-                    <p className="text-xs text-faint">{ev.detail}</p>
-                    <p className="mt-0.5 flex items-center gap-1 font-mono text-[11px] text-faint">
-                      <Clock size={10} /> est. {formatDate(ev.at)}
-                    </p>
-                  </div>
-                </li>
-              ))}
-          </ol>
-        </BlurFade>
-
-        {/* Items */}
-        <BlurFade delay={0.2} className="mt-10">
-          <h2 className="mb-4 text-base font-semibold">Items</h2>
-          <ul className="divide-y divide-line border-y border-line">
-            {order.items.map((item) => {
-              const p = getProduct(item.productId);
-              return (
-                <li key={`${item.productId}-${item.variant}`} className="flex items-center gap-4 py-4">
-                  <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-lg border border-line bg-surface">
-                    <Image src={item.image} alt={item.name} fill sizes="56px" className="object-cover" />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    {p ? (
-                      <Link href={`/products/${p.slug}`} transitionTypes={["nav-forward"]} className="block truncate text-sm font-medium hover:underline">
-                        {item.name}
-                      </Link>
-                    ) : (
-                      <span className="block truncate text-sm font-medium">{item.name}</span>
-                    )}
-                    <span className="block text-xs text-muted">
-                      {item.variant} × {item.qty}
+        <BlurFade delay={0.15}>
+          <section className="mt-8 rounded-card border border-line bg-background p-6 md:p-7" aria-label={m.order.tracking}>
+            <h2 className="font-display text-lg font-semibold">{m.order.tracking}</h2>
+            <ol className="relative mt-6">
+              <span className="absolute start-[15px] top-4 bottom-8 w-px bg-line" aria-hidden />
+              {timeline.map((ev, i) => {
+                const Icon = doneIcons[Math.min(i, doneIcons.length - 1)];
+                return (
+                  <li key={`${ev.label}-${i}`} className="relative flex gap-4 pb-7 last:pb-0">
+                    <span
+                      className={`relative z-10 grid h-8 w-8 shrink-0 place-items-center rounded-full border ${
+                        ev.state === "done"
+                          ? "border-foreground bg-foreground text-background"
+                          : ev.state === "next"
+                            ? "border-foreground bg-background text-foreground"
+                            : "border-line bg-background text-faint"
+                      }`}
+                    >
+                      {ev.state === "next" ? (
+                        <span className="absolute inset-0 animate-ping rounded-full bg-foreground/15" aria-hidden />
+                      ) : null}
+                      <Icon size={14} aria-hidden />
                     </span>
-                  </span>
-                  <span className="font-mono text-sm">{formatPrice(item.price * item.qty)}</span>
-                </li>
-              );
-            })}
-          </ul>
-          <dl className="mt-4 space-y-2 text-sm">
-            <div className="flex justify-between">
-              <dt className="text-muted">Subtotal</dt>
-              <dd className="font-mono">{formatPrice(order.subtotal)}</dd>
-            </div>
-            {order.discount > 0 && (
-              <div className="flex justify-between text-success">
-                <dt>Discount</dt>
-                <dd className="font-mono">−{formatPrice(order.discount)}</dd>
+                    <div className={`ms-1 min-w-0 pt-1 ${ev.state === "pending" ? "opacity-55" : ""}`}>
+                      <p className="text-sm font-medium">{trkL[ev.label] ?? ev.label}</p>
+                      <p className="mt-0.5 text-xs text-muted">{trkD[ev.detail] ?? ev.detail}</p>
+                      <p className="mt-0.5 text-[11px] text-faint tabular-nums" dir="ltr">
+                        {ev.state === "done" && ev.at
+                          ? fmt(ev.at)
+                          : ev.state === "next" && ev.at
+                            ? m.order.est.replace("{date}", fmtDay(ev.at))
+                            : m.order.pending}
+                      </p>
+                    </div>
+                  </li>
+                );
+              })}
+            </ol>
+          </section>
+        </BlurFade>
+
+        <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px]">
+          <BlurFade delay={0.25}>
+            <section className="rounded-card border border-line bg-background p-6" aria-label={m.order.items}>
+              <h2 className="font-display text-lg font-semibold">{m.order.items}</h2>
+              <ul className="mt-4 divide-y divide-line">
+                {order.items.map((it) => (
+                  <li key={`${it.productId}-${it.variant}`} className="flex items-center gap-4 py-3.5">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={it.image} alt="" className="h-14 w-14 rounded-xl border border-line object-cover" />
+                    <div className="min-w-0 flex-1">
+                      <Link href={`/products/${it.productId}`} transitionTypes={["nav-forward"]} className="line-clamp-1 text-sm font-medium hover:text-accent-ink" dir="ltr">
+                        {it.name}
+                      </Link>
+                      <p className="text-xs text-faint">
+                        {it.variant} × {it.qty}
+                      </p>
+                    </div>
+                    <span className="text-sm font-semibold tabular-nums">{price(it.price * it.qty)}</span>
+                  </li>
+                ))}
+              </ul>
+              <dl className="mt-4 space-y-2 border-t border-line pt-4 text-sm">
+                <div className="flex justify-between text-muted">
+                  <dt>{m.order.subtotal}</dt>
+                  <dd className="tabular-nums text-foreground">{price(order.subtotal)}</dd>
+                </div>
+                {order.discount > 0 && (
+                  <div className="flex justify-between text-accent-ink">
+                    <dt>{m.order.discount}</dt>
+                    <dd className="tabular-nums">−{price(order.discount)}</dd>
+                  </div>
+                )}
+                <div className="flex justify-between text-muted">
+                  <dt>{m.order.shipping}</dt>
+                  <dd className="tabular-nums text-foreground">{order.shipping === 0 ? m.order.free : price(order.shipping)}</dd>
+                </div>
+                <div className="flex justify-between border-t border-line pt-3 text-base font-semibold">
+                  <dt>{m.order.total}</dt>
+                  <dd className="tabular-nums">{price(order.total)}</dd>
+                </div>
+              </dl>
+            </section>
+          </BlurFade>
+
+          <div className="space-y-6">
+            <BlurFade delay={0.3}>
+              <section className="rounded-card border border-line bg-background p-5 text-sm">
+                <h2 className="flex items-center gap-1.5 font-display font-semibold">
+                  <MapPin size={14} className="text-accent-ink" aria-hidden /> {m.order.shippingTo}
+                </h2>
+                <address className="mt-2.5 leading-relaxed text-muted not-italic">
+                  <span className="font-medium text-foreground">{order.address.fullName}</span>
+                  <br />
+                  {order.address.line1}
+                  <br />
+                  {order.address.postcode} {order.address.city}
+                  <br />
+                  {wilayaName ?? order.address.country}
+                </address>
+              </section>
+            </BlurFade>
+            <BlurFade delay={0.35}>
+              <section className="rounded-card border border-line bg-background p-5 text-sm">
+                <h2 className="font-display font-semibold">{m.order.payment}</h2>
+                <p className="mt-2 text-muted" dir="ltr">{order.payment}</p>
+                <p className="mt-1 flex items-center gap-1 text-[11px] text-faint">
+                  <Clock size={11} aria-hidden /> {m.order.mockTransaction}
+                </p>
+              </section>
+            </BlurFade>
+            <BlurFade delay={0.4}>
+              <div className="flex flex-col gap-2.5">
+                <Link href="/products" transitionTypes={["nav-forward"]}>
+                  <Button className="w-full gap-1.5">
+                    {m.order.continueShopping} <ChevronRight size={15} className="rtl:rotate-180" aria-hidden />
+                  </Button>
+                </Link>
+                <Link href="/profile" transitionTypes={["nav-forward"]}>
+                  <Button variant="outline" className="w-full">
+                    {m.order.viewAllOrders}
+                  </Button>
+                </Link>
               </div>
-            )}
-            <div className="flex justify-between">
-              <dt className="text-muted">Shipping</dt>
-              <dd className="font-mono">{order.shipping === 0 ? "Free" : formatPrice(order.shipping)}</dd>
-            </div>
-            <div className="flex justify-between border-t border-line pt-2 font-medium">
-              <dt>Total</dt>
-              <dd className="font-mono text-base">{formatPrice(order.total)}</dd>
-            </div>
-          </dl>
-        </BlurFade>
-
-        {/* Address */}
-        <BlurFade delay={0.25} className="mt-10 grid gap-6 sm:grid-cols-2">
-          <div className="rounded-card border border-line p-5">
-            <p className="flex items-center gap-2 text-xs font-medium text-muted">
-              <MapPin size={13} /> Shipping to
-            </p>
-            <p className="mt-2 text-sm leading-relaxed">
-              {order.address.fullName}
-              <br />
-              {order.address.line1}
-              <br />
-              {order.address.postcode} {order.address.city}
-              <br />
-              {order.address.country}
-            </p>
+            </BlurFade>
           </div>
-          <div className="rounded-card border border-line p-5">
-            <p className="text-xs font-medium text-muted">Payment</p>
-            <p className="mt-2 text-sm">{order.payment}</p>
-            <p className="mt-3 text-xs text-faint">Mock transaction — nothing was charged.</p>
-          </div>
-        </BlurFade>
-
-        <BlurFade delay={0.3} className="mt-10 flex flex-wrap gap-3">
-          <Link href="/products" transitionTypes={["nav-forward"]} className={buttonClasses("dark")}>
-            Continue shopping
-          </Link>
-          <Link href="/profile" transitionTypes={["nav-forward"]} className={buttonClasses("outline")}>
-            View all orders
-          </Link>
-        </BlurFade>
+        </div>
       </div>
     </NavTransition>
   );

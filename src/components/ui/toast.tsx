@@ -41,7 +41,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
               className="pointer-events-auto flex items-center gap-2.5 rounded-full bg-foreground py-2.5 pr-5 pl-3.5 text-sm text-background shadow-lg"
               role="status"
             >
-              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-success text-white">
+              <span className="flex h-5 w-5 items-center justify-center rounded-full bg-volt text-foreground">
                 <Check size={12} strokeWidth={3} />
               </span>
               {t.message}

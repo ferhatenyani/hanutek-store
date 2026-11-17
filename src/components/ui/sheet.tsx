@@ -1,11 +1,12 @@
 "use client";
 
-import { useEffect, type ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo, type TargetAndTransition } from "motion/react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useHydrated } from "@/lib/hooks";
+import { useI18n } from "@/i18n";
 
 export type SheetSide = "bottom" | "left" | "right";
 
@@ -71,19 +72,60 @@ export function Sheet({
   panelClassName,
 }: SheetProps) {
   const hydrated = useHydrated();
+  const { m } = useI18n();
   const cfg = motionBySide[side];
+  const panelRef = useRef<HTMLDivElement>(null);
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
 
   useEffect(() => {
     if (!open) return;
     const prev = document.body.style.overflow;
     document.body.style.overflow = "hidden";
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && onClose();
+    const prevFocus = document.activeElement as HTMLElement | null;
+    const focusables = () => {
+      const panel = panelRef.current;
+      if (!panel) return [] as HTMLElement[];
+      return Array.from(
+        panel.querySelectorAll<HTMLElement>(
+          'a[href], button:not([disabled]), input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((el) => el.offsetParent !== null);
+    };
+    const timer = setTimeout(() => {
+      const f = focusables();
+      (f[0] ?? panelRef.current)?.focus();
+    }, 60);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        onCloseRef.current();
+        return;
+      }
+      if (e.key === "Tab") {
+        const f = focusables();
+        if (f.length === 0) {
+          e.preventDefault();
+          return;
+        }
+        const first = f[0];
+        const last = f[f.length - 1];
+        if (e.shiftKey && document.activeElement === first) {
+          e.preventDefault();
+          last.focus();
+        } else if (!e.shiftKey && document.activeElement === last) {
+          e.preventDefault();
+          first.focus();
+        }
+      }
+    };
     window.addEventListener("keydown", onKey);
     return () => {
+      clearTimeout(timer);
       document.body.style.overflow = prev;
       window.removeEventListener("keydown", onKey);
+      prevFocus?.focus?.();
     };
-  }, [open, onClose]);
+  }, [open]);
 
   if (!hydrated) return null;
 
@@ -100,6 +142,8 @@ export function Sheet({
             onClick={onClose}
           />
           <motion.div
+            ref={panelRef}
+            tabIndex={-1}
             className={cn(panelBySide[side], panelClassName)}
             initial={cfg.initial}
             animate={{ x: 0, y: 0 }}
@@ -122,7 +166,7 @@ export function Sheet({
                 <button
                   type="button"
                   onClick={onClose}
-                  aria-label="Close"
+                  aria-label={m.common.close}
                   className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-full text-muted transition-colors hover:bg-surface hover:text-foreground"
                 >
                   <X size={17} />

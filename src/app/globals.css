@@ -6,7 +6,7 @@
   --surface: #ffffff;
   --foreground: #141814;
   --muted: #5b625b;
-  --faint: #9aa09a;
+  --faint: #646a64;
   --line: #e6e6df;
   --accent: #171a17;
   --accent-ink: #2a2e2a;
@@ -16,8 +16,8 @@
   --sale: #c93a3a;
   --sale-ink: #a82323;
   --sale-soft: #fbe9e7;
-  --success: #157a43;
-  --success-soft: #e6f4ec;
+  --success: #2a2e2a;
+  --success-soft: #f4f9d6;
   --danger: #c93a3a;
 
   --shadow-card: 0 1px 2px rgba(20, 24, 20, 0.04), 0 4px 16px rgba(20, 24, 20, 0.05);
@@ -168,6 +168,20 @@ h4 {
   animation:
     var(--duration-enter) ease-out var(--duration-exit) both vt-fade,
     var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide;
+}
+
+/* RTL: mirror the slide so "forward" enters from the left, "back" from the right */
+[dir="rtl"]::view-transition-old(.nav-forward) {
+  --slide-offset: 40px;
+}
+[dir="rtl"]::view-transition-new(.nav-forward) {
+  --slide-offset: -40px;
+}
+[dir="rtl"]::view-transition-old(.nav-back) {
+  --slide-offset: -40px;
+}
+[dir="rtl"]::view-transition-new(.nav-back) {
+  --slide-offset: 40px;
 }
 
 @keyframes vt-fade {

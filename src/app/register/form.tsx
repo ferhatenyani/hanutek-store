@@ -5,12 +5,14 @@ import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Eye, EyeOff, Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
+import { useI18n } from "@/i18n/provider";
 import { Button, Input } from "@/components/ui/primitives";
 import { AuthShell, MockNote } from "@/components/auth-shell";
 import { useToast } from "@/components/ui/toast";
 
 export function RegisterForm() {
   const { register } = useStore();
+  const { m } = useI18n();
   const router = useRouter();
   const next = useSearchParams().get("next") || "/profile";
   const toast = useToast();
@@ -25,57 +27,52 @@ export function RegisterForm() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (name.trim().length < 2) return setError("Enter your full name");
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError("Enter a valid email address");
-    if (password.length < 6) return setError("Password must be at least 6 characters");
-    if (!terms) return setError("Please accept the demo terms to continue");
+    if (name.trim().length < 2) return setError(m.auth.errName);
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) return setError(m.auth.errEmail);
+    if (password.length < 6) return setError(m.auth.errPasswordRegister);
+    if (!terms) return setError(m.auth.errTerms);
     setError("");
     setBusy(true);
     window.setTimeout(() => {
       register(name.trim(), email);
-      toast("Account created — welcome to hanutek");
+      toast(m.auth.accountCreatedToast);
       router.replace(next);
     }, 500);
   };
 
   return (
     <AuthShell
-      title="Create your account"
-      subtitle="One account for orders, tracking and faster checkout."
+      title={m.auth.registerTitle}
+      subtitle={m.auth.registerSubtitle}
       footer={
         <>
-          Already have an account?{" "}
+          {m.auth.haveAccount}{" "}
           <Link href="/login" transitionTypes={["nav-back"]} className="font-medium text-accent-ink hover:underline">
-            Sign in
+            {m.auth.loginCta}
           </Link>
         </>
       }
     >
       <form onSubmit={submit} className="space-y-4" noValidate>
+        <Input label={m.auth.name} value={name} onChange={(e) => setName(e.target.value)} placeholder={m.auth.namePlaceholder} autoComplete="name" />
+        <Input label={m.auth.email} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" dir="ltr" />
         <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">Full name</span>
-          <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="Alex Driver" autoComplete="name" />
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">Email</span>
-          <Input type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" />
-        </label>
-        <label className="block">
-          <span className="mb-1.5 block text-xs font-medium text-muted">Password</span>
+          <span className="mb-1.5 block text-xs font-medium text-muted">{m.auth.password}</span>
           <span className="relative block">
             <Input
               type={show ? "text" : "password"}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              placeholder="At least 6 characters"
+              placeholder={m.auth.passwordPlaceholderRegister}
               autoComplete="new-password"
-              className="pr-11"
+              dir="ltr"
+              className="pe-11"
             />
             <button
               type="button"
               onClick={() => setShow((s) => !s)}
-              aria-label={show ? "Hide password" : "Show password"}
-              className="absolute top-1/2 right-3 -translate-y-1/2 cursor-pointer text-faint transition-colors hover:text-foreground"
+              aria-label={show ? m.auth.hidePassword : m.auth.showPassword}
+              className="absolute top-1/2 end-3 -translate-y-1/2 cursor-pointer text-faint transition-colors hover:text-foreground"
             >
               {show ? <EyeOff size={16} /> : <Eye size={16} />}
             </button>
@@ -86,19 +83,17 @@ export function RegisterForm() {
             type="checkbox"
             checked={terms}
             onChange={(e) => setTerms(e.target.checked)}
-            className="mt-0.5 h-4 w-4 accent-[#0f71fa]"
+            className="mt-0.5 h-4 w-4 accent-foreground"
           />
-          <span>
-            I understand this is a frontend demo with mock data, and I agree to the imaginary terms of service.
-          </span>
+          <span>{m.auth.termsLabel}</span>
         </label>
         {error && <p className="text-xs text-danger">{error}</p>}
         <Button type="submit" size="lg" className="w-full gap-2" disabled={busy}>
           {busy ? <Loader2 size={16} className="animate-spin" /> : null}
-          {busy ? "Creating account…" : "Create account"}
+          {busy ? m.auth.creatingAccount : m.auth.registerCta}
         </Button>
       </form>
-      <MockNote>Demo registration — accounts are stored locally in your browser only.</MockNote>
+      <MockNote>{m.auth.registerMockNote}</MockNote>
     </AuthShell>
   );
 }

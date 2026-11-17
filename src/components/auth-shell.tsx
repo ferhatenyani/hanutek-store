@@ -19,7 +19,7 @@ export function AuthShell({
       <div className="mx-auto flex w-full max-w-md flex-col px-4 py-14 md:py-20">
         <BlurFade duration={0.45}>
           <div className="rounded-card border border-line bg-background p-7 shadow-sm md:p-9">
-            <Link href="/" transitionTypes={["nav-back"]} className="mb-7 flex items-center gap-2.5" aria-label="Hanutek home">
+            <Link href="/" transitionTypes={["nav-back"]} className="mb-7 flex items-center gap-2.5" aria-label="hanutek">
               <span className="grid h-9 w-9 place-items-center rounded-lg bg-foreground font-sans text-lg font-bold text-background">
                 h
               </span>
