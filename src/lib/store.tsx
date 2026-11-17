@@ -11,7 +11,6 @@ import {
   type ReactNode,
 } from "react";
 import {
-  FREE_SHIPPING_THRESHOLD,
   PROMO_CODE,
   PROMO_RATE,
   SHIPPING_FLAT,
@@ -120,7 +119,7 @@ function seedOrders(): Order[] {
     address: Address,
   ): Order => {
     const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-    const shipping = subtotal >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT;
+    const shipping = SHIPPING_FLAT;
     const done = events.filter((e) => e.at).length;
     const status: OrderStatus = done >= 5 ? "delivered" : done >= 3 ? "shipped" : "processing";
     return {
@@ -134,7 +133,7 @@ function seedOrders(): Order[] {
       status,
       events,
       address,
-      payment: "Visa ···· 4242",
+      payment: "Paiement à la livraison",
     };
   };
   const address: Address = {
@@ -212,7 +211,7 @@ export function cartTotals(items: CartItem[], discountRate = 0) {
     return sum + variantPrice(p, item.variantId) * item.qty;
   }, 0);
   const discount = Math.round(subtotal * discountRate * 100) / 100;
-  const shipping = subtotal === 0 || subtotal - discount >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT;
+  const shipping = subtotal === 0 ? 0 : SHIPPING_FLAT;
   const total = Math.max(0, subtotal - discount + shipping);
   return { subtotal, discount, shipping, total };
 }
@@ -354,9 +353,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       });
       const base = cartTotals(state.cart);
       const discountAmount = Math.min(discount, base.subtotal);
-      const shipping =
-        shippingOverride ??
-        (base.subtotal - discountAmount >= FREE_SHIPPING_THRESHOLD ? 0 : SHIPPING_FLAT);
+      const shipping = shippingOverride ?? (base.subtotal === 0 ? 0 : SHIPPING_FLAT);
       const order: Order = {
         id: `HT-${Math.floor(100000 + Math.random() * 900000)}`,
         createdAt: new Date().toISOString(),

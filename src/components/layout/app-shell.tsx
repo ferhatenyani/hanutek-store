@@ -7,18 +7,12 @@ import { ToastProvider } from "@/components/ui/toast";
 import { LocaleProvider } from "@/i18n";
 import { Header } from "./header";
 import { Footer } from "./footer";
-import { BottomNav } from "./bottom-nav";
+import { DockNav } from "./dock-nav";
 import { CartSheet } from "./cart-sheet";
-import { SearchSheet } from "./search-sheet";
-import { MenuSheet } from "./menu-sheet";
 
 interface SheetUI {
   cartOpen: boolean;
-  searchOpen: boolean;
-  menuOpen: boolean;
   openCart: () => void;
-  openSearch: () => void;
-  openMenu: () => void;
   closeAll: () => void;
 }
 
@@ -32,30 +26,10 @@ export function useSheetUI(): SheetUI {
 
 function Shell({ children }: { children: ReactNode }) {
   const [cartOpen, setCartOpen] = useState(false);
-  const [searchOpen, setSearchOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
-  const closeAll = () => {
-    setCartOpen(false);
-    setSearchOpen(false);
-    setMenuOpen(false);
-  };
   const ui: SheetUI = {
     cartOpen,
-    searchOpen,
-    menuOpen,
-    openCart: () => {
-      closeAll();
-      setCartOpen(true);
-    },
-    openSearch: () => {
-      closeAll();
-      setSearchOpen(true);
-    },
-    openMenu: () => {
-      closeAll();
-      setMenuOpen(true);
-    },
-    closeAll,
+    openCart: () => setCartOpen(true),
+    closeAll: () => setCartOpen(false),
   };
 
   return (
@@ -64,13 +38,11 @@ function Shell({ children }: { children: ReactNode }) {
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
-        {/* clearance so the floating dock never permanently covers the footer */}
-        <div aria-hidden className="h-24 md:hidden" />
-        <BottomNav />
+        {/* clearance so the floating dock never covers the footer (phones + tablets) */}
+        <div aria-hidden className="h-24 lg:hidden" />
+        <DockNav />
       </div>
       <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
-      <SearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} />
-      <MenuSheet open={menuOpen} onClose={() => setMenuOpen(false)} />
     </SheetUIContext.Provider>
   );
 }

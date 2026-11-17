@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { ArrowUp, AtSign, MapPin, Play } from "lucide-react";
+import { ArrowUp, AtSign, Banknote, MapPin, Play } from "lucide-react";
 import { useState, type FormEvent } from "react";
 import { categories } from "@/lib/products";
 import { useStore } from "@/lib/store";
 import { useI18n } from "@/i18n";
 import { useToast } from "@/components/ui/toast";
 import { useSheetUI } from "./app-shell";
+import { LocaleToggle } from "./header";
 
 export function Footer() {
   const toast = useToast();
@@ -25,10 +26,9 @@ export function Footer() {
     toast(f.subscribedToast);
   };
 
-  const linkCls = "text-background/70 transition-colors hover:text-volt";
+  const linkCls = "text-background/70 transition-colors duration-150 hover:text-volt";
   const headCls = "mb-4 font-mono text-[11px] tracking-[0.18em] text-volt uppercase";
-  const payMethods = f.paymentNote.split("\u00b7").map((s) => s.trim()).filter(Boolean);
-  const legal = [f.contact, f.faq, f.shipping, f.returns, f.terms, f.privacy];
+  const legal = [f.contact, f.faq, f.shipping, f.terms, f.privacy];
 
   return (
     <footer className="bg-accent pb-24 text-background md:pb-0">
@@ -36,7 +36,7 @@ export function Footer() {
         <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr_1.6fr]">
           {/* Brand */}
           <div>
-            <Link href="/" transitionTypes={["nav-forward"]} className="flex items-center gap-2">
+            <Link href="/" className="flex items-center gap-2">
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-volt font-mono text-sm text-accent">
                 h
               </span>
@@ -55,7 +55,7 @@ export function Footer() {
                   type="button"
                   aria-label={s.label}
                   onClick={() => toast(f.socialMock)}
-                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-background/20 bg-background/10 text-background/70 transition-colors hover:border-volt/60 hover:text-volt"
+                  className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-background/20 bg-background/10 text-background/70 transition-colors duration-150 hover:border-volt/60 hover:text-volt"
                 >
                   <s.icon size={16} />
                 </button>
@@ -64,6 +64,9 @@ export function Footer() {
             <p className="mt-5 inline-flex items-center gap-1.5 rounded-full border border-volt/30 bg-volt/10 px-3 py-1 text-xs text-volt">
               <MapPin size={13} /> {f.madeIn}
             </p>
+            <p className="mt-3 inline-flex items-center gap-1.5 rounded-full border border-background/20 bg-background/10 px-3 py-1 text-xs text-background/80">
+              <Banknote size={13} /> {f.paymentNote}
+            </p>
           </div>
 
           {/* Shop */}
@@ -71,17 +74,18 @@ export function Footer() {
             <h3 className={headCls}>{f.shop}</h3>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/products" transitionTypes={["nav-forward"]} className={linkCls}>
+                <Link href="/products" className={linkCls}>
                   {m.nav.allProducts}
+                </Link>
+              </li>
+              <li>
+                <Link href="/favorites" className={linkCls}>
+                  {m.nav.favorites}
                 </Link>
               </li>
               {categories.map((c) => (
                 <li key={c.slug}>
-                  <Link
-                    href={`/products?category=${c.slug}`}
-                    transitionTypes={["nav-forward"]}
-                    className={linkCls}
-                  >
+                  <Link href={`/products?category=${c.slug}`} className={linkCls}>
                     {m.categories[c.slug].name}
                   </Link>
                 </li>
@@ -94,23 +98,24 @@ export function Footer() {
             <h3 className={headCls}>{m.nav.account}</h3>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link
-                  href={user ? "/profile" : "/login"}
-                  transitionTypes={["nav-forward"]}
-                  className={linkCls}
-                >
+                <Link href={user ? "/profile" : "/login"} className={linkCls}>
                   {user ? m.nav.account : m.auth.loginTitle}
                 </Link>
               </li>
               {!user && (
                 <li>
-                  <Link href="/register" transitionTypes={["nav-forward"]} className={linkCls}>
+                  <Link href="/register" className={linkCls}>
                     {m.auth.registerTitle}
                   </Link>
                 </li>
               )}
               <li>
-                <Link href="/cart" transitionTypes={["nav-forward"]} className={linkCls}>
+                <Link href="/profile?tab=orders" className={linkCls}>
+                  {m.nav.orders}
+                </Link>
+              </li>
+              <li>
+                <Link href="/cart" className={linkCls}>
                   {m.nav.cart}
                 </Link>
               </li>
@@ -122,7 +127,7 @@ export function Footer() {
             </ul>
           </nav>
 
-          {/* Newsletter + payment */}
+          {/* Newsletter */}
           <div>
             <h3 className={headCls}>{f.newsletterTitle}</h3>
             <p className="mb-3 text-sm text-background/70">{f.newsletterBody}</p>
@@ -138,20 +143,13 @@ export function Footer() {
               />
               <button
                 type="submit"
-                className="h-11 shrink-0 cursor-pointer rounded-full bg-volt px-5 text-sm font-medium text-accent transition-colors hover:bg-[#c8e01e]"
+                className="h-11 shrink-0 cursor-pointer rounded-full bg-volt px-5 text-sm font-medium text-accent transition-colors duration-150 hover:bg-[#c8e01e]"
               >
                 {f.newsletterCta}
               </button>
             </form>
-            <div className="mt-5 flex flex-wrap gap-1.5">
-              {payMethods.map((p) => (
-                <span
-                  key={p}
-                  className="rounded-md border border-background/20 bg-background/10 px-2 py-1 font-mono text-[10px] text-background/70"
-                >
-                  {p}
-                </span>
-              ))}
+            <div className="mt-5 lg:hidden">
+              <LocaleToggle />
             </div>
           </div>
         </div>
@@ -164,7 +162,7 @@ export function Footer() {
                 key={l}
                 type="button"
                 onClick={() => toast(f.demoNote)}
-                className="cursor-pointer text-background/60 transition-colors hover:text-volt"
+                className="cursor-pointer text-background/60 transition-colors duration-150 hover:text-volt"
               >
                 {l}
               </button>
@@ -178,7 +176,7 @@ export function Footer() {
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
-              className="flex cursor-pointer items-center gap-1.5 transition-colors hover:text-volt"
+              className="flex cursor-pointer items-center gap-1.5 transition-colors duration-150 hover:text-volt"
             >
               {f.backToTop} <ArrowUp size={13} />
             </button>

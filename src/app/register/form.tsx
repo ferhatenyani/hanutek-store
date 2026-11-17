@@ -47,7 +47,7 @@ export function RegisterForm() {
       footer={
         <>
           {m.auth.haveAccount}{" "}
-          <Link href="/login" transitionTypes={["nav-back"]} className="font-medium text-accent-ink hover:underline">
+          <Link href="/login" className="font-medium text-accent-ink hover:underline">
             {m.auth.loginCta}
           </Link>
         </>

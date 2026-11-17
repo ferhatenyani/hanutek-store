@@ -401,7 +401,6 @@ export function variantLabel(product: Product, variantId: string): string {
   return (product.variants.find((x) => x.id === variantId) ?? product.variants[0]).label;
 }
 
-export const FREE_SHIPPING_THRESHOLD = 8000;
 export const SHIPPING_FLAT = 600;
 export const PROMO_CODE = "DRIVE10";
 export const PROMO_RATE = 0.1;

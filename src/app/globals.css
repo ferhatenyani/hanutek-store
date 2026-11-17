@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  /* Hanutek — ink + volt on warm paper. No blue, no green. (see .tastemaker/style-lock.md) */
-  --background: #f7f7f3;
+  /* Hanutek — ink + volt on PLAIN WHITE. No blue, no green. (see .tastemaker/style-lock.md) */
+  --background: #ffffff;
   --surface: #ffffff;
   --foreground: #141814;
-  --muted: #5b625b;
-  --faint: #646a64;
-  --line: #e6e6df;
+  --muted: #565c56;
+  --faint: #61675f;
+  --line: #e4e4de;
   --accent: #171a17;
   --accent-ink: #2a2e2a;
-  --accent-soft: #ecece6;
+  --accent-soft: #f0f0ea;
   --volt: #d4ec24;
   --volt-soft: #f4f9d6;
   --sale: #c93a3a;
@@ -62,37 +62,19 @@
   --ease-out-quint: var(--ease-out-quint);
   --ease-spring: var(--ease-spring);
 
-  --animate-marquee: marquee var(--duration, 40s) linear infinite;
-  --animate-shiny-text: shiny-text 8s infinite;
-  --animate-shimmer-slide: shimmer-slide var(--speed, 3s) ease-in-out infinite alternate;
-  --animate-spin-around: spin-around calc(var(--speed, 3s) * 2) infinite linear;
-
   --radius-control: 10px;
   --radius-card: 14px;
   --radius-sheet: 20px;
 }
 
-@keyframes marquee {
-  to {
-    transform: translateX(calc(-100% - var(--gap, 1rem)));
-  }
-}
-
-@keyframes shiny-text {
-  0%,
-  90%,
-  100% {
-    background-position: calc(-100% - var(--shiny-width, 100px)) 0;
-  }
-  30%,
-  60% {
-    background-position: calc(100% + var(--shiny-width, 100px)) 0;
-  }
-}
-
 html {
   scroll-behavior: smooth;
   scroll-padding-top: 84px;
+  /* mobile-native: kill the gray tap flash on iOS/Android */
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+  /* no pull-to-refresh hijacking the document scroll */
+  overscroll-behavior-y: none;
 }
 
 body {
@@ -108,6 +90,28 @@ h2,
 h3,
 h4 {
   font-family: var(--font-display);
+}
+
+/* mobile-native: touch controls respond on press without the double-tap
+   zoom delay, and control labels are never long-press-selected. */
+button,
+a,
+[role="button"] {
+  touch-action: manipulation;
+}
+button,
+[role="button"] {
+  user-select: none;
+  -webkit-user-select: none;
+}
+
+/* Inputs never trigger the iOS focus-zoom (>=16px) on touch devices. */
+@media (pointer: coarse) {
+  input,
+  select,
+  textarea {
+    font-size: 16px;
+  }
 }
 
 /* Tabular figures for prices / counters (stay LTR even inside RTL). */
@@ -143,102 +147,75 @@ h4 {
   border-radius: 4px;
 }
 
-/* ---- Directional page transitions (React ViewTransition + transitionTypes) ---- */
-
-::view-transition-old(.nav-forward) {
-  --slide-offset: -40px;
-  animation:
-    var(--duration-exit) ease-in both vt-fade reverse,
-    var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide reverse;
+/* Thin scrollbars for horizontal chip rows / carousels */
+.no-scrollbar {
+  scrollbar-width: none;
 }
-::view-transition-new(.nav-forward) {
-  --slide-offset: 40px;
-  animation:
-    var(--duration-enter) ease-out var(--duration-exit) both vt-fade,
-    var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide;
-}
-::view-transition-old(.nav-back) {
-  --slide-offset: 40px;
-  animation:
-    var(--duration-exit) ease-in both vt-fade reverse,
-    var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide reverse;
-}
-::view-transition-new(.nav-back) {
-  --slide-offset: -40px;
-  animation:
-    var(--duration-enter) ease-out var(--duration-exit) both vt-fade,
-    var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide;
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
 
-/* RTL: mirror the slide so "forward" enters from the left, "back" from the right */
-[dir="rtl"]::view-transition-old(.nav-forward) {
-  --slide-offset: 40px;
+/* Product carousel: native scroll-snap track on mobile (wider cards),
+   plain grid from md up. The browser's own physics beat a hand-rolled spring. */
+.product-rail {
+  display: flex;
+  gap: 0.75rem;
+  overflow-x: auto;
+  scroll-snap-type: x mandatory;
+  overscroll-behavior-x: contain;
+  padding-inline: 1rem;
+  margin-inline: -1rem;
+  padding-bottom: 0.5rem;
 }
-[dir="rtl"]::view-transition-new(.nav-forward) {
-  --slide-offset: -40px;
+.product-rail > * {
+  flex: 0 0 72%;
+  max-width: 340px;
+  scroll-snap-align: start;
 }
-[dir="rtl"]::view-transition-old(.nav-back) {
-  --slide-offset: -40px;
-}
-[dir="rtl"]::view-transition-new(.nav-back) {
-  --slide-offset: 40px;
-}
-
-@keyframes vt-fade {
-  from {
-    opacity: 0;
+@media (min-width: 48rem) {
+  .product-rail {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 1.25rem;
+    overflow: visible;
+    padding: 0;
+    margin: 0;
   }
-  to {
-    opacity: 1;
+  .product-rail > * {
+    flex: none;
+    max-width: none;
   }
 }
-@keyframes vt-slide {
-  from {
-    translate: var(--slide-offset, 0);
-  }
-  to {
-    translate: 0;
+@media (min-width: 64rem) {
+  .product-rail {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
-/* Magic UI shimmer: a spark of light travelling the button perimeter */
-@keyframes shimmer-slide {
-  to {
-    transform: translate(calc(100cqw - 100%), 0);
+/* Products / favorites grid: roomier 2 columns on mobile (wider cards).
+   Edge-to-edge with a small outer gutter so each card gets ~10% more width. */
+.product-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem 0.5rem;
+  margin-inline: -1rem;
+  padding-inline: 0.375rem;
+}
+@media (min-width: 40rem) {
+  .product-grid {
+    gap: 1.5rem 1.25rem;
+    margin-inline: 0;
+    padding-inline: 0;
   }
 }
-@keyframes spin-around {
-  0% {
-    translate: 0 0;
-    rotate: 0deg;
-  }
-  15%,
-  35% {
-    translate: 100% 0;
-    rotate: 90deg;
-  }
-  65%,
-  85% {
-    translate: 100% 100%;
-    rotate: 180deg;
-  }
-  100% {
-    translate: 0 100%;
-    rotate: 270deg;
+@media (min-width: 48rem) {
+  .product-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
-
-/* Shared-element morph: product card image -> detail hero */
-::view-transition-group(.product-morph) {
-  animation-duration: var(--duration-move);
-  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
-}
-::view-transition-image-pair(.product-morph) {
-  animation-name: vt-morph-blur;
-}
-@keyframes vt-morph-blur {
-  30% {
-    filter: blur(2px);
+@media (min-width: 64rem) {
+  .product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 
@@ -246,23 +223,4 @@ h4 {
   html {
     scroll-behavior: auto;
   }
-  ::view-transition-old(*),
-  ::view-transition-new(*),
-  ::view-transition-group(*) {
-    animation: none !important;
-  }
-  .animate-marquee,
-  .animate-shiny-text,
-  .animate-shimmer-slide,
-  .animate-spin-around {
-    animation: none !important;
-  }
-}
-
-/* Thin scrollbars for horizontal chip rows */
-.no-scrollbar {
-  scrollbar-width: none;
-}
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
 }

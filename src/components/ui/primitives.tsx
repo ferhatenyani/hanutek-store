@@ -3,7 +3,7 @@
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { Minus, Plus } from "lucide-react";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
+import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
 
 /* ---------- Button ---------- */
 
@@ -70,35 +70,6 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
       ) : hint ? (
         <p className="text-xs text-faint">{hint}</p>
       ) : null}
-    </div>
-  );
-}
-
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
-  label?: string;
-}
-
-export function Select({ label, className, id, children, ...props }: SelectProps) {
-  const selectId = id ?? props.name;
-  return (
-    <div className="flex flex-col gap-1.5">
-      {label && (
-        <label htmlFor={selectId} className="text-[13px] font-medium text-foreground">
-          {label}
-        </label>
-      )}
-      <select
-        id={selectId}
-        className={cn(
-          "h-11 w-full cursor-pointer appearance-none rounded-control border border-line bg-surface px-3.5 text-sm text-foreground",
-          "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%235b625b%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-no-repeat pe-9",
-          "transition-colors hover:border-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15",
-          className,
-        )}
-        {...props}
-      >
-        {children}
-      </select>
     </div>
   );
 }
