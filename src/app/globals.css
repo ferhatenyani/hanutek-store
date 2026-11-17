@@ -1,26 +1,254 @@
 @import "tailwindcss";
 
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Hanutek — racing green + volt on warm paper. No blue. (see .tastemaker/style-lock.md) */
+  --background: #f7f7f3;
+  --surface: #ffffff;
+  --foreground: #141814;
+  --muted: #5b625b;
+  --faint: #9aa09a;
+  --line: #e6e6df;
+  --accent: #1b5e3a;
+  --accent-ink: #14532d;
+  --accent-soft: #e8f1ea;
+  --volt: #d4ec24;
+  --volt-soft: #f4f9d6;
+  --sale: #c93a3a;
+  --sale-ink: #a82323;
+  --sale-soft: #fbe9e7;
+  --success: #157a43;
+  --success-soft: #e6f4ec;
+  --danger: #c93a3a;
+
+  --shadow-card: 0 1px 2px rgba(20, 24, 20, 0.04), 0 4px 16px rgba(20, 24, 20, 0.05);
+  --shadow-lift: 0 6px 24px rgba(20, 24, 20, 0.1), 0 2px 6px rgba(20, 24, 20, 0.06);
+  --shadow-pop: 0 8px 30px rgba(20, 24, 20, 0.16);
+
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.32, 0.72, 0, 1);
+
+  --duration-exit: 120ms;
+  --duration-enter: 180ms;
+  --duration-move: 360ms;
 }
 
 @theme inline {
   --color-background: var(--background);
+  --color-surface: var(--surface);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-muted: var(--muted);
+  --color-faint: var(--faint);
+  --color-line: var(--line);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-volt: var(--volt);
+  --color-volt-soft: var(--volt-soft);
+  --color-sale: var(--sale);
+  --color-sale-ink: var(--sale-ink);
+  --color-sale-soft: var(--sale-soft);
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-danger: var(--danger);
+
+  --font-sans: var(--font-inter), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-display: var(--font-grotesk), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-space-mono), ui-monospace, "SF Mono", monospace;
+
+  --shadow-card: var(--shadow-card);
+  --shadow-lift: var(--shadow-lift);
+  --shadow-pop: var(--shadow-pop);
+
+  --ease-out-quint: var(--ease-out-quint);
+  --ease-spring: var(--ease-spring);
+
+  --animate-marquee: marquee var(--duration, 40s) linear infinite;
+  --animate-shiny-text: shiny-text 8s infinite;
+  --animate-shimmer-slide: shimmer-slide var(--speed, 3s) ease-in-out infinite alternate;
+  --animate-spin-around: spin-around calc(var(--speed, 3s) * 2) infinite linear;
+
+  --radius-control: 10px;
+  --radius-card: 14px;
+  --radius-sheet: 20px;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes marquee {
+  to {
+    transform: translateX(calc(-100% - var(--gap, 1rem)));
   }
+}
+
+@keyframes shiny-text {
+  0%,
+  90%,
+  100% {
+    background-position: calc(-100% - var(--shiny-width, 100px)) 0;
+  }
+  30%,
+  60% {
+    background-position: calc(100% + var(--shiny-width, 100px)) 0;
+  }
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 84px;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  font-family: var(--font-display);
+}
+
+/* Tabular figures for prices / counters (stay LTR even inside RTL). */
+.num {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Arabic: never negative tracking, comfortable leading. */
+[dir="rtl"] {
+  line-height: 1.7;
+}
+[dir="rtl"] h1,
+[dir="rtl"] h2,
+[dir="rtl"] h3,
+[dir="rtl"] h4,
+[dir="rtl"] .font-display,
+[dir="rtl"] .tracking-tight,
+[dir="rtl"] .tracking-tighter,
+[dir="rtl"] .tracking-wide,
+[dir="rtl"] .tracking-wider,
+[dir="rtl"] .tracking-widest {
+  letter-spacing: 0;
+}
+
+::selection {
+  background: var(--volt);
+  color: var(--foreground);
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ---- Directional page transitions (React ViewTransition + transitionTypes) ---- */
+
+::view-transition-old(.nav-forward) {
+  --slide-offset: -40px;
+  animation:
+    var(--duration-exit) ease-in both vt-fade reverse,
+    var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide reverse;
+}
+::view-transition-new(.nav-forward) {
+  --slide-offset: 40px;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both vt-fade,
+    var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide;
+}
+::view-transition-old(.nav-back) {
+  --slide-offset: 40px;
+  animation:
+    var(--duration-exit) ease-in both vt-fade reverse,
+    var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide reverse;
+}
+::view-transition-new(.nav-back) {
+  --slide-offset: -40px;
+  animation:
+    var(--duration-enter) ease-out var(--duration-exit) both vt-fade,
+    var(--duration-move) cubic-bezier(0.32, 0.72, 0, 1) both vt-slide;
+}
+
+@keyframes vt-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes vt-slide {
+  from {
+    translate: var(--slide-offset, 0);
+  }
+  to {
+    translate: 0;
+  }
+}
+
+/* Magic UI shimmer: a spark of light travelling the button perimeter */
+@keyframes shimmer-slide {
+  to {
+    transform: translate(calc(100cqw - 100%), 0);
+  }
+}
+@keyframes spin-around {
+  0% {
+    translate: 0 0;
+    rotate: 0deg;
+  }
+  15%,
+  35% {
+    translate: 100% 0;
+    rotate: 90deg;
+  }
+  65%,
+  85% {
+    translate: 100% 100%;
+    rotate: 180deg;
+  }
+  100% {
+    translate: 0 100%;
+    rotate: 270deg;
+  }
+}
+
+/* Shared-element morph: product card image -> detail hero */
+::view-transition-group(.product-morph) {
+  animation-duration: var(--duration-move);
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+}
+::view-transition-image-pair(.product-morph) {
+  animation-name: vt-morph-blur;
+}
+@keyframes vt-morph-blur {
+  30% {
+    filter: blur(2px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-group(*) {
+    animation: none !important;
+  }
+  .animate-marquee,
+  .animate-shiny-text,
+  .animate-shimmer-slide,
+  .animate-spin-around {
+    animation: none !important;
+  }
+}
+
+/* Thin scrollbars for horizontal chip rows */
+.no-scrollbar {
+  scrollbar-width: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
 }
