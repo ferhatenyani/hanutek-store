@@ -1,12 +1,13 @@
 "use client";
 
-import { createContext, Suspense, useContext, useState, type ReactNode } from "react";
+import { createContext, useContext, useState, type ReactNode } from "react";
 import { MotionConfig } from "motion/react";
 import { StoreProvider } from "@/lib/store";
 import { ToastProvider } from "@/components/ui/toast";
-import { Header, HeaderView } from "./header";
+import { LocaleProvider } from "@/i18n";
+import { Header } from "./header";
 import { Footer } from "./footer";
-import { BottomNav, BottomNavView } from "./bottom-nav";
+import { BottomNav } from "./bottom-nav";
 import { CartSheet } from "./cart-sheet";
 import { SearchSheet } from "./search-sheet";
 import { MenuSheet } from "./menu-sheet";
@@ -33,13 +34,11 @@ function Shell({ children }: { children: ReactNode }) {
   const [cartOpen, setCartOpen] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
-
   const closeAll = () => {
     setCartOpen(false);
     setSearchOpen(false);
     setMenuOpen(false);
   };
-
   const ui: SheetUI = {
     cartOpen,
     searchOpen,
@@ -62,14 +61,12 @@ function Shell({ children }: { children: ReactNode }) {
   return (
     <SheetUIContext.Provider value={ui}>
       <div className="flex min-h-dvh flex-col">
-        <Suspense fallback={<HeaderView pathname={null} />}>
-          <Header />
-        </Suspense>
-        <main className="flex-1 pb-16 md:pb-0">{children}</main>
+        <Header />
+        <main className="flex-1">{children}</main>
         <Footer />
-        <Suspense fallback={<BottomNavView pathname={null} />}>
-          <BottomNav />
-        </Suspense>
+        {/* clearance so the floating dock never permanently covers the footer */}
+        <div aria-hidden className="h-24 md:hidden" />
+        <BottomNav />
       </div>
       <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
       <SearchSheet open={searchOpen} onClose={() => setSearchOpen(false)} />
@@ -80,12 +77,14 @@ function Shell({ children }: { children: ReactNode }) {
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <StoreProvider>
-      <ToastProvider>
-        <MotionConfig reducedMotion="user">
-          <Shell>{children}</Shell>
-        </MotionConfig>
-      </ToastProvider>
-    </StoreProvider>
+    <LocaleProvider>
+      <StoreProvider>
+        <ToastProvider>
+          <MotionConfig reducedMotion="user">
+            <Shell>{children}</Shell>
+          </MotionConfig>
+        </ToastProvider>
+      </StoreProvider>
+    </LocaleProvider>
   );
 }

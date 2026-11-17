@@ -76,6 +76,7 @@ interface StoreState {
   cart: CartItem[];
   orders: Order[];
   promo: string | null;
+  favorites: string[];
 }
 
 interface StoreValue extends StoreState {
@@ -92,10 +93,12 @@ interface StoreValue extends StoreState {
   applyPromo: (code: string) => boolean;
   removePromo: () => void;
   placeOrder: (opts: { address: Address; payment: string; discount?: number; shippingOverride?: number }) => Order;
+  toggleFavorite: (slug: string) => void;
+  isFavorite: (slug: string) => boolean;
 }
 
 const STORAGE_KEY = "hanutek-store-v1";
-const EMPTY: StoreState = { user: null, cart: [], orders: [], promo: null };
+const EMPTY: StoreState = { user: null, cart: [], orders: [], promo: null, favorites: [] };
 
 const StoreContext = createContext<StoreValue | null>(null);
 
@@ -225,6 +228,7 @@ export function StoreProvider({ children }: { children: ReactNode }) {
           cart: Array.isArray(parsed.cart) ? parsed.cart : [],
           orders: Array.isArray(parsed.orders) ? parsed.orders : [],
           promo: parsed.promo ?? null,
+          favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
         });
       }
     } catch {
@@ -366,6 +370,14 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     [state.cart],
   );
 
+  const toggleFavorite = useCallback((slug: string) => {
+    setState((s) => ({
+      ...s,
+      favorites: s.favorites.includes(slug) ? s.favorites.filter((x) => x !== slug) : [...s.favorites, slug],
+    }));
+  }, []);
+  const isFavorite = useCallback((slug: string) => state.favorites.includes(slug), [state.favorites]);
+
   const cartCount = useMemo(() => state.cart.reduce((n, i) => n + i.qty, 0), [state.cart]);
 
   const value: StoreValue = {
@@ -383,6 +395,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
     applyPromo,
     removePromo,
     placeOrder,
+    toggleFavorite,
+    isFavorite,
   };
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

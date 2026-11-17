@@ -1,4 +1,7 @@
+"use client";
+
 import { cn } from "@/lib/utils";
+import { useI18n } from "@/i18n";
 import { Minus, Plus } from "lucide-react";
 import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from "react";
 
@@ -9,17 +12,18 @@ type ButtonSize = "sm" | "md" | "lg";
 
 export function buttonClasses(variant: ButtonVariant = "primary", size: ButtonSize = "md", className?: string) {
   return cn(
-    "inline-flex cursor-pointer items-center justify-center gap-2 rounded-full font-medium transition-all duration-200 select-none",
-    "disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+    "inline-flex cursor-pointer select-none items-center justify-center gap-2 rounded-control font-semibold",
+    "transition-[background-color,border-color,color,transform,box-shadow,filter] duration-150 ease-out-quint",
+    "disabled:pointer-events-none disabled:opacity-45 active:scale-[0.97]",
     size === "sm" && "h-9 px-4 text-[13px]",
-    size === "md" && "h-11 px-6 text-sm",
-    size === "lg" && "h-12 px-7 text-[15px]",
-    variant === "primary" && "bg-accent text-white shadow-[0_1px_2px_rgba(17,40,112,0.3)] hover:bg-accent-ink",
-    variant === "volt" && "bg-volt text-accent shadow-[0_1px_2px_rgba(17,40,112,0.15)] hover:bg-[#c8e01e]",
+    size === "md" && "h-11 px-5 text-sm",
+    size === "lg" && "h-12 px-6 text-[15px]",
+    variant === "primary" && "bg-accent text-white shadow-card hover:bg-accent-ink",
+    variant === "volt" && "bg-volt text-foreground shadow-card hover:brightness-[1.04]",
     variant === "dark" && "bg-foreground text-background hover:bg-foreground/85",
-    variant === "outline" && "border border-line bg-background text-foreground hover:border-foreground/30 hover:bg-surface",
-    variant === "ghost" && "text-foreground hover:bg-surface",
-    variant === "soft" && "bg-accent-soft text-accent-ink hover:bg-accent-soft/70",
+    variant === "outline" && "border border-line bg-surface text-foreground hover:border-faint hover:bg-background",
+    variant === "ghost" && "text-foreground hover:bg-accent-soft",
+    variant === "soft" && "bg-accent-soft text-foreground hover:bg-accent-soft/70",
     className,
   );
 }
@@ -29,8 +33,8 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: ButtonSize;
 }
 
-export function Button({ variant = "primary", size = "md", className, ...props }: ButtonProps) {
-  return <button className={buttonClasses(variant, size, className)} {...props} />;
+export function Button({ variant = "primary", size = "md", className, type = "button", ...props }: ButtonProps) {
+  return <button type={type} className={buttonClasses(variant, size, className)} {...props} />;
 }
 
 /* ---------- Form fields ---------- */
@@ -53,9 +57,9 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
       <input
         id={inputId}
         className={cn(
-          "h-11 w-full rounded-xl border border-[#c9cdd6] bg-background px-3.5 text-sm text-foreground transition-colors",
-          "placeholder:text-faint hover:border-foreground/25 focus:border-accent focus:outline-none",
-          error && "border-danger focus:border-danger",
+          "h-11 w-full rounded-control border border-line bg-surface px-3.5 text-sm text-foreground transition-colors",
+          "placeholder:text-faint hover:border-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15",
+          error && "border-danger focus:border-danger focus:ring-danger/15",
           className,
         )}
         aria-invalid={error ? true : undefined}
@@ -86,9 +90,9 @@ export function Select({ label, className, id, children, ...props }: SelectProps
       <select
         id={selectId}
         className={cn(
-          "h-11 w-full cursor-pointer appearance-none rounded-xl border border-line bg-background px-3.5 text-sm text-foreground",
-          "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%2361656c%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-no-repeat pr-9",
-          "transition-colors hover:border-foreground/25 focus:border-accent focus:outline-none",
+          "h-11 w-full cursor-pointer appearance-none rounded-control border border-line bg-surface px-3.5 text-sm text-foreground",
+          "bg-[url('data:image/svg+xml;charset=utf-8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%2212%22%20height%3D%2212%22%20viewBox%3D%220%200%2024%2024%22%20fill%3D%22none%22%20stroke%3D%22%235b625b%22%20stroke-width%3D%222%22%3E%3Cpath%20d%3D%22m6%209%206%206%206-6%22%2F%3E%3C%2Fsvg%3E')] bg-[position:right_14px_center] bg-no-repeat pe-9",
+          "transition-colors hover:border-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15",
           className,
         )}
         {...props}
@@ -107,19 +111,20 @@ export function Badge({
   className,
 }: {
   children: ReactNode;
-  tone?: "neutral" | "accent" | "volt" | "success" | "dark" | "danger";
+  tone?: "neutral" | "accent" | "volt" | "success" | "dark" | "danger" | "sale";
   className?: string;
 }) {
   return (
     <span
       className={cn(
-        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-medium tracking-wide",
-        tone === "neutral" && "bg-surface text-muted",
-        tone === "accent" && "bg-accent-soft text-accent-ink",
-        tone === "volt" && "bg-volt text-accent",
-        tone === "success" && "bg-success/10 text-success",
+        "inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[10px] font-bold uppercase tracking-[0.08em] rtl:tracking-normal",
+        tone === "neutral" && "bg-accent-soft text-muted",
+        tone === "accent" && "bg-accent-soft text-foreground",
+        tone === "volt" && "bg-volt text-foreground",
+        tone === "success" && "bg-success-soft text-success",
         tone === "danger" && "bg-danger/10 text-danger",
-        tone === "dark" && "bg-foreground text-background",
+        tone === "sale" && "bg-sale text-white",
+        tone === "dark" && "bg-foreground text-volt",
         className,
       )}
     >
@@ -141,22 +146,25 @@ export function QtyStepper({
   size?: "sm" | "md";
   max?: number;
 }) {
+  const { locale } = useI18n();
+  const dec = locale === "ar" ? "إنقاص الكمية" : "Diminuer la quantité";
+  const inc = locale === "ar" ? "زيادة الكمية" : "Augmenter la quantité";
   const btn = cn(
-    "flex cursor-pointer items-center justify-center text-muted transition-colors hover:text-foreground disabled:opacity-30 disabled:pointer-events-none",
+    "flex cursor-pointer items-center justify-center text-muted transition-colors duration-150 hover:text-foreground disabled:pointer-events-none disabled:opacity-30",
     size === "sm" ? "h-8 w-8" : "h-10 w-10",
   );
   return (
     <div
       className={cn(
-        "inline-flex items-center rounded-full border border-line bg-background",
+        "inline-flex items-center rounded-control border border-line bg-surface",
         size === "sm" ? "h-8" : "h-10",
       )}
     >
-      <button type="button" aria-label="Decrease quantity" className={btn} disabled={qty <= 1} onClick={() => onChange(qty - 1)}>
+      <button type="button" aria-label={dec} className={btn} disabled={qty <= 1} onClick={() => onChange(qty - 1)}>
         <Minus size={size === "sm" ? 13 : 15} />
       </button>
-      <span className={cn("min-w-7 text-center font-mono tabular-nums", size === "sm" ? "text-xs" : "text-sm")}>{qty}</span>
-      <button type="button" aria-label="Increase quantity" className={btn} disabled={qty >= max} onClick={() => onChange(qty + 1)}>
+      <span className={cn("num min-w-7 text-center font-semibold", size === "sm" ? "text-xs" : "text-sm")}>{qty}</span>
+      <button type="button" aria-label={inc} className={btn} disabled={qty >= max} onClick={() => onChange(qty + 1)}>
         <Plus size={size === "sm" ? 13 : 15} />
       </button>
     </div>
@@ -180,9 +188,9 @@ export function SectionHead({
     <div className={cn("mb-8 flex items-end justify-between gap-4", className)}>
       <div>
         {eyebrow && (
-          <p className="mb-2 font-mono text-[11px] tracking-[0.18em] text-accent-ink uppercase">{eyebrow}</p>
+          <p className="mb-2 font-mono text-[11px] uppercase tracking-[0.18em] text-muted rtl:tracking-normal">{eyebrow}</p>
         )}
-        <h2 className="text-2xl font-semibold tracking-tight text-balance md:text-[28px]">{title}</h2>
+        <h2 className="text-balance text-2xl font-semibold tracking-tight md:text-[28px]">{title}</h2>
       </div>
       {action}
     </div>
@@ -194,10 +202,7 @@ export function SectionHead({
 export function Spinner({ className }: { className?: string }) {
   return (
     <span
-      className={cn(
-        "inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent",
-        className,
-      )}
+      className={cn("inline-block h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent", className)}
       aria-hidden
     />
   );

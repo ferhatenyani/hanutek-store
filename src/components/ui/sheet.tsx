@@ -14,6 +14,7 @@ interface SheetProps {
   onClose: () => void;
   side?: SheetSide;
   title?: string;
+  showTitleBar?: boolean;
   children: ReactNode;
   className?: string;
   panelClassName?: string;
@@ -64,6 +65,7 @@ export function Sheet({
   onClose,
   side = "bottom",
   title,
+  showTitleBar = true,
   children,
   className,
   panelClassName,
@@ -114,7 +116,7 @@ export function Sheet({
                 <div className="h-1 w-10 rounded-full bg-line" />
               </div>
             )}
-            {title && (
+            {title && showTitleBar && (
               <div className="flex items-center justify-between border-b border-line px-5 py-4">
                 <h2 className="text-base font-semibold tracking-tight">{title}</h2>
                 <button

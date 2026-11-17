@@ -1,89 +1,105 @@
 "use client";
 
 import Link from "next/link";
-import Image from "next/image";
-import { Search, SearchX } from "lucide-react";
 import { useMemo, useState } from "react";
-import { AnimatePresence, motion } from "motion/react";
-import { products, categoryBySlug, variantPrice } from "@/lib/products";
-import { formatPrice } from "@/lib/utils";
+import { ArrowRight, Search, X } from "lucide-react";
+import { products, variantPrice } from "@/lib/products";
+import { useI18n } from "@/i18n";
 import { Sheet } from "@/components/ui/sheet";
-import { buttonClasses } from "@/components/ui/primitives";
 
 export function SearchSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
-  const [query, setQuery] = useState("");
+  const [q, setQ] = useState("");
+  const { m, t, price, isRTL } = useI18n();
 
   const results = useMemo(() => {
-    const q = query.trim().toLowerCase();
-    if (!q) return products.filter((p) => p.bestSeller || p.featured).slice(0, 6);
-    return products.filter((p) =>
-      [p.name, p.short, categoryBySlug[p.category].name, p.category].join(" ").toLowerCase().includes(q),
-    );
-  }, [query]);
+    const s = q.trim().toLowerCase();
+    if (!s) return [];
+    return products
+      .filter((p) => `${p.name} ${p.category} ${p.short}`.toLowerCase().includes(s))
+      .slice(0, 6);
+  }, [q]);
+
+  const popular = products.filter((p) => p.bestSeller).slice(0, 4);
+  const list = q.trim() ? results : popular;
 
   return (
-    <Sheet open={open} onClose={onClose} side="right" title="Search">
-      <div className="border-b border-line px-5 py-4">
-        <div className="relative">
-          <Search size={16} className="pointer-events-none absolute top-1/2 left-3.5 -translate-y-1/2 text-faint" />
-          <input
-            autoFocus
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search dash cams, mounts, jump starters…"
-            aria-label="Search products"
-            className="h-11 w-full rounded-xl border border-line bg-surface pr-4 pl-10 text-sm placeholder:text-faint focus:border-accent focus:bg-background focus:outline-none"
-          />
-        </div>
-      </div>
-
-      <div className="flex-1 px-5 py-4">
-        <p className="mb-3 font-mono text-[10px] tracking-[0.16em] text-faint uppercase">
-          {query.trim() ? `${results.length} result${results.length === 1 ? "" : "s"}` : "Popular right now"}
-        </p>
-
-        {results.length === 0 ? (
-          <div className="flex flex-col items-center gap-3 py-14 text-center">
-            <SearchX size={26} className="text-faint" />
-            <p className="text-sm text-muted">
-              Nothing matches <span className="font-medium text-foreground">“{query}”</span>
-            </p>
-            <Link href="/products" transitionTypes={["nav-forward"]} onClick={onClose} className={buttonClasses("outline", "sm")}>
-              Browse all products
-            </Link>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      side={isRTL ? "left" : "right"}
+      title={m.nav.search}
+      showTitleBar={false}
+      panelClassName="w-[92vw]! max-w-[420px]!"
+    >
+      <div className="flex h-full flex-col">
+        <div className="flex items-center gap-2 border-b border-line p-4">
+          <div className="relative flex-1">
+            <Search size={17} className="absolute start-3.5 top-1/2 -translate-y-1/2 text-faint" />
+            <input
+              autoFocus
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+              placeholder={m.header.searchPlaceholder}
+              aria-label={m.header.searchPlaceholder}
+              className="h-11 w-full rounded-full border border-line bg-surface ps-10 pe-4 text-sm transition-colors duration-200 ease-out-quint placeholder:text-faint focus:bg-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt/60"
+            />
           </div>
-        ) : (
-          <ul className="space-y-1">
-            <AnimatePresence initial={false} mode="popLayout">
-              {results.map((p) => (
-                <motion.li
+          <button
+            onClick={onClose}
+            aria-label={m.common.close}
+            className="grid h-9 w-9 shrink-0 cursor-pointer place-items-center rounded-full transition-colors hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt/60"
+          >
+            <X size={18} />
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto p-4">
+          <p className="pb-2 text-[11px] font-semibold uppercase tracking-[0.12em] text-faint rtl:tracking-normal">
+            {q.trim() ? t("shell.searchResults", { n: results.length }) : m.shell.searchPopular}
+          </p>
+          {list.length === 0 ? (
+            <div className="py-10 text-center">
+              <p className="text-sm text-muted">{t("shell.searchEmpty", { q })}</p>
+              <Link
+                href="/products"
+                onClick={onClose}
+                className="mt-3 inline-block cursor-pointer text-sm font-semibold text-accent underline-offset-4 hover:underline"
+              >
+                {m.shell.browseAll}
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-1">
+              {list.map((p) => (
+                <Link
                   key={p.slug}
-                  layout
-                  initial={{ opacity: 0, y: 6 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, scale: 0.98 }}
-                  transition={{ duration: 0.18 }}
+                  href={`/products/${p.slug}`}
+                  onClick={onClose}
+                  className="flex cursor-pointer items-center gap-3 rounded-xl p-2 transition-colors duration-200 ease-out-quint hover:bg-surface focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-volt/60"
                 >
-                  <Link
-                    href={`/products/${p.slug}`}
-                    transitionTypes={["nav-forward"]}
-                    onClick={onClose}
-                    className="flex items-center gap-3 rounded-xl p-2 transition-colors hover:bg-surface"
-                  >
-                    <span className="relative h-12 w-12 shrink-0 overflow-hidden rounded-lg border border-line bg-surface">
-                      <Image src={p.image} alt="" fill sizes="48px" className="object-cover" />
-                    </span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">{p.name}</span>
-                      <span className="block truncate text-xs text-muted">{categoryBySlug[p.category].name}</span>
-                    </span>
-                    <span className="font-mono text-sm">{formatPrice(variantPrice(p, p.variants[0].id))}</span>
-                  </Link>
-                </motion.li>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img src={p.image} alt="" className="h-12 w-12 rounded-lg border border-line object-cover" />
+                  <span className="min-w-0 flex-1">
+                    <span dir="ltr" className="block truncate text-sm font-medium rtl:text-right">{p.name}</span>
+                    <span className="block text-xs text-muted">{m.categories[p.category].name}</span>
+                  </span>
+                  <span className="text-sm font-semibold tabular-nums">
+                    {price(variantPrice(p, p.variants[0].id))}
+                  </span>
+                </Link>
               ))}
-            </AnimatePresence>
-          </ul>
-        )}
+            </div>
+          )}
+          {q.trim() && results.length > 0 && (
+            <Link
+              href={`/products?q=${encodeURIComponent(q)}`}
+              onClick={onClose}
+              className="mt-3 flex cursor-pointer items-center justify-center gap-1.5 rounded-full border border-line py-2.5 text-sm font-medium transition-colors hover:bg-surface"
+            >
+              {m.shell.browseAll} <ArrowRight size={15} className="rtl:rotate-180" />
+            </Link>
+          )}
+        </div>
       </div>
     </Sheet>
   );

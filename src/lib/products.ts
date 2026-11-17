@@ -27,6 +27,8 @@ export interface Product {
   variants: VariantOption[];
   specs: [string, string][];
   inTheBox: string[];
+  rating: number;
+  reviews: number;
   bestSeller?: boolean;
   isNew?: boolean;
   featured?: boolean;
@@ -62,12 +64,13 @@ export const categories: Category[] = [
 export const products: Product[] = [
   {
     slug: "reverseview-pro-kit",
+    rating: 4.8,
+    reviews: 214,
     name: "ReverseView Pro Camera Kit",
     category: "vision",
-    price: 89,
-    compareAt: 109,
+    price: 14900,
+    compareAt: 18900,
     image: "/products/p1.jpg",
-    badge: "Save €20",
     bestSeller: true,
     short: "Backup camera with 4.3″ monitor and night-vision LEDs.",
     description:
@@ -75,7 +78,7 @@ export const products: Product[] = [
     variantTitle: "Kit",
     variants: [
       { id: "standard", label: "Standard kit", priceDelta: 0 },
-      { id: "extended", label: "With 6 m extension cable", priceDelta: 12 },
+      { id: "extended", label: "With 6 m extension cable", priceDelta: 2000 },
     ],
     specs: [
       ["Monitor", "4.3″ LCD, 480 × 272"],
@@ -88,9 +91,11 @@ export const products: Product[] = [
   },
   {
     slug: "roadeye-dual-dash-cam",
+    rating: 4.7,
+    reviews: 187,
     name: "RoadEye Dual Dash Cam",
     category: "vision",
-    price: 119,
+    price: 19900,
     image: "/products/p2.jpg",
     bestSeller: true,
     short: "Windshield recorder with flip screen and IR night lens.",
@@ -99,7 +104,7 @@ export const products: Product[] = [
     variantTitle: "Configuration",
     variants: [
       { id: "front", label: "Front camera", priceDelta: 0 },
-      { id: "dual", label: "Front + rear camera", priceDelta: 35 },
+      { id: "dual", label: "Front + rear camera", priceDelta: 5500 },
     ],
     specs: [
       ["Resolution", "1080p @ 30 fps"],
@@ -112,9 +117,11 @@ export const products: Product[] = [
   },
   {
     slug: "gripdash-phone-mount",
+    rating: 4.5,
+    reviews: 342,
     name: "GripDash Phone Mount",
     category: "interior",
-    price: 24,
+    price: 3900,
     image: "/products/p3.jpg",
     short: "Weighted dash cradle with one-hand spring clips.",
     description:
@@ -122,7 +129,7 @@ export const products: Product[] = [
     variantTitle: "Finish",
     variants: [
       { id: "black", label: "Black / silver", priceDelta: 0 },
-      { id: "carbon", label: "Carbon black", priceDelta: 3 },
+      { id: "carbon", label: "Carbon black", priceDelta: 500 },
     ],
     specs: [
       ["Fits phones", "4.7″ – 7.2″"],
@@ -135,9 +142,11 @@ export const products: Product[] = [
   },
   {
     slug: "cargofold-trunk-organizer",
+    rating: 4.6,
+    reviews: 156,
     name: "CargoFold Trunk Organizer",
     category: "interior",
-    price: 39,
+    price: 6900,
     image: "/products/p4.jpg",
     bestSeller: true,
     short: "Collapsible multi-compartment cargo box with tie-down.",
@@ -146,7 +155,7 @@ export const products: Product[] = [
     variantTitle: "Layout",
     variants: [
       { id: "three", label: "3 compartments", priceDelta: 0 },
-      { id: "five", label: "5 compartments", priceDelta: 10 },
+      { id: "five", label: "5 compartments", priceDelta: 1500 },
     ],
     specs: [
       ["Material", "600D Oxford cloth"],
@@ -159,9 +168,11 @@ export const products: Product[] = [
   },
   {
     slug: "tactical-seatback-panel",
+    rating: 4.4,
+    reviews: 98,
     name: "Tactical Seat-Back Panel",
     category: "interior",
-    price: 49,
+    price: 7900,
     image: "/products/p5.jpg",
     short: "MOLLE seat-back storage with zip pouches and straps.",
     description:
@@ -169,7 +180,7 @@ export const products: Product[] = [
     variantTitle: "Bundle",
     variants: [
       { id: "panel", label: "Panel only", priceDelta: 0 },
-      { id: "bundle", label: "Panel + 3 utility pouches", priceDelta: 18 },
+      { id: "bundle", label: "Panel + 3 utility pouches", priceDelta: 3000 },
     ],
     specs: [
       ["Material", "1000D nylon, MOLLE webbing"],
@@ -182,12 +193,13 @@ export const products: Product[] = [
   },
   {
     slug: "airvac-2in1-cordless",
+    rating: 4.8,
+    reviews: 263,
     name: "AirVac 2-in-1 Cordless Vacuum",
     category: "care",
-    price: 59,
-    compareAt: 74,
+    price: 9900,
+    compareAt: 12900,
     image: "/products/p6.jpg",
-    badge: "Save €15",
     isNew: true,
     short: "Handheld vacuum and air duster with washable filter.",
     description:
@@ -195,7 +207,7 @@ export const products: Product[] = [
     variantTitle: "Kit",
     variants: [
       { id: "standard", label: "Standard · 4 nozzles", priceDelta: 0 },
-      { id: "pro", label: "Pro · 7 nozzles + brush kit", priceDelta: 15 },
+      { id: "pro", label: "Pro · 7 nozzles + brush kit", priceDelta: 2500 },
     ],
     specs: [
       ["Modes", "Vacuum + air duster"],
@@ -208,9 +220,11 @@ export const products: Product[] = [
   },
   {
     slug: "snowfoam-cannon-lance",
+    rating: 4.5,
+    reviews: 129,
     name: "SnowFoam Cannon Lance",
     category: "care",
-    price: 34,
+    price: 5900,
     image: "/products/p7.jpg",
     short: "Pressure-washer foam gun with adjustable mix.",
     description:
@@ -218,7 +232,7 @@ export const products: Product[] = [
     variantTitle: "Bottle",
     variants: [
       { id: "1l", label: "1 L bottle", priceDelta: 0 },
-      { id: "15l", label: "1.5 L bottle", priceDelta: 8 },
+      { id: "15l", label: "1.5 L bottle", priceDelta: 1200 },
     ],
     specs: [
       ["Fitting", "1/4″ quick-connect"],
@@ -231,9 +245,11 @@ export const products: Product[] = [
   },
   {
     slug: "lumencore-led-pair",
+    rating: 4.6,
+    reviews: 152,
     name: "LumenCore LED Headlight Pair",
     category: "vision",
-    price: 79,
+    price: 12900,
     image: "/products/p8.jpg",
     isNew: true,
     short: "COB LED conversion bulbs with finned heatsinks.",
@@ -256,9 +272,11 @@ export const products: Product[] = [
   },
   {
     slug: "jumpcore-1000-starter",
+    rating: 4.9,
+    reviews: 342,
     name: "JumpCore 1000 Jump Starter",
     category: "power",
-    price: 99,
+    price: 16900,
     image: "/products/p9.jpg",
     bestSeller: true,
     featured: true,
@@ -268,7 +286,7 @@ export const products: Product[] = [
     variantTitle: "Capacity",
     variants: [
       { id: "1000", label: "1000 A · up to 6.0 L", priceDelta: 0 },
-      { id: "2000", label: "2000 A · up to 8.0 L", priceDelta: 30 },
+      { id: "2000", label: "2000 A · up to 8.0 L", priceDelta: 5000 },
     ],
     specs: [
       ["Peak current", "1000 A"],
@@ -281,9 +299,11 @@ export const products: Product[] = [
   },
   {
     slug: "precisionfill-inflator",
+    rating: 4.7,
+    reviews: 208,
     name: "PrecisionFill Tire Inflator",
     category: "power",
-    price: 69,
+    price: 11900,
     image: "/products/p10.jpg",
     isNew: true,
     short: "Cordless digital pump with presets and auto-stop.",
@@ -292,7 +312,7 @@ export const products: Product[] = [
     variantTitle: "Bundle",
     variants: [
       { id: "standard", label: "Standard", priceDelta: 0 },
-      { id: "case", label: "With storage case", priceDelta: 9 },
+      { id: "case", label: "With storage case", priceDelta: 1500 },
     ],
     specs: [
       ["Max pressure", "150 psi / 10.3 bar"],
@@ -305,9 +325,11 @@ export const products: Product[] = [
   },
   {
     slug: "scanpro-v302-obd2",
+    rating: 4.6,
+    reviews: 74,
     name: "ScanPro V302 OBD2 Scanner",
     category: "power",
-    price: 84,
+    price: 13900,
     image: "/products/p11.jpg",
     short: "Color-screen code reader with battery voltage test.",
     description:
@@ -315,7 +337,7 @@ export const products: Product[] = [
     variantTitle: "Edition",
     variants: [
       { id: "v302", label: "V302 standard", priceDelta: 0 },
-      { id: "v302plus", label: "V302+ · live data graphing", priceDelta: 20 },
+      { id: "v302plus", label: "V302+ · live data graphing", priceDelta: 3000 },
     ],
     specs: [
       ["Protocols", "All OBD-II / EOBD"],
@@ -328,9 +350,11 @@ export const products: Product[] = [
   },
   {
     slug: "sportgrip-wheel-cover",
+    rating: 4.3,
+    reviews: 411,
     name: "SportGrip Steering Wheel Cover",
     category: "interior",
-    price: 29,
+    price: 4900,
     image: "/products/p12.jpg",
     short: "Segmented grip cover in tan/black with sport stripes.",
     description:
@@ -339,7 +363,7 @@ export const products: Product[] = [
     variants: [
       { id: "m-tan", label: "M · 37–38 cm · Tan/Black", priceDelta: 0 },
       { id: "l-tan", label: "L · 39–40 cm · Tan/Black", priceDelta: 0 },
-      { id: "m-black", label: "M · 37–38 cm · Black/Red", priceDelta: 2 },
+      { id: "m-black", label: "M · 37–38 cm · Black/Red", priceDelta: 400 },
     ],
     specs: [
       ["Material", "Microfiber leather + rubber core"],
@@ -377,7 +401,7 @@ export function variantLabel(product: Product, variantId: string): string {
   return (product.variants.find((x) => x.id === variantId) ?? product.variants[0]).label;
 }
 
-export const FREE_SHIPPING_THRESHOLD = 50;
-export const SHIPPING_FLAT = 4.9;
+export const FREE_SHIPPING_THRESHOLD = 8000;
+export const SHIPPING_FLAT = 600;
 export const PROMO_CODE = "DRIVE10";
 export const PROMO_RATE = 0.1;

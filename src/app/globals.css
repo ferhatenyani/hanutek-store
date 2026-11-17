@@ -1,16 +1,16 @@
 @import "tailwindcss";
 
 :root {
-  /* Hanutek — racing green + volt on warm paper. No blue. (see .tastemaker/style-lock.md) */
+  /* Hanutek — ink + volt on warm paper. No blue, no green. (see .tastemaker/style-lock.md) */
   --background: #f7f7f3;
   --surface: #ffffff;
   --foreground: #141814;
   --muted: #5b625b;
   --faint: #9aa09a;
   --line: #e6e6df;
-  --accent: #1b5e3a;
-  --accent-ink: #14532d;
-  --accent-soft: #e8f1ea;
+  --accent: #171a17;
+  --accent-ink: #2a2e2a;
+  --accent-soft: #ecece6;
   --volt: #d4ec24;
   --volt-soft: #f4f9d6;
   --sale: #c93a3a;
