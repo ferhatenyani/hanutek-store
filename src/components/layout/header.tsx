@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { usePathname } from "next/navigation";
 import { Heart, Search, ShoppingBag, UserRound, X } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -9,6 +9,7 @@ import { useI18n } from "@/i18n";
 import { cn } from "@/lib/utils";
 import { SearchBar } from "./search-bar";
 import { useSheetUI } from "./app-shell";
+import { navTypes } from "@/components/nav-transition";
 import type { Locale } from "@/i18n/config";
 
 const iconBtn =
@@ -52,22 +53,37 @@ export function Header() {
   const { m } = useI18n();
   const [mobileSearch, setMobileSearch] = useState(false);
 
-  // the header persists across navigations — close the expanded row on route change
-  useEffect(() => {
+  // The header persists across navigations — close the expanded search row on
+  // route change. Adjust state during render (React's recommended alternative
+  // to a setState-in-effect) so no extra effect/render pass is needed.
+  const [prevPathname, setPrevPathname] = useState(pathname);
+  if (pathname !== prevPathname) {
+    setPrevPathname(pathname);
     setMobileSearch(false);
-  }, [pathname]);
+  }
 
   return (
     <>
       {/* static announcement strip — promo code visible everywhere */}
-      <div className="flex h-8 items-center justify-center gap-1.5 border-b border-line bg-accent-soft px-4 text-center font-mono text-[11px] font-medium text-accent-ink">
+      <div
+        className="flex h-8 items-center justify-center gap-1.5 border-b border-line bg-accent-soft px-4 text-center font-mono text-[11px] font-medium text-accent-ink"
+        style={{ viewTransitionName: "site-announcement" }}
+      >
         {m.header.promo} · {m.cart.codBadge}
       </div>
 
-      <header className="sticky top-0 z-50 border-b border-line bg-background/95 backdrop-blur-md">
+      <header
+        className="sticky top-0 z-50 border-b border-line bg-background/95 backdrop-blur-md"
+        style={{ viewTransitionName: "site-header" }}
+      >
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 px-4 lg:h-16 lg:gap-5 lg:px-6">
           {/* logo — always left */}
-          <Link href="/" className="flex shrink-0 items-center gap-2" aria-label="hanutek">
+          <Link
+            href="/"
+            transitionTypes={navTypes(pathname, "/")}
+            className="flex shrink-0 items-center gap-2"
+            aria-label="hanutek"
+          >
             <span className="grid h-7 w-7 place-items-center rounded-lg bg-foreground font-mono text-sm text-background">
               h
             </span>
@@ -96,6 +112,7 @@ export function Header() {
             {/* favorites — back in the navbar (md+; phone reaches it via the dock) */}
             <Link
               href="/favorites"
+              transitionTypes={navTypes(pathname, "/favorites")}
               className={cn(iconBtn, "hidden md:flex")}
               aria-label={`${m.header.openFavorites} (${favorites.length})`}
               aria-current={pathname.startsWith("/favorites") ? "page" : undefined}
@@ -118,10 +135,12 @@ export function Header() {
               )}
             </button>
 
-            {/* profile — always right */}
+            {/* profile — desktop header; on phones/tablets it lives in the dock,
+                and this slot becomes the language switcher */}
             <Link
               href={ready && user ? "/profile" : "/login"}
-              className={iconBtn}
+              transitionTypes={navTypes(pathname, ready && user ? "/profile" : "/login")}
+              className={cn(iconBtn, "hidden lg:flex")}
               aria-label={m.header.openAccount}
             >
               {ready && user ? (
@@ -133,7 +152,7 @@ export function Header() {
               )}
             </Link>
 
-            <LocaleToggle className="hidden lg:flex" />
+            <LocaleToggle className="flex" />
           </div>
         </div>
 

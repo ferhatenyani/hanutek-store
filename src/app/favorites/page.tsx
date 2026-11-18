@@ -7,6 +7,7 @@ import { useStore } from "@/lib/store";
 import { useI18n } from "@/i18n";
 import { buttonClasses } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/product-card";
+import { NavTransition } from "@/components/nav-transition";
 
 export default function FavoritesPage() {
   const { favorites, ready } = useStore();
@@ -15,6 +16,7 @@ export default function FavoritesPage() {
   const list = favorites.map(getProduct).filter((p): p is NonNullable<typeof p> => Boolean(p));
 
   return (
+    <NavTransition>
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-14">
       <h1 className="flex items-center gap-2.5 font-display text-3xl font-bold tracking-tight md:text-4xl">
         <Heart size={26} className="text-sale" aria-hidden />
@@ -31,7 +33,7 @@ export default function FavoritesPage() {
           </span>
           <h2 className="mt-4 font-display text-lg font-semibold">{m.favorites.emptyTitle}</h2>
           <p className="mx-auto mt-1.5 max-w-xs text-sm text-muted">{m.favorites.emptyDesc}</p>
-          <Link href="/products" className={buttonClasses("primary", "md", "mt-6")}>
+          <Link href="/products" transitionTypes={["nav-back"]} className={buttonClasses("primary", "md", "mt-6")}>
             {m.favorites.browseCta}
           </Link>
         </div>
@@ -43,5 +45,6 @@ export default function FavoritesPage() {
         </div>
       )}
     </div>
+    </NavTransition>
   );
 }

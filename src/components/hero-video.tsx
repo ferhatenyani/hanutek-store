@@ -25,7 +25,7 @@ export function HeroVideo() {
 
   return (
     <section aria-label={m.home.heroEyebrow} className="mx-auto w-full max-w-6xl px-4 pt-4 lg:px-6 lg:pt-6">
-      <div className="relative aspect-[2/1] overflow-hidden rounded-[24px] bg-foreground lg:aspect-[16/9]">
+      <div className="relative aspect-[4/3] overflow-hidden rounded-[24px] bg-foreground sm:aspect-[2/1] lg:aspect-[16/9]">
         {reduceMotion ? (
           // eslint-disable-next-line @next/next/no-img-element
           <img src="/hero/web/hero-desktop.jpg" alt="" className="absolute inset-0 h-full w-full object-cover" />
@@ -49,26 +49,6 @@ export function HeroVideo() {
             <source src="/hero/web/hero-mobile.webm" type="video/webm" />
           </video>
         )}
-
-        {/* legibility scrim: dark from the text side, clear over the film */}
-        <div
-          aria-hidden
-          className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/25 to-transparent lg:bg-gradient-to-r lg:from-foreground/85 lg:via-foreground/25 lg:to-transparent"
-        />
-
-        {/* copy block — bottom-left on phones/tablets, left-centered on desktop */}
-        <div className="absolute inset-x-0 bottom-0 p-5 sm:p-7 lg:inset-y-0 lg:flex lg:max-w-[55%] lg:items-center lg:p-12">
-          <div>
-            <p className="mb-2 inline-flex items-center gap-2 rounded-full border border-volt/40 bg-foreground/40 px-3 py-1 font-mono text-[10px] uppercase tracking-[0.16em] text-volt backdrop-blur-sm rtl:tracking-normal sm:text-[11px]">
-              <span className="h-1.5 w-1.5 rounded-full bg-volt" aria-hidden />
-              {m.home.heroEyebrow}
-            </p>
-            <h1 className="text-balance text-[20px] font-bold leading-[1.08] tracking-tight text-white sm:text-3xl lg:text-5xl rtl:tracking-normal">
-              {m.home.heroTitleA}
-              <span className="block text-volt">{m.home.heroTitleB}</span>
-            </h1>
-          </div>
-        </div>
       </div>
     </section>
   );

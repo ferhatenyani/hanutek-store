@@ -9,6 +9,7 @@ import { ProductCard } from "@/components/product-card";
 import { SelectMenu } from "@/components/ui/select-menu";
 import { categoryIcons } from "@/components/icons";
 import { useI18n } from "@/i18n";
+import { NavTransition } from "@/components/nav-transition";
 
 type SortKey = "featured" | "price-asc" | "price-desc" | "newest" | "name";
 const SORT_VALUES: SortKey[] = ["featured", "price-asc", "price-desc", "newest", "name"];
@@ -76,9 +77,10 @@ export function ProductsBrowser() {
   const hasFilters = category != null || sale || q.length > 0;
 
   return (
+    <NavTransition>
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-14">
       <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.nav.home}>
-        <Link href="/" className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
+        <Link href="/" transitionTypes={["nav-back"]} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
           <ChevronLeft size={13} className="rtl:-scale-x-100" /> {m.nav.home}
         </Link>
         <span className="text-faint">/</span>
@@ -197,5 +199,6 @@ export function ProductsBrowser() {
         </div>
       )}
     </div>
+    </NavTransition>
   );
 }

@@ -24,6 +24,7 @@ import { Button, buttonClasses, Input } from "@/components/ui/primitives";
 import { SelectMenu } from "@/components/ui/select-menu";
 import { cn } from "@/lib/utils";
 import { LocaleToggle } from "@/components/layout/header";
+import { NavTransition } from "@/components/nav-transition";
 
 type Tab = "orders" | "settings";
 const TABS: { id: Tab; Icon: typeof ShoppingBag }[] = [
@@ -72,6 +73,7 @@ function ProfileInner() {
     new Date(iso).toLocaleDateString(locale === "ar" ? "ar-DZ" : "fr-DZ", { day: "numeric", month: "short", year: "numeric" });
 
   return (
+    <NavTransition>
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-14">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-4">
@@ -93,7 +95,7 @@ function ProfileInner() {
             className="gap-1.5"
             onClick={() => {
               logout();
-              router.push("/");
+              router.push("/", { transitionTypes: ["nav-back"] });
             }}
           >
             <LogOut size={14} className="rtl:rotate-180" aria-hidden /> {m.profile.logout}
@@ -125,7 +127,7 @@ function ProfileInner() {
           <div className="space-y-4">
             {orders.length === 0 ? (
               <EmptyState Icon={PackageOpen} title={m.profile.noOrders} desc={m.profile.noOrdersDesc}>
-                <Link href="/products" className={buttonClasses("primary", "md")}>
+                <Link href="/products" transitionTypes={["nav-back"]} className={buttonClasses("primary", "md")}>
                   {m.profile.startShopping}
                 </Link>
               </EmptyState>
@@ -151,6 +153,7 @@ function ProfileInner() {
         )}
       </div>
     </div>
+    </NavTransition>
   );
 }
 
@@ -193,6 +196,7 @@ function OrderCard({
         <span className="num ms-auto font-display text-base font-semibold tabular-nums">{price(order.total)}</span>
         <Link
           href={`/order/${order.id}`}
+          transitionTypes={["nav-forward"]}
           className="inline-flex items-center gap-1 text-sm font-medium text-accent-ink hover:underline"
         >
           {m.profile.fullTracking} <ChevronRight size={14} className="rtl:rotate-180" aria-hidden />

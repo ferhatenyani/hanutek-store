@@ -5,7 +5,7 @@ import { createPortal } from "react-dom";
 import { AnimatePresence, motion, type PanInfo, type TargetAndTransition } from "motion/react";
 import { X } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { useHydrated } from "@/lib/hooks";
+import { useHydrated } from "@/lib/use-media-query";
 import { useI18n } from "@/i18n";
 
 export type SheetSide = "bottom" | "left" | "right";
@@ -19,6 +19,9 @@ interface SheetProps {
   children: ReactNode;
   className?: string;
   panelClassName?: string;
+  /** Unmount immediately on close (no exit animation) — used when the close
+   *  is part of a route navigation so view-transition snapshots stay clean. */
+  skipExit?: boolean;
 }
 
 const panelBySide: Record<SheetSide, string> = {
@@ -70,13 +73,18 @@ export function Sheet({
   children,
   className,
   panelClassName,
+  skipExit = false,
 }: SheetProps) {
   const hydrated = useHydrated();
   const { m } = useI18n();
   const cfg = motionBySide[side];
   const panelRef = useRef<HTMLDivElement>(null);
   const onCloseRef = useRef(onClose);
-  onCloseRef.current = onClose;
+  // Keep the latest onClose in a ref for the event handlers below; sync it in
+  // an effect rather than during render (writing refs in render is flagged).
+  useEffect(() => {
+    onCloseRef.current = onClose;
+  }, [onClose]);
 
   useEffect(() => {
     if (!open) return;
@@ -135,9 +143,10 @@ export function Sheet({
         <div className={cn("fixed inset-0 z-[80]", className)} role="dialog" aria-modal="true" aria-label={title}>
           <motion.div
             className="absolute inset-0 bg-foreground/35 backdrop-blur-[2px]"
+            style={{ viewTransitionName: skipExit ? undefined : "cart-sheet-overlay" }}
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
+            exit={skipExit ? undefined : { opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
             onClick={onClose}
           />
@@ -145,9 +154,14 @@ export function Sheet({
             ref={panelRef}
             tabIndex={-1}
             className={cn(panelBySide[side], panelClassName)}
+            style={{ viewTransitionName: skipExit ? undefined : "cart-sheet-panel" }}
             initial={cfg.initial}
             animate={{ x: 0, y: 0 }}
-            exit={{ ...cfg.initial, transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] } }}
+            exit={
+              skipExit
+                ? undefined
+                : { ...cfg.initial, transition: { duration: 0.2, ease: [0.32, 0.72, 0, 1] } }
+            }
             transition={{ type: "spring", damping: 30, stiffness: 380, mass: 0.8 }}
             drag={cfg.drag}
             dragConstraints={cfg.constraints}

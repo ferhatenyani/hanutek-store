@@ -45,6 +45,7 @@ export const fr = {
     allProducts: "Tous les produits",
     cart: "Panier",
     account: "Compte",
+    profile: "Profil",
     favorites: "Favoris",
     orders: "Commandes",
     menu: "Menu",

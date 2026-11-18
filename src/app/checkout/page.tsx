@@ -11,6 +11,7 @@ import { WILAYAS } from "@/lib/wilayas";
 import { useI18n } from "@/i18n";
 import { Button, buttonClasses, Spinner, Input } from "@/components/ui/primitives";
 import { SelectMenu } from "@/components/ui/select-menu";
+import { NavTransition } from "@/components/nav-transition";
 
 const EXPRESS_FEE = 900; // DZD
 type Values = Record<string, string>;
@@ -141,7 +142,7 @@ export default function CheckoutPage() {
         discount: base.discount,
         shippingOverride: shipping,
       });
-      router.push(`/order/${order.id}`);
+      router.push(`/order/${order.id}`, { transitionTypes: ["nav-forward"] });
     }, 900);
   };
 
@@ -174,9 +175,11 @@ export default function CheckoutPage() {
   }
 
   return (
+    <NavTransition>
     <div className="mx-auto max-w-6xl px-4 py-10 pb-56 md:px-6 md:py-14 md:pb-14">
       <Link
         href="/cart"
+        transitionTypes={["nav-back"]}
         className="mb-6 inline-flex items-center gap-1 text-xs text-muted transition-colors duration-150 hover:text-foreground"
       >
         <ChevronLeft size={13} className="rtl:rotate-180" /> {m.checkout.backToCart}
@@ -306,6 +309,7 @@ export default function CheckoutPage() {
         </div>
       </div>
     </div>
+    </NavTransition>
   );
 }
 

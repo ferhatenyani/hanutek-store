@@ -46,6 +46,7 @@ export const ar: Messages = {
     allProducts: "كل المنتجات",
     cart: "السلة",
     account: "الحساب",
+    profile: "الملف الشخصي",
     favorites: "المفضلة",
     orders: "الطلبات",
     menu: "القائمة",

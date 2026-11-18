@@ -230,6 +230,11 @@ export function StoreProvider({ children }: { children: ReactNode }) {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const parsed = JSON.parse(raw) as StoreState;
+        // Intentional SSR-safe mount hydration: render EMPTY first (matching the
+        // server snapshot), then load persisted state once on the client. Moving
+        // this to useSyncExternalStore would require rewriting every store action
+        // to write localStorage directly; the load-on-mount effect is correct here.
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         setState({
           user: parsed.user ?? null,
           cart: Array.isArray(parsed.cart) ? parsed.cart : [],

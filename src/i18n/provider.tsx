@@ -1,12 +1,40 @@
 "use client";
 
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useSyncExternalStore, type ReactNode } from "react";
 import { defaultLocale, dirOf, isRTL, LOCALE_KEY, type Locale } from "./config";
 import { fr, type Messages } from "./messages/fr";
 import { ar } from "./messages/ar";
 import { formatDate, formatDateTime, formatPrice } from "@/lib/utils";
 
 const dictionaries: Record<Locale, Messages> = { fr, ar };
+
+// The chosen locale lives in localStorage. Model it as an external store so the
+// provider hydrates SSR-safely through useSyncExternalStore (server snapshot =
+// defaultLocale) instead of a mount-time setState-in-effect.
+const LOCALE_EVENT = "hanutek-locale-change";
+
+function readLocale(): Locale {
+  try {
+    const saved = window.localStorage.getItem(LOCALE_KEY);
+    if (saved === "fr" || saved === "ar") return saved;
+  } catch {
+    /* private mode */
+  }
+  return defaultLocale;
+}
+
+function getLocaleServerSnapshot(): Locale {
+  return defaultLocale;
+}
+
+function subscribeLocale(onChange: () => void): () => void {
+  window.addEventListener(LOCALE_EVENT, onChange);
+  window.addEventListener("storage", onChange);
+  return () => {
+    window.removeEventListener(LOCALE_EVENT, onChange);
+    window.removeEventListener("storage", onChange);
+  };
+}
 
 type Vars = Record<string, string | number>;
 
@@ -43,19 +71,11 @@ function interpolate(template: string, vars?: Vars): string {
 }
 
 export function LocaleProvider({ children }: { children: ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(defaultLocale);
+  // Hydrate the persisted locale SSR-safely: server snapshot is the default
+  // locale, client snapshot reads localStorage — no setState-in-effect.
+  const locale = useSyncExternalStore(subscribeLocale, readLocale, getLocaleServerSnapshot);
 
-  // Restore persisted choice and reflect lang/dir on <html>.
-  useEffect(() => {
-    let initial = defaultLocale;
-    try {
-      const saved = window.localStorage.getItem(LOCALE_KEY);
-      if (saved === "fr" || saved === "ar") initial = saved;
-    } catch {
-      /* private mode */
-    }
-    setLocaleState(initial);
-  }, []);
+  // Reflect lang/dir on <html>.
 
   useEffect(() => {
     document.documentElement.lang = locale;
@@ -63,12 +83,13 @@ export function LocaleProvider({ children }: { children: ReactNode }) {
   }, [locale]);
 
   const setLocale = useCallback((next: Locale) => {
-    setLocaleState(next);
     try {
       window.localStorage.setItem(LOCALE_KEY, next);
     } catch {
       /* ignore */
     }
+    // Notify the external store so every useI18n consumer re-reads the locale.
+    window.dispatchEvent(new Event(LOCALE_EVENT));
   }, []);
 
   const t = useCallback(

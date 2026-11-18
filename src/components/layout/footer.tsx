@@ -33,7 +33,7 @@ export function Footer() {
   return (
     <footer className="bg-accent pb-24 text-background md:pb-0">
       <div className="mx-auto max-w-6xl px-4 py-14 md:px-6 md:py-16">
-        <div className="grid gap-10 md:grid-cols-[1.6fr_1fr_1fr_1.6fr]">
+        <div className="grid gap-10 [&>*]:min-w-0 md:grid-cols-[1.6fr_1fr_1fr_1.6fr]">
           {/* Brand */}
           <div>
             <Link href="/" className="flex items-center gap-2">
@@ -131,7 +131,7 @@ export function Footer() {
           <div>
             <h3 className={headCls}>{f.newsletterTitle}</h3>
             <p className="mb-3 text-sm text-background/70">{f.newsletterBody}</p>
-            <form onSubmit={subscribe} className="flex gap-2">
+            <form onSubmit={subscribe} className="flex flex-wrap gap-2">
               <input
                 type="email"
                 required

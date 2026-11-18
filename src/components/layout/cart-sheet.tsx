@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { ArrowRight, Banknote, ShoppingBag, Trash2, X } from "lucide-react";
 import { useStore, cartTotals, promoDiscountRate } from "@/lib/store";
@@ -13,12 +14,37 @@ import {
 import { cn } from "@/lib/utils";
 import { buttonClasses, QtyStepper } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
+import { ProductMorph } from "@/components/nav-transition";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 export function CartSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { cart, cartCount, promo, setQty, removeItem } = useStore();
   const { m, t, price, isRTL } = useI18n();
   const isDesktop = useMediaQuery("(min-width: 768px)");
+
+  // Navigating away unmounts the sheet instantly (no exit animation) so the
+  // incoming page's view-transition snapshot never holds duplicate product
+  // image names — the sheet image morphs into the cart page / detail hero.
+  const [skipExit, setSkipExit] = useState(false);
+  // Reset the flag when the sheet reopens (adjust state on prop change during
+  // render — the React-recommended alternative to a setState-in-effect).
+  const [prevOpen, setPrevOpen] = useState(open);
+  if (open !== prevOpen) {
+    setPrevOpen(open);
+    if (open) setSkipExit(false);
+  }
+  const closeForNav = () => {
+    // Defer the discrete sheet-close out of the click handler: a synchronous
+    // setState here makes Next.js drop the Link's transitionTypes (to-cart /
+    // nav-forward), which kills the typed entrance and the shared-element
+    // morph. Closing on the next task lets the typed view transition start
+    // first; skipExit then unmounts the sheet instantly so the incoming page
+    // snapshot holds no duplicate product-image names.
+    setTimeout(() => {
+      setSkipExit(true);
+      onClose();
+    }, 0);
+  };
 
   const lines = cart.flatMap((i) => {
     const product = getProduct(i.productId);
@@ -40,6 +66,7 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
       title={m.cart.title}
       showTitleBar={false}
       panelClassName={isDesktop ? "w-[420px]!" : "h-[82dvh]!"}
+      skipExit={skipExit}
     >
       <div className="flex h-full flex-col">
         <div className="flex items-center justify-between border-b border-line px-5 py-4">
@@ -67,7 +94,12 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
             </span>
             <p className="font-display text-lg font-semibold">{m.cart.empty}</p>
             <p className="max-w-[240px] text-sm text-muted">{m.cart.emptyBody}</p>
-            <Link href="/products" onClick={onClose} className={cn(buttonClasses("primary", "lg"), "mt-2")}>
+            <Link
+              href="/products"
+              transitionTypes={["nav-forward"]}
+              onClick={closeForNav}
+              className={cn(buttonClasses("primary", "lg"), "mt-2")}
+            >
               {m.cart.startShopping}
             </Link>
           </div>
@@ -81,19 +113,27 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
             <div className="flex-1 overflow-y-auto px-5">
               {lines.map(({ product, variantId, qty }) => (
                 <div key={variantId} className="flex gap-3 border-b border-line py-4 last:border-0">
-                  <Link href={`/products/${product.slug}`} onClick={onClose} className="shrink-0 cursor-pointer">
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src={product.image}
-                      alt={product.name}
-                      className="h-20 w-20 rounded-xl border border-line object-cover"
-                    />
+                  <Link
+                    href={`/products/${product.slug}`}
+                    transitionTypes={["nav-forward"]}
+                    onClick={closeForNav}
+                    className="shrink-0 cursor-pointer"
+                  >
+                    <ProductMorph slug={product.slug} active={false}>
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="h-20 w-20 rounded-xl border border-line object-cover"
+                      />
+                    </ProductMorph>
                   </Link>
                   <div className="flex min-w-0 flex-1 flex-col">
                     <div className="flex items-start justify-between gap-2">
                       <Link
                         href={`/products/${product.slug}`}
-                        onClick={onClose}
+                        transitionTypes={["nav-forward"]}
+                        onClick={closeForNav}
                         className="cursor-pointer text-sm font-semibold leading-snug hover:text-accent"
                       >
                         {product.name}
@@ -124,7 +164,12 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                 <span className="num font-display text-lg font-bold tabular-nums">{price(totals.subtotal)}</span>
               </div>
               <p className="text-xs text-faint">{m.shell.shippingNote}</p>
-              <Link href="/cart" onClick={onClose} className={cn(buttonClasses("primary", "lg"), "w-full")}>
+              <Link
+                href="/cart"
+                transitionTypes={["to-cart"]}
+                onClick={closeForNav}
+                className={cn(buttonClasses("primary", "lg"), "w-full")}
+              >
                 {m.cart.checkout} <ArrowRight size={17} className="rtl:rotate-180" />
               </Link>
             </div>

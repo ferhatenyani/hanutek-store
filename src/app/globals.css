@@ -219,8 +219,212 @@ button,
   }
 }
 
+/* ---- View transitions (React ViewTransition + next/link transitionTypes) ----
+   Page push ported 1:1 from ecommerce-transition-demo.html: shared quint
+   easing, old page drifts back with scale + blur + fade, new page pushes in
+   from the opposite side. Morph recipe follows react-view-transitions-demo. */
+
+/* Root stays put — only the tagged page pseudos animate. Untagged routes swap
+   instantly instead of double-animating with the UA cross-fade. */
+::view-transition-old(root),
+::view-transition-new(root) {
+  animation: none;
+  mix-blend-mode: normal;
+}
+
+/* Keep the page interactive while a transition runs — the ::view-transition
+   overlay otherwise captures every pointer event for the whole animation. */
+::view-transition {
+  pointer-events: none;
+}
+
+::view-transition-old(.nav-out-forward) {
+  animation: 420ms cubic-bezier(0.22, 1, 0.36, 1) both vt-nav-out-forward;
+}
+::view-transition-new(.nav-in-forward) {
+  animation: 440ms cubic-bezier(0.22, 1, 0.36, 1) both vt-nav-in-forward;
+}
+::view-transition-old(.nav-out-back) {
+  animation: 420ms cubic-bezier(0.22, 1, 0.36, 1) both vt-nav-out-back;
+}
+::view-transition-new(.nav-in-back) {
+  animation: 440ms cubic-bezier(0.22, 1, 0.36, 1) both vt-nav-in-back;
+}
+
+/* RTL: mirror the push so forward enters from the left, back from the right */
+[dir="rtl"] ::view-transition-old(.nav-out-forward) {
+  animation-name: vt-nav-out-back;
+}
+[dir="rtl"] ::view-transition-new(.nav-in-forward) {
+  animation-name: vt-nav-in-back;
+}
+[dir="rtl"] ::view-transition-old(.nav-out-back) {
+  animation-name: vt-nav-out-forward;
+}
+[dir="rtl"] ::view-transition-new(.nav-in-back) {
+  animation-name: vt-nav-in-forward;
+}
+
+@keyframes vt-nav-out-forward {
+  to {
+    opacity: 0.42;
+    transform: translateX(-58px) scale(0.965);
+    filter: blur(5px);
+  }
+}
+@keyframes vt-nav-in-forward {
+  from {
+    opacity: 0.55;
+    transform: translateX(90px) scale(0.975);
+    filter: blur(4px);
+  }
+}
+@keyframes vt-nav-out-back {
+  to {
+    opacity: 0.42;
+    transform: translateX(58px) scale(0.965);
+    filter: blur(5px);
+  }
+}
+@keyframes vt-nav-in-back {
+  from {
+    opacity: 0.55;
+    transform: translateX(-90px) scale(0.975);
+    filter: blur(4px);
+  }
+}
+
+/* Cart page entrance — adapts the desktop cart preview's slide-from-right to
+   the full page; phones get the bottom-sheet's upward motion instead. */
+::view-transition-new(.cart-page-in) {
+  animation: 300ms cubic-bezier(0.32, 0.72, 0, 1) both vt-cart-in-up;
+}
+@media (min-width: 48rem) {
+  ::view-transition-new(.cart-page-in) {
+    animation: 340ms cubic-bezier(0.32, 0.72, 0, 1) both vt-cart-in-side;
+  }
+  [dir="rtl"] ::view-transition-new(.cart-page-in) {
+    animation-name: vt-cart-in-side-rtl;
+  }
+}
+@keyframes vt-cart-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(32px);
+  }
+}
+@keyframes vt-cart-in-side {
+  from {
+    opacity: 0;
+    transform: translateX(48px);
+  }
+}
+@keyframes vt-cart-in-side-rtl {
+  from {
+    opacity: 0;
+    transform: translateX(-48px);
+  }
+}
+
+/* Checkout rises from below — never drops in from the top. */
+::view-transition-new(.checkout-in) {
+  animation: 420ms cubic-bezier(0.22, 1, 0.36, 1) both vt-checkout-in;
+}
+@keyframes vt-checkout-in {
+  from {
+    opacity: 0;
+    transform: translateY(56px);
+  }
+}
+
+/* Gentle exit for the page left behind when cart/checkout take over. */
+::view-transition-old(.fade-out) {
+  animation: 240ms ease both vt-fade-out;
+}
+@keyframes vt-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+
+/* Shared-element morph: product card / cart sheet image <-> detail hero.
+   Group box morphs with the same move timing as the page push; cover-fit
+   keeps both snapshots undistorted while the aspect ratio changes. */
+::view-transition-group(.product-morph) {
+  animation-duration: 420ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
+}
+::view-transition-old(.product-morph),
+::view-transition-new(.product-morph) {
+  height: 100%;
+  object-fit: cover;
+  mix-blend-mode: normal;
+}
+::view-transition-image-pair(.product-morph) {
+  animation-name: vt-morph-blur;
+}
+@keyframes vt-morph-blur {
+  30% {
+    filter: blur(2px);
+  }
+}
+
+/* Element isolation: persistent chrome and the cart sheet stay pixel-still
+   while page content pushes underneath them. */
+::view-transition-group(.site-announcement),
+::view-transition-old(.site-announcement),
+::view-transition-new(.site-announcement),
+::view-transition-group(.site-header),
+::view-transition-old(.site-header),
+::view-transition-new(.site-header),
+::view-transition-group(.site-dock),
+::view-transition-old(.site-dock),
+::view-transition-new(.site-dock),
+::view-transition-group(.toast-viewport),
+::view-transition-old(.toast-viewport),
+::view-transition-new(.toast-viewport),
+::view-transition-group(.cart-sheet-panel),
+::view-transition-old(.cart-sheet-panel),
+::view-transition-new(.cart-sheet-panel),
+::view-transition-group(.cart-sheet-overlay),
+::view-transition-old(.cart-sheet-overlay),
+::view-transition-new(.cart-sheet-overlay) {
+  animation: none;
+}
+/* Pinned chrome renders above the pushing page; the sheet above the chrome. */
+::view-transition-group(.site-announcement),
+::view-transition-group(.site-header),
+::view-transition-group(.site-dock),
+::view-transition-group(.toast-viewport) {
+  z-index: 100;
+}
+::view-transition-group(.cart-sheet-overlay) {
+  z-index: 110;
+}
+::view-transition-group(.cart-sheet-panel) {
+  z-index: 111;
+}
+::view-transition-old(.site-announcement),
+::view-transition-old(.site-header),
+::view-transition-old(.site-dock),
+::view-transition-old(.toast-viewport) {
+  display: none;
+}
+
+/* Search: the global :focus-visible outline must not draw a rectangle inside
+   the pill — the pill itself carries the intentional focus ring. */
+.search-input:focus-visible {
+  outline: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+  ::view-transition-group(*),
+  ::view-transition-old(*),
+  ::view-transition-new(*),
+  ::view-transition-image-pair(*) {
+    animation: none !important;
   }
 }

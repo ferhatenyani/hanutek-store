@@ -117,7 +117,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
       remember(query);
       setOpen(false);
       inputRef.current?.blur();
-      router.push(href);
+      router.push(href, { transitionTypes: ["nav-forward"] });
     },
     [remember, router],
   );
@@ -157,7 +157,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
     <div ref={wrapRef} className="relative w-full">
       <div
         className={cn(
-          "flex h-11 items-center gap-2 rounded-full border bg-accent-soft/70 px-3.5 transition-colors duration-150",
+          "flex h-11 items-center gap-2 rounded-full border bg-accent-soft/70 px-3.5 transition-colors duration-150 focus-within:ring-2 focus-within:ring-accent/25",
           expanded ? "border-foreground/30 bg-surface" : "border-line",
         )}
       >
@@ -181,7 +181,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
           }}
           onKeyDown={onKeyDown}
           placeholder={m.header.searchPlaceholder}
-          className="min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-faint [&::-webkit-search-cancel-button]:appearance-none"
+          className="search-input min-w-0 flex-1 bg-transparent text-sm text-foreground outline-none placeholder:text-faint [&::-webkit-search-cancel-button]:appearance-none"
         />
         {q ? (
           <button
@@ -277,6 +277,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
             <p className="text-sm text-muted">{t("shell.searchEmpty", { q })}</p>
             <Link
               href="/products"
+              transitionTypes={["nav-forward"]}
               onClick={() => setOpen(false)}
               className="cursor-pointer text-sm font-semibold text-foreground underline underline-offset-4"
             >
@@ -294,6 +295,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
                 <li key={`${item.kind}-${item.slug}`}>
                   <Link
                     href={item.href}
+                    transitionTypes={["nav-forward"]}
                     role="option"
                     aria-selected={isActive}
                     onClick={() => {

@@ -9,6 +9,7 @@ import { useI18n } from "@/i18n";
 import { buttonClasses } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/product-card";
 import { HeroVideo } from "@/components/hero-video";
+import { NavTransition } from "@/components/nav-transition";
 
 const spotlight = products.find((p) => p.slug === "jumpcore-1000-starter")!;
 
@@ -30,6 +31,7 @@ function ViewAll({ href }: { href: string }) {
   return (
     <Link
       href={href}
+      transitionTypes={["nav-forward"]}
       className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-line bg-surface px-4 py-2 text-sm font-medium text-accent-ink transition-colors duration-150 hover:border-foreground/25 hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
     >
       {t("home.viewAll")}
@@ -68,7 +70,8 @@ export default function HomePage() {
   const { t, m, price } = useI18n();
 
   return (
-    <>
+    <NavTransition>
+    <div>
       {/* ---------- Hero: brand film ---------- */}
       <HeroVideo />
 
@@ -108,7 +111,7 @@ export default function HomePage() {
                 </span>
               </div>
               <div className="mt-6 flex flex-wrap items-center gap-4">
-                <Link href={`/products/${spotlight.slug}`} className={buttonClasses("volt", "lg")}>
+                <Link href={`/products/${spotlight.slug}`} transitionTypes={["nav-forward"]} className={buttonClasses("volt", "lg")}>
                   {m.home.spotCta} <ArrowRight size={16} className="rtl:-scale-x-100" />
                 </Link>
                 <span className="num font-mono text-sm text-background/80" dir="ltr">
@@ -158,6 +161,7 @@ export default function HomePage() {
               <Link
                 key={slug}
                 href={`/products?category=${slug}`}
+                transitionTypes={["nav-forward"]}
                 className="group relative aspect-[4/5] overflow-hidden rounded-card border border-line transition-colors duration-150 hover:border-faint md:aspect-[3/4]"
               >
                 <Image src={p.image} alt="" fill sizes="(min-width: 768px) 24vw, 47vw" className="object-cover" />
@@ -172,6 +176,7 @@ export default function HomePage() {
         </div>
       </section>
 
-    </>
+    </div>
+    </NavTransition>
   );
 }

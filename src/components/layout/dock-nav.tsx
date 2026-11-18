@@ -1,14 +1,15 @@
 "use client";
 
 import { usePathname } from "next/navigation";
-import { Heart, House, LayoutGrid, Package, ShoppingBag } from "lucide-react";
+import { Heart, House, LayoutGrid, ShoppingBag, User } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { useI18n } from "@/i18n";
 import { FloatingDock, type DockItem } from "@/components/ui/floating-dock";
+import { navTypes } from "@/components/nav-transition";
 
 /**
  * Bottom navigation for phones AND tablets (hidden on lg+).
- * Order: Accueil · Boutique · Panier · Favoris · Commandes.
+ * Order: Accueil · Boutique · Panier · Favoris · Profil.
  */
 export function DockNav() {
   const pathname = usePathname() ?? "";
@@ -38,15 +39,18 @@ export function DockNav() {
       badge: ready ? favorites.length : 0,
     },
     {
-      title: m.nav.orders,
-      icon: <Package size={20} strokeWidth={1.9} />,
-      href: "/profile?tab=orders",
-      active: pathname.startsWith("/profile") || pathname.startsWith("/order"),
+      title: m.nav.profile,
+      icon: <User size={20} strokeWidth={1.9} />,
+      href: "/profile",
+      active: pathname.startsWith("/profile"),
     },
-  ];
+  ].map((item) => ({ ...item, transitionTypes: navTypes(pathname, item.href) }));
 
   return (
-    <div className="fixed inset-x-0 bottom-3 z-40 flex justify-center px-4 pb-[env(safe-area-inset-bottom)] lg:hidden">
+    <div
+      className="fixed inset-x-0 bottom-3 z-40 flex justify-center px-4 pb-[env(safe-area-inset-bottom)] lg:hidden"
+      style={{ viewTransitionName: "site-dock" }}
+    >
       <FloatingDock items={items} />
     </div>
   );

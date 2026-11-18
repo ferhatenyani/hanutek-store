@@ -14,6 +14,7 @@ import { useI18n } from "@/i18n";
 import { Button, Badge, QtyStepper, SectionHead } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/product-card";
 import { useToast } from "@/components/ui/toast";
+import { NavTransition, ProductMorph } from "@/components/nav-transition";
 
 type ProductMsg = {
   short: string;
@@ -87,18 +88,20 @@ export function ProductDetail({ product }: { product: Product }) {
   };
   const buyNow = () => {
     addToCart(product.slug, variantId, qty);
-    router.push("/checkout");
+    router.push("/checkout", { transitionTypes: ["to-checkout"] });
   };
 
   return (
+    <NavTransition>
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-16 md:px-6 md:pt-10 md:pb-24">
       <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label="Breadcrumb">
-        <Link href="/" className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
+        <Link href="/" transitionTypes={["nav-back"]} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
           <ChevronLeft size={13} className="rtl:rotate-180" /> {m.nav.home}
         </Link>
         <span className="text-faint">/</span>
         <Link
           href={`/products?category=${product.category}`}
+          transitionTypes={["nav-back"]}
           className="transition-colors duration-150 hover:text-foreground"
         >
           {catName}
@@ -111,14 +114,16 @@ export function ProductDetail({ product }: { product: Product }) {
         {/* Imagery */}
         <div>
           <div className="relative aspect-square overflow-hidden rounded-card border border-line bg-surface">
-            <Image
-              src={product.image}
-              alt={product.name}
-              fill
-              priority
-              sizes="(min-width: 768px) 50vw, 100vw"
-              className="object-cover"
-            />
+            <ProductMorph slug={product.slug}>
+              <Image
+                src={product.image}
+                alt={product.name}
+                fill
+                priority
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover"
+              />
+            </ProductMorph>
           </div>
           <div className="mt-4 flex flex-wrap gap-1.5">
             {onSale && <Badge tone="sale"><span dir="ltr">−{pct}%</span></Badge>}
@@ -249,5 +254,6 @@ export function ProductDetail({ product }: { product: Product }) {
         </section>
       )}
     </div>
+    </NavTransition>
   );
 }
