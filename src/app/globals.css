@@ -30,11 +30,6 @@
   --duration-exit: 120ms;
   --duration-enter: 180ms;
   --duration-move: 360ms;
-
-  /* Cinematic route push + shared-element morph (reference values). */
-  --vt-push: 440ms;
-  --vt-morph: 400ms;
-  --ease-cinematic: cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @theme inline {
@@ -224,40 +219,47 @@ button,
   }
 }
 
-/* ---- View transitions (React ViewTransition + next/link transitionTypes) ----
-   Push + staggered reveal ported 1:1 from ecommerce-transition-demo.html
-   (440ms quint push, 480ms reveal at 0/45/85ms). Shared-element morph
-   follows react-view-transitions-demo (400ms, via-blur). */
+/* ---- View Transitions — rebuilt on the two references' mechanism ----
+   A1 shared image morph: nextjs/react-view-transitions-demo — named
+     <ViewTransition> on both ends, gated to the "morph" transition type via
+     the share map; group morphs 400ms, image pair passes through a 3px blur
+     (via-blur). Names never apply outside morph navigations, so listing and
+     cart pushes can't pick up stray product images.
+   A2 cinematic push: ecommerce-transition-demo.html — old page goes to
+     translateX(∓58px) scale(.975) blur(1.5px) opacity .42 and the new page
+     enters from translateX(±90px) scale(.965) blur(2px) opacity 0,
+     440ms cubic-bezier(.22,1,.36,1), on the ROOT snapshot pair, switched on
+     per-navigation by the --vt-old/--vt-new animation-name custom
+     properties (see app/layout.tsx + stampNav). RTL mirrors the slide.
+   A3 (cart → checkout) uses NO transition: the form is already in the
+     document and only the viewport scrolls. */
 
-/* Untagged navigations (morph routes, browser back) cross-fade quickly. */
+/* Defaults: nothing fades or slides unless a rule below opts in. */
 ::view-transition-old(root),
 ::view-transition-new(root) {
-  animation-duration: 220ms;
-  animation-timing-function: ease;
-}
-::view-transition-old(root) { animation-name: vt-root-out; }
-::view-transition-new(root) { animation-name: vt-root-in; }
-@keyframes vt-root-out { to { opacity: 0; } }
-@keyframes vt-root-in { from { opacity: 0; } }
-
-/* Cinematic push — exact reference values (old page drifts back with
-   scale + blur + fade, new page pushes in from the leading edge). */
-::view-transition-old(.nav-forward),
-::view-transition-new(.nav-forward),
-::view-transition-old(.nav-back),
-::view-transition-new(.nav-back) {
-  animation-duration: var(--vt-push);
-  animation-timing-function: var(--ease-cinematic);
+  animation-duration: 440ms;
+  animation-timing-function: cubic-bezier(0.22, 1, 0.36, 1);
   animation-fill-mode: both;
 }
-::view-transition-old(.nav-forward) { animation-name: vt-push-out-fwd; }
-::view-transition-new(.nav-forward) { animation-name: vt-push-in-fwd; }
-::view-transition-old(.nav-back) { animation-name: vt-push-out-back; }
-::view-transition-new(.nav-back) { animation-name: vt-push-in-back; }
-[dir="rtl"] ::view-transition-old(.nav-forward) { animation-name: vt-push-out-back; }
-[dir="rtl"] ::view-transition-new(.nav-forward) { animation-name: vt-push-in-back; }
-[dir="rtl"] ::view-transition-old(.nav-back) { animation-name: vt-push-out-fwd; }
-[dir="rtl"] ::view-transition-new(.nav-back) { animation-name: vt-push-in-fwd; }
+
+/* A2 cinematic push — driven entirely on the ROOT pair via custom
+   properties (the standard conditional-view-transition pattern; compound
+   :root[data-nav] prefixes do NOT match the VT pseudo tree in Chrome).
+   --vt-old/--vt-new name keys are set on <html> just before the snapshot
+   and cleared after it settles, by:
+     (1) the early inline script in app/layout.tsx — link clicks (capture
+         phase) and history pops (manual startViewTransition around the
+         router's synchronous commit), with RTL already resolved there;
+     (2) stampNav() in nav-transition.tsx — JS router.push sites (buy-now,
+         search, order submit).
+   Unset => animation-name:none => instant swap, so in-page URL state
+   updates and filter replaces never animate. */
+::view-transition-old(root) {
+  animation-name: var(--vt-old, none);
+}
+::view-transition-new(root) {
+  animation-name: var(--vt-new, none);
+}
 
 @keyframes vt-push-out-fwd {
   to { transform: translateX(-58px) scale(0.975); opacity: 0.42; filter: blur(1.5px); }
@@ -272,59 +274,42 @@ button,
   from { transform: translateX(-90px) scale(0.965); opacity: 0; filter: blur(2px); }
 }
 
-/* Staggered reveal of the entering page's [data-reveal] blocks. DOM-level
-   (like the reference), started by NavTransition just before the push
-   snapshot lifts so the snapshot itself never captures hidden content. */
-@keyframes vt-reveal {
-  from { opacity: 0; transform: translateY(13px); }
-  to { opacity: 1; transform: none; }
-}
-.vt-entering [data-reveal] {
-  animation: vt-reveal 480ms var(--ease-cinematic) both;
-}
-
-/* Shared-element morph (home card <-> detail hero). Names are gated by the
-   "morph" transition type (share={{morph:"morph",default:"none"}}) so other
-   routes never pick up stray product-image names. */
-::view-transition-group(.morph) {
-  animation-duration: var(--vt-morph);
-  animation-timing-function: var(--ease-cinematic);
-  z-index: 5;
-}
+/* A1 — shared image morph (reference values). */
+::view-transition-group(.morph) { animation-duration: 400ms; }
 ::view-transition-image-pair(.morph) { animation-name: vt-via-blur; }
 @keyframes vt-via-blur { 30% { filter: blur(3px); } }
 
-/* Cart sheet cross-fades out of the snapshot when a navigation starts
-   (skipExit unmounts it instantly; these rules cover the brief overlap). */
-::view-transition-old(cart-sheet-overlay),
-::view-transition-old(cart-sheet-panel) {
-  animation: 220ms ease both vt-root-out;
-}
-::view-transition-new(cart-sheet-overlay),
-::view-transition-new(cart-sheet-panel) {
-  animation: none;
-}
-
-/* Persistent chrome stays pinned above the page push. */
+/* Persistent chrome stays pixel-still while pages push. */
 ::view-transition-group(site-header),
+::view-transition-group(site-announcement),
 ::view-transition-group(site-dock) {
   animation: none;
   z-index: 100;
 }
 ::view-transition-old(site-header),
+::view-transition-old(site-announcement),
 ::view-transition-old(site-dock) { display: none; }
 ::view-transition-new(site-header),
+::view-transition-new(site-announcement),
 ::view-transition-new(site-dock) { animation: none; }
+
+/* Cart sheet unmounts instantly when a navigation starts (skipExit); these
+   rules cover the brief overlap when it closes without one. */
+::view-transition-old(cart-sheet-overlay),
+::view-transition-old(cart-sheet-panel) { animation: 220ms ease both vt-sheet-out; }
+::view-transition-new(cart-sheet-overlay),
+::view-transition-new(cart-sheet-panel) { animation: none; }
+@keyframes vt-sheet-out { to { opacity: 0; } }
 
 /* Keep the page interactive while a transition runs. */
 ::view-transition { pointer-events: none; }
 
 @media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
   ::view-transition-old(*),
   ::view-transition-new(*),
   ::view-transition-group(*) {
     animation-duration: 0s !important;
     animation-delay: 0s !important;
   }
-  .vt-entering [data-reveal] { animation: none; }
 }

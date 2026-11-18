@@ -17,7 +17,7 @@ export default function NotFound() {
         <h1 className="mt-2 text-2xl font-semibold tracking-tight">{m.notFound.title}</h1>
         <p className="mt-2 text-sm text-muted">{m.notFound.body}</p>
       </div>
-      <Link href="/" className={buttonClasses("dark", "lg")}>
+      <Link href="/" transitionTypes={["nav-back"]} className={buttonClasses("dark", "lg")}>
         {m.notFound.cta}
       </Link>
     </div>

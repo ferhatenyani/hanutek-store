@@ -1,31 +1,54 @@
 "use client";
 
+import { useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 import { Banknote, ChevronLeft, ShoppingBag, Trash2 } from "lucide-react";
 import { useStore, cartTotals, promoDiscountRate } from "@/lib/store";
 import { getProduct, variantPrice } from "@/lib/products";
 import { useI18n } from "@/i18n";
 import { buttonClasses, QtyStepper } from "@/components/ui/primitives";
-import { NavTransition, ProductMorph } from "@/components/nav-transition";
+import { NavTransition } from "@/components/nav-transition";
 import { CartPromo } from "@/components/cart-promo";
+import { CheckoutForm } from "@/components/checkout-form";
+
+/** Scroll to the checkout form that already lives below the cart lines.
+ *  No route change, no remount — the viewport just moves (A3). */
+function scrollToCheckout() {
+  document.getElementById("checkout")?.scrollIntoView({ block: "start" });
+}
 
 export function CartView() {
   const { m, price: fmt } = useI18n();
   const { cart, cartCount, setQty, removeItem, promo, ready } = useStore();
+  const pathname = usePathname();
   const totals = cartTotals(cart, promoDiscountRate(promo));
   const vlabel = (slug: string, id: string) =>
     (m.products[slug as keyof typeof m.products] as { variants: Record<string, string> }).variants[id];
 
+  // /cart#checkout (buy-now, redirected /checkout deep links): auto-scroll to
+  // the form once the cart has hydrated and the section actually exists.
+  useEffect(() => {
+    if (!ready || cart.length === 0) return;
+    if (window.location.hash === "#checkout") {
+      const raf = requestAnimationFrame(() => {
+        document.getElementById("checkout")?.scrollIntoView({ block: "start" });
+        history.replaceState(null, "", window.location.pathname + window.location.search);
+      });
+      return () => cancelAnimationFrame(raf);
+    }
+  }, [ready, cart.length, pathname]);
+
   return (
     <NavTransition>
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-14">
-      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.common.breadcrumb} data-reveal>
+      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.common.breadcrumb}>
         <Link href="/products" transitionTypes={["nav-back"]} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
           <ChevronLeft size={13} className="rtl:rotate-180" /> {m.cart.continueShopping}
         </Link>
       </nav>
-      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl" data-reveal>
+      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
         {m.cart.title}{" "}
         {ready && cartCount > 0 && <span className="num font-mono text-lg font-normal text-faint">({cartCount})</span>}
       </h1>
@@ -44,7 +67,8 @@ export function CartView() {
           </Link>
         </div>
       ) : (
-        <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_360px] lg:gap-10" data-reveal>
+        <>
+        <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_360px] lg:gap-10">
           <div className="min-w-0">
             <ul className="divide-y divide-line border-y border-line">
               {cart.map((item) => {
@@ -58,9 +82,7 @@ export function CartView() {
                       transitionTypes={["nav-forward"]}
                       className="relative h-24 w-24 shrink-0 overflow-hidden rounded-xl border border-line bg-surface md:h-28 md:w-28"
                     >
-                      <ProductMorph slug={p.slug}>
-                        <Image src={p.image} alt={p.name} fill sizes="112px" className="object-cover" />
-                      </ProductMorph>
+                      <Image src={p.image} alt={p.name} fill sizes="112px" className="object-cover" />
                     </Link>
                     <div className="flex min-w-0 flex-1 flex-col">
                       <div className="flex items-start justify-between gap-3">
@@ -124,9 +146,9 @@ export function CartView() {
                   <dd dir="ltr" className="num font-display text-lg font-semibold">{fmt(totals.total)}</dd>
                 </div>
               </dl>
-              <Link href="/checkout" transitionTypes={["nav-forward"]} className={buttonClasses("primary", "lg", "mt-6 w-full")}>
+              <button type="button" onClick={scrollToCheckout} className={buttonClasses("primary", "lg", "mt-6 w-full")}>
                 {m.cart.checkout}
-              </Link>
+              </button>
               <Link href="/products" transitionTypes={["nav-back"]} className={buttonClasses("ghost", "md", "mt-2 w-full")}>
                 {m.cart.continueShopping}
               </Link>
@@ -136,6 +158,16 @@ export function CartView() {
             </div>
           </div>
         </div>
+
+        {/* A3 — the checkout form lives RIGHT HERE, below the cart
+            section, always mounted. The summary "Checkout" button above
+            only scrolls the viewport down to it; nothing mounts,
+            reloads or animates. */}
+        <section id="checkout" aria-label={m.checkout.title} className="mt-16 max-w-3xl scroll-mt-28 border-t border-line pt-10">
+          <h2 className="text-2xl font-semibold tracking-tight md:text-3xl">{m.checkout.title}</h2>
+          <CheckoutForm />
+        </section>
+        </>
       )}
     </div>
     </NavTransition>

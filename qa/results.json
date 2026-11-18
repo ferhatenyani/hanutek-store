@@ -1,0 +1,155 @@
+[
+  {
+    "case": "fr1440_a1_rail2detail",
+    "frames": 12,
+    "url": "http://localhost:3111/products/reverseview-pro-kit",
+    "heroImg": true,
+    "errors": []
+  },
+  {
+    "case": "fr1440_a1_detail2home",
+    "frames": 7,
+    "url": "http://localhost:3111/",
+    "errors": []
+  },
+  {
+    "case": "fr390_a1_rail2detail",
+    "frames": 22,
+    "url": "http://localhost:3111/products/reverseview-pro-kit",
+    "heroImg": true,
+    "errors": []
+  },
+  {
+    "case": "fr1440_a2_home2products",
+    "frames": 22,
+    "url": "http://localhost:3111/products",
+    "grid": true,
+    "errors": []
+  },
+  {
+    "case": "fr834_a2_home2products",
+    "frames": 37,
+    "url": "http://localhost:3111/products",
+    "grid": true,
+    "errors": []
+  },
+  {
+    "case": "fr1440_a2_back",
+    "frames": 52,
+    "dataNavDuringPop": "nav-back",
+    "url": "http://localhost:3111/",
+    "errors": []
+  },
+  {
+    "case": "fr1440_a3_cartscroll",
+    "frames": 30,
+    "formAlreadyMounted": true,
+    "ctaClicked": true,
+    "scrollBefore": {
+      "y": 0,
+      "url": "http://localhost:3111/cart",
+      "marker": 1
+    },
+    "scrollAfter": {
+      "y": 658,
+      "url": "http://localhost:3111/cart",
+      "marker": 1
+    },
+    "url": "http://localhost:3111/cart",
+    "formBelowCart": true,
+    "errors": []
+  },
+  {
+    "case": "fr390_a3_sheetscroll",
+    "frames": 89,
+    "sheetFormMountedBeforeClick": true,
+    "clicked": true,
+    "sheetScrollBefore": 0,
+    "sheetScrollAfter": {
+      "top": 286,
+      "url": "http://localhost:3111/",
+      "marker": 1
+    },
+    "url": "http://localhost:3111/",
+    "errors": []
+  },
+  {
+    "case": "fr834_a3_sheetscroll",
+    "frames": 94,
+    "sheetFormMountedBeforeClick": true,
+    "clicked": true,
+    "sheetScrollBefore": 0,
+    "sheetScrollAfter": {
+      "top": 286,
+      "url": "http://localhost:3111/",
+      "marker": 1
+    },
+    "url": "http://localhost:3111/",
+    "errors": []
+  },
+  {
+    "case": "ar1440_a2_home2products",
+    "frames": 13,
+    "url": "http://localhost:3111/products",
+    "grid": true,
+    "errors": []
+  },
+  {
+    "case": "ar390_a3_sheetscroll",
+    "frames": 93,
+    "sheetFormMountedBeforeClick": true,
+    "clicked": true,
+    "sheetScrollBefore": 0,
+    "sheetScrollAfter": {
+      "top": 286,
+      "url": "http://localhost:3111/",
+      "marker": 1
+    },
+    "url": "http://localhost:3111/",
+    "errors": []
+  },
+  {
+    "case": "ar1440_a3_cartscroll",
+    "frames": 36,
+    "formAlreadyMounted": true,
+    "ctaClicked": true,
+    "scrollBefore": {
+      "y": 0,
+      "url": "http://localhost:3111/cart",
+      "marker": 1
+    },
+    "scrollAfter": {
+      "y": 641,
+      "url": "http://localhost:3111/cart",
+      "marker": 1
+    },
+    "url": "http://localhost:3111/cart",
+    "formBelowCart": true,
+    "errors": []
+  },
+  {
+    "case": "ar390_a2_back",
+    "frames": 77,
+    "dataNavDuringPop": "nav-back",
+    "url": "http://localhost:3111/",
+    "errors": []
+  },
+  {
+    "case": "fr390_reduced_a1",
+    "frames": 5,
+    "heroSample": [
+      122,
+      120,
+      124
+    ],
+    "loaded": true,
+    "errors": []
+  },
+  {
+    "case": "ar1440_reduced_a2",
+    "frames": 4,
+    "url": "http://localhost:3111/products",
+    "grid": true,
+    "errors": []
+  }
+]

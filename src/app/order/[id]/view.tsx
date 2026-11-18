@@ -92,7 +92,7 @@ export function OrderView() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3" data-reveal>
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
             {justConfirmed ? m.order.confirmedTitle : m.order.detailsTitle}
@@ -107,7 +107,7 @@ export function OrderView() {
         </span>
       </div>
 
-      <section className="mt-8 rounded-card border border-line bg-surface p-6 md:p-7" aria-label={m.order.tracking} data-reveal>
+      <section className="mt-8 rounded-card border border-line bg-surface p-6 md:p-7" aria-label={m.order.tracking}>
         <h2 className="font-display text-lg font-semibold">{m.order.tracking}</h2>
         <ol className="relative mt-6">
           <span className="absolute start-[15px] top-4 bottom-8 w-px bg-line" aria-hidden />
@@ -144,7 +144,7 @@ export function OrderView() {
         </ol>
       </section>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px]" data-reveal>
+      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px]">
         <section className="rounded-card border border-line bg-surface p-6" aria-label={m.order.items}>
           <h2 className="font-display text-lg font-semibold">{m.order.items}</h2>
           <ul className="mt-4 divide-y divide-line">

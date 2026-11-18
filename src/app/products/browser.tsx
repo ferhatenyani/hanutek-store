@@ -79,7 +79,7 @@ export function ProductsBrowser() {
   return (
     <NavTransition>
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-14">
-      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.common.breadcrumb} data-reveal>
+      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.common.breadcrumb}>
         <Link href="/" transitionTypes={["nav-back"]} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
           <ChevronLeft size={13} className="rtl:-scale-x-100" /> {m.nav.home}
         </Link>
@@ -87,7 +87,7 @@ export function ProductsBrowser() {
         <span className="text-foreground">{title}</span>
       </nav>
 
-      <div className="flex flex-wrap items-end justify-between gap-4" data-reveal>
+      <div className="flex flex-wrap items-end justify-between gap-4">
         <div className="max-w-xl">
           <h1 className="font-display text-3xl font-bold tracking-tight text-foreground md:text-4xl">{title}</h1>
           <p className="mt-2 text-sm leading-relaxed text-muted">{sub}</p>
@@ -177,7 +177,7 @@ export function ProductsBrowser() {
       {list.length > 0 ? (
         <div
           key={`${category ?? "all"}-${sort}-${sale ? "sale" : "all"}-${q}`}
-          className="product-grid mt-7 md:mt-8" data-reveal
+          className="product-grid mt-7 md:mt-8"
         >
           {list.map((p, i) => (
             <ProductCard key={p.slug} product={p} priority={i < 4} />

@@ -1,9 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Banknote, ChevronLeft, ChevronUp, ShoppingBag, Trash2, X } from "lucide-react";
+import { ArrowRight, Banknote, ChevronDown, ChevronLeft, ChevronUp, ShoppingBag, Trash2, X } from "lucide-react";
 import { useStore, cartTotals, promoDiscountRate } from "@/lib/store";
 import { useI18n } from "@/i18n";
 import {
@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 import { buttonClasses, QtyStepper } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
 import { CartPromo } from "@/components/cart-promo";
-import { ProductMorph } from "@/components/nav-transition";
+import { CheckoutForm } from "@/components/checkout-form";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 /**
@@ -64,6 +64,12 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
     }, 0);
   };
 
+  // A3 in-sheet scroll: the checkout form lives below the cart lines in the
+  // sheet's own overflow container (mounted always); the footer CTA scrolls
+  // down to it. No navigation, no reload, nothing entering from the top.
+  const sheetFormRef = useRef<HTMLElement>(null);
+  const scrollToSheetCheckout = () => sheetFormRef.current?.scrollIntoView({ block: "start" });
+
   const lines = cart.flatMap((i) => {
     const product = getProduct(i.productId);
     return product ? [{ product, variantId: i.variantId, qty: i.qty }] : [];
@@ -86,11 +92,9 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
         onClick={closeForNav}
         className="shrink-0 cursor-pointer"
       >
-        <ProductMorph slug={product.slug} active={false}>
-          <span className="relative block h-20 w-20 overflow-hidden rounded-xl border border-line">
-            <Image src={product.image} alt={product.name} fill sizes="80px" className="object-cover" />
-          </span>
-        </ProductMorph>
+        <span className="relative block h-20 w-20 overflow-hidden rounded-xl border border-line">
+          <Image src={product.image} alt={product.name} fill sizes="80px" className="object-cover" />
+        </span>
       </Link>
       <div className="flex min-w-0 flex-1 flex-col">
         <div className="flex items-start justify-between gap-2">
@@ -188,7 +192,24 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
               {m.cart.codBadge}
             </div>
 
-            <div className="flex-1 overflow-y-auto px-5">{lines.map(lineRow)}</div>
+            <div className="flex-1 overflow-y-auto px-5">
+              {lines.map(lineRow)}
+
+              {/* A3 — the checkout form lives RIGHT HERE, below the cart
+                  lines, inside this same scroll container, mounted always.
+                  The footer "Checkout" CTA only scrolls down to it. */}
+              {fullScreen && (
+                <section
+                  ref={sheetFormRef}
+                  id="sheet-checkout"
+                  aria-label={m.checkout.title}
+                  className="mt-10 scroll-mt-2 border-t border-line pt-8"
+                >
+                  <h3 className="text-lg font-semibold tracking-tight">{m.checkout.title}</h3>
+                  <CheckoutForm onNavigatedAway={closeForNav} />
+                </section>
+              )}
+            </div>
 
             {fullScreen ? (
               <div className="space-y-3 border-t border-line p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
@@ -213,14 +234,13 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                     <dd className="num font-display text-lg font-bold tabular-nums">{price(totals.total)}</dd>
                   </div>
                 </dl>
-                <Link
-                  href="/checkout"
-                  transitionTypes={["nav-forward"]}
-                  onClick={closeForNav}
+                <button
+                  type="button"
+                  onClick={scrollToSheetCheckout}
                   className={cn(buttonClasses("primary", "lg"), "w-full")}
                 >
-                  {m.cart.checkout} <ArrowRight size={17} className="rtl:rotate-180" />
-                </Link>
+                  {m.cart.checkout} <ChevronDown size={17} aria-hidden />
+                </button>
                 <Link
                   href="/products"
                   transitionTypes={["nav-back"]}

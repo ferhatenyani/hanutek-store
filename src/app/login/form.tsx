@@ -49,7 +49,7 @@ export function LoginForm() {
       footer={
         <>
           {m.auth.noAccount}{" "}
-          <Link href="/register" className="font-medium text-accent-ink hover:underline">
+          <Link href="/register" transitionTypes={["nav-forward"]} className="font-medium text-accent-ink hover:underline">
             {m.auth.registerCta}
           </Link>
         </>
@@ -84,7 +84,7 @@ export function LoginForm() {
         <label className="block">
           <span className="mb-1.5 flex items-center justify-between text-xs font-medium text-muted">
             {m.auth.password}
-            <Link href="/profile" className="font-normal text-accent-ink hover:underline">
+            <Link href="/profile" transitionTypes={["nav-forward"]} className="font-normal text-accent-ink hover:underline">
               {m.auth.forgotPassword}
             </Link>
           </span>

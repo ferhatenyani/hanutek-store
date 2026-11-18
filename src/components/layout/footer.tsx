@@ -9,12 +9,15 @@ import { useI18n } from "@/i18n";
 import { useToast } from "@/components/ui/toast";
 import { useSheetUI } from "./app-shell";
 import { LocaleToggle } from "./header";
+import { navTypes } from "@/components/nav-transition";
+import { usePathname } from "next/navigation";
 
 export function Footer() {
   const toast = useToast();
   const { user } = useStore();
   const { m } = useI18n();
   const { openCart } = useSheetUI();
+  const pathname = usePathname() ?? "";
   const [email, setEmail] = useState("");
   const f = m.footer;
   const year = "2026";
@@ -36,7 +39,7 @@ export function Footer() {
         <div className="grid gap-10 [&>*]:min-w-0 md:grid-cols-[1.6fr_1fr_1fr_1.6fr]">
           {/* Brand */}
           <div>
-            <Link href="/" className="flex items-center gap-2">
+            <Link href="/" transitionTypes={navTypes(pathname, "/")} className="flex items-center gap-2">
               <span className="grid h-7 w-7 place-items-center rounded-lg bg-volt font-mono text-sm text-accent">
                 h
               </span>
@@ -74,18 +77,18 @@ export function Footer() {
             <h3 className={headCls}>{f.shop}</h3>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href="/products" className={linkCls}>
+                <Link href="/products" transitionTypes={navTypes(pathname, "/products")} className={linkCls}>
                   {m.nav.allProducts}
                 </Link>
               </li>
               <li>
-                <Link href="/favorites" className={linkCls}>
+                <Link href="/favorites" transitionTypes={navTypes(pathname, "/favorites")} className={linkCls}>
                   {m.nav.favorites}
                 </Link>
               </li>
               {categories.map((c) => (
                 <li key={c.slug}>
-                  <Link href={`/products?category=${c.slug}`} className={linkCls}>
+                  <Link href={`/products?category=${c.slug}`} transitionTypes={navTypes(pathname, `/products?category=${c.slug}`)} className={linkCls}>
                     {m.categories[c.slug].name}
                   </Link>
                 </li>
@@ -98,24 +101,24 @@ export function Footer() {
             <h3 className={headCls}>{m.nav.account}</h3>
             <ul className="space-y-2.5 text-sm">
               <li>
-                <Link href={user ? "/profile" : "/login"} className={linkCls}>
+                <Link href={user ? "/profile" : "/login"} transitionTypes={navTypes(pathname, user ? "/profile" : "/login")} className={linkCls}>
                   {user ? m.nav.account : m.auth.loginTitle}
                 </Link>
               </li>
               {!user && (
                 <li>
-                  <Link href="/register" className={linkCls}>
+                  <Link href="/register" transitionTypes={navTypes(pathname, "/register")} className={linkCls}>
                     {m.auth.registerTitle}
                   </Link>
                 </li>
               )}
               <li>
-                <Link href="/profile?tab=orders" className={linkCls}>
+                <Link href="/profile?tab=orders" transitionTypes={navTypes(pathname, "/profile?tab=orders")} className={linkCls}>
                   {m.nav.orders}
                 </Link>
               </li>
               <li>
-                <Link href="/cart" className={linkCls}>
+                <Link href="/cart" transitionTypes={navTypes(pathname, "/cart")} className={linkCls}>
                   {m.nav.cart}
                 </Link>
               </li>

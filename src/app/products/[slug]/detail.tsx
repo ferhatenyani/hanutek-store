@@ -14,7 +14,7 @@ import { useI18n } from "@/i18n";
 import { Button, Badge, QtyStepper, SectionHead } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/product-card";
 import { useToast } from "@/components/ui/toast";
-import { NavTransition, ProductMorph } from "@/components/nav-transition";
+import { NavTransition, MorphImage, stampNav } from "@/components/nav-transition";
 
 type ProductMsg = {
   short: string;
@@ -88,14 +88,17 @@ export function ProductDetail({ product }: { product: Product }) {
   };
   const buyNow = () => {
     addToCart(product.slug, variantId, qty);
-    router.push("/checkout", { transitionTypes: ["nav-forward"] });
+    // Checkout is no longer a route: land on the cart at its form (below the
+    // lines); the cart page turns the #checkout hash into the auto-scroll.
+    stampNav(window.location.pathname, "/cart", "nav-forward");
+    router.push("/cart#checkout", { transitionTypes: ["nav-forward"] });
   };
 
   return (
     <NavTransition>
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-16 md:px-6 md:pt-10 md:pb-24">
-      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.common.breadcrumb} data-reveal>
-        <Link href="/" transitionTypes={["morph"]} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
+      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.common.breadcrumb}>
+        <Link href="/" transitionTypes={["morph", "nav-back"]} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
           <ChevronLeft size={13} className="rtl:rotate-180" /> {m.nav.home}
         </Link>
         <span className="text-faint">/</span>
@@ -110,11 +113,11 @@ export function ProductDetail({ product }: { product: Product }) {
         <span dir="ltr" className="max-w-40 truncate text-foreground rtl:text-right">{product.name}</span>
       </nav>
 
-      <div className="grid gap-10 md:grid-cols-2 md:gap-14" data-reveal>
+      <div className="grid gap-10 md:grid-cols-2 md:gap-14">
         {/* Imagery */}
         <div>
           <div className="relative aspect-square overflow-hidden rounded-card border border-line bg-surface">
-            <ProductMorph slug={product.slug}>
+            <MorphImage slug={product.slug}>
               <Image
                 src={product.image}
                 alt={product.name}
@@ -123,7 +126,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 sizes="(min-width: 768px) 50vw, 100vw"
                 className="object-cover"
               />
-            </ProductMorph>
+            </MorphImage>
           </div>
           <div className="mt-4 flex flex-wrap gap-1.5">
             {onSale && <Badge tone="sale"><span dir="ltr">−{pct}%</span></Badge>}
@@ -207,7 +210,7 @@ export function ProductDetail({ product }: { product: Product }) {
       </div>
 
       {/* Details */}
-      <div className="mt-14 max-w-3xl" data-reveal>
+      <div className="mt-14 max-w-3xl">
         <Accordion
           items={[
             { id: "description", title: m.product.descriptionTitle, content: <p>{mp.description}</p> },
@@ -244,7 +247,7 @@ export function ProductDetail({ product }: { product: Product }) {
 
       {/* Related */}
       {related.length > 0 && (
-        <section className="mt-16" data-reveal>
+        <section className="mt-16">
           <SectionHead eyebrow={catName} title={m.product.relatedTitle} className="mb-6 md:mb-8" />
           <div className="product-rail no-scrollbar">
             {related.map((p) => (

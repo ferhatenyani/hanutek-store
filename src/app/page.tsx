@@ -73,7 +73,7 @@ export default function HomePage() {
       <HeroVideo />
 
       {/* ---------- Best sellers ---------- */}
-      <section id="best" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-12 md:px-6 md:py-16" data-reveal>
+      <section id="best" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-12 md:px-6 md:py-16">
         <SectionIntro
           eyebrow={t("common.bestSeller")}
           title={m.home.bestTitle}
@@ -89,7 +89,7 @@ export default function HomePage() {
 
       {/* ---------- New arrivals ---------- */}
       <section className="border-t border-line">
-        <div className="mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-16" data-reveal>
+        <div className="mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-16">
           <SectionIntro
             eyebrow={t("common.new")}
             title={m.home.newTitle}
@@ -105,7 +105,7 @@ export default function HomePage() {
       </section>
 
       {/* ---------- Categories ---------- */}
-      <section className="mx-auto max-w-6xl px-4 pb-14 md:px-6 md:pb-20" data-reveal>
+      <section className="mx-auto max-w-6xl px-4 pb-14 md:px-6 md:pb-20">
         <SectionIntro eyebrow={m.shell.categories} title={m.listing.title} action={<ViewAll href="/products" />} />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
           {(["vision", "power", "interior", "care"] as const).map((slug) => {

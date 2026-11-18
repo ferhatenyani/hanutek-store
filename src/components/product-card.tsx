@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n";
-import { ProductMorph } from "@/components/nav-transition";
+import { MorphImage } from "@/components/nav-transition";
 import { Badge } from "@/components/ui/primitives";
 import { Rating } from "@/components/ui/rating";
 
@@ -20,7 +20,8 @@ export function ProductCard({
 }: {
   product: Product;
   priority?: boolean;
-  /** Home rails morph their image into the detail hero; listing/favorites push. */
+  /** Home rails + favorites morph their image into the detail hero (and
+   *  back) while the page pushes; listing/cart cards plain-push. */
   morph?: boolean;
 }) {
   const { addToCart, toggleFavorite, isFavorite } = useStore();
@@ -52,12 +53,12 @@ export function ProductCard({
     <div className="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors duration-150 hover:border-faint">
       <Link
         href={`/products/${product.slug}`}
-        transitionTypes={morph ? ["morph"] : ["nav-forward"]}
+        transitionTypes={morph ? ["morph", "nav-forward"] : ["nav-forward"]}
         className="block focus-visible:outline-none"
         aria-label={product.name}
       >
         <div className="relative aspect-square overflow-hidden">
-          <ProductMorph slug={product.slug}>
+          <MorphImage slug={product.slug} enabled={morph}>
             <Image
               src={product.image}
               alt={product.name}
@@ -66,7 +67,7 @@ export function ProductCard({
               sizes="(min-width: 64rem) 25vw, (min-width: 48rem) 32vw, (min-width: 40rem) 32vw, 70vw"
               className="object-cover"
             />
-          </ProductMorph>
+          </MorphImage>
           {badges.length > 0 && (
             <div className="absolute start-3 top-3 z-10 flex flex-col items-start gap-1.5">{badges.slice(0, 2)}</div>
           )}

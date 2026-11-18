@@ -8,6 +8,7 @@ import { categories, products, variantPrice, type CategorySlug } from "@/lib/pro
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
 import { categoryIcons } from "@/components/icons";
+import { stampNav } from "@/components/nav-transition";
 
 const RECENT_KEY = "hanutek-rec…h-v1";
 
@@ -117,6 +118,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
       remember(query);
       setOpen(false);
       inputRef.current?.blur();
+      stampNav(window.location.pathname, "/products", "nav-forward");
       router.push(href, { transitionTypes: ["nav-forward"] });
     },
     [remember, router],

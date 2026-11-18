@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactNode } from "react";
+import { NavTransition } from "@/components/nav-transition";
 
 export function AuthShell({
   title,
@@ -13,9 +14,10 @@ export function AuthShell({
   footer: ReactNode;
 }) {
   return (
+    <NavTransition>
     <div className="mx-auto flex w-full max-w-md flex-col px-4 py-14 md:py-20">
       <div className="rounded-card border border-line bg-surface p-7 shadow-card md:p-9">
-        <Link href="/" className="mb-7 flex w-fit items-center gap-2.5" aria-label="hanutek">
+        <Link href="/" transitionTypes={["nav-back"]} className="mb-7 flex w-fit items-center gap-2.5" aria-label="hanutek">
           <span className="grid h-9 w-9 place-items-center rounded-lg bg-foreground font-sans text-lg font-bold text-background">
             h
           </span>
@@ -27,6 +29,7 @@ export function AuthShell({
       </div>
       <p className="mt-6 text-center text-sm text-muted">{footer}</p>
     </div>
+    </NavTransition>
   );
 }
 

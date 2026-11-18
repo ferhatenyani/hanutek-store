@@ -18,7 +18,7 @@ export default function FavoritesPage() {
   return (
     <NavTransition>
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-14">
-      <h1 className="flex items-center gap-2.5 font-display text-3xl font-bold tracking-tight md:text-4xl" data-reveal>
+      <h1 className="flex items-center gap-2.5 font-display text-3xl font-bold tracking-tight md:text-4xl">
         <Heart size={26} className="text-sale" aria-hidden />
         {m.favorites.title}
         {ready && list.length > 0 && (
@@ -53,7 +53,7 @@ export default function FavoritesPage() {
       ) : (
         <div className="product-grid mt-7 md:mt-8">
           {list.map((p) => (
-            <ProductCard key={p.slug} product={p} />
+            <ProductCard key={p.slug} product={p} morph />
           ))}
         </div>
       )}
