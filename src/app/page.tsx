@@ -3,15 +3,12 @@
 import type { ReactNode } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Star } from "lucide-react";
-import { products, variantPrice } from "@/lib/products";
+import { ArrowRight } from "lucide-react";
+import { products } from "@/lib/products";
 import { useI18n } from "@/i18n";
-import { buttonClasses } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/product-card";
 import { HeroVideo } from "@/components/hero-video";
 import { NavTransition } from "@/components/nav-transition";
-
-const spotlight = products.find((p) => p.slug === "jumpcore-1000-starter")!;
 
 const bestSellers = (() => {
   const best = products.filter((p) => p.bestSeller);
@@ -67,7 +64,7 @@ function SectionIntro({
 }
 
 export default function HomePage() {
-  const { t, m, price } = useI18n();
+  const { t, m } = useI18n();
 
   return (
     <NavTransition>
@@ -76,7 +73,7 @@ export default function HomePage() {
       <HeroVideo />
 
       {/* ---------- Best sellers ---------- */}
-      <section id="best" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-12 md:px-6 md:py-16">
+      <section id="best" className="mx-auto max-w-6xl scroll-mt-24 px-4 py-12 md:px-6 md:py-16" data-reveal>
         <SectionIntro
           eyebrow={t("common.bestSeller")}
           title={m.home.bestTitle}
@@ -85,58 +82,14 @@ export default function HomePage() {
         />
         <div className="product-rail no-scrollbar">
           {bestSellers.map((p, i) => (
-            <ProductCard key={p.slug} product={p} priority={i < 2} />
+            <ProductCard key={p.slug} product={p} priority={i < 2} morph />
           ))}
-        </div>
-      </section>
-
-      {/* ---------- Spotlight ---------- */}
-      <section className="mx-auto max-w-6xl px-4 pb-12 md:px-6 md:pb-16">
-        <div className="relative overflow-hidden rounded-card bg-foreground text-background">
-          <div className="grid items-center gap-8 p-7 md:grid-cols-2 md:p-12">
-            <div>
-              <p className="mb-3 flex items-center gap-2 font-mono text-[11px] uppercase tracking-[0.2em] text-volt rtl:tracking-normal">
-                <span className="h-1.5 w-1.5 rounded-[2px] bg-volt" aria-hidden />
-                {m.home.spotEyebrow}
-              </p>
-              <h2 className="text-balance text-3xl font-bold tracking-tight md:text-4xl rtl:tracking-normal">
-                {m.categories[spotlight.category].tagline}
-              </h2>
-              <p className="mt-4 max-w-md text-sm leading-relaxed text-background/70">{m.home.spotBody}</p>
-              <div className="mt-6 flex flex-wrap items-center gap-x-3 gap-y-1.5">
-                <span className="text-sm font-semibold">{spotlight.name}</span>
-                <span className="inline-flex items-center gap-1 font-mono text-xs text-background/70">
-                  <Star size={12} className="fill-volt text-volt" aria-hidden />
-                  <span dir="ltr">{spotlight.rating}</span>
-                </span>
-              </div>
-              <div className="mt-6 flex flex-wrap items-center gap-4">
-                <Link href={`/products/${spotlight.slug}`} transitionTypes={["nav-forward"]} className={buttonClasses("volt", "lg")}>
-                  {m.home.spotCta} <ArrowRight size={16} className="rtl:-scale-x-100" />
-                </Link>
-                <span className="num font-mono text-sm text-background/80" dir="ltr">
-                  {price(variantPrice(spotlight, spotlight.variants[0].id))}
-                </span>
-              </div>
-            </div>
-            <div className="relative overflow-hidden rounded-xl border border-background/15">
-              <div className="relative aspect-[4/3]">
-                <Image
-                  src={spotlight.image}
-                  alt={spotlight.name}
-                  fill
-                  sizes="(min-width: 768px) 45vw, 90vw"
-                  className="object-cover"
-                />
-              </div>
-            </div>
-          </div>
         </div>
       </section>
 
       {/* ---------- New arrivals ---------- */}
       <section className="border-t border-line">
-        <div className="mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-16">
+        <div className="mx-auto max-w-6xl px-4 py-12 md:px-6 md:py-16" data-reveal>
           <SectionIntro
             eyebrow={t("common.new")}
             title={m.home.newTitle}
@@ -145,14 +98,14 @@ export default function HomePage() {
           />
           <div className="product-rail no-scrollbar">
             {newArrivals.map((p) => (
-              <ProductCard key={p.slug} product={p} />
+              <ProductCard key={p.slug} product={p} morph />
             ))}
           </div>
         </div>
       </section>
 
       {/* ---------- Categories ---------- */}
-      <section className="mx-auto max-w-6xl px-4 pb-14 md:px-6 md:pb-20">
+      <section className="mx-auto max-w-6xl px-4 pb-14 md:px-6 md:pb-20" data-reveal>
         <SectionIntro eyebrow={m.shell.categories} title={m.listing.title} action={<ViewAll href="/products" />} />
         <div className="grid grid-cols-2 gap-3 md:grid-cols-4 md:gap-5">
           {(["vision", "power", "interior", "care"] as const).map((slug) => {

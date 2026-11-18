@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useParams, useSearchParams } from "next/navigation";
 import { Check, CheckCircle2, ChevronRight, Clock, Loader2, MapPin, PackageCheck, Truck } from "lucide-react";
 import { useStore, type OrderStatus, type TrackingEvent } from "@/lib/store";
@@ -8,6 +9,7 @@ import { useI18n } from "@/i18n/provider";
 import { WILAYAS } from "@/lib/wilayas";
 import { Button } from "@/components/ui/primitives";
 import { cn } from "@/lib/utils";
+import { NavTransition } from "@/components/nav-transition";
 
 export function OrderView() {
   const id = useParams().id as string;
@@ -42,7 +44,7 @@ export function OrderView() {
       <div className="mx-auto max-w-md px-4 py-20 text-center md:px-6">
         <h1 className="text-3xl font-semibold tracking-tight">{m.order.notFoundTitle}</h1>
         <p className="mt-3 text-sm text-muted">{m.order.notFoundDesc}</p>
-        <Link href="/products" className="mt-7 inline-block">
+        <Link href="/products" transitionTypes={["nav-back"]} className="mt-7 inline-block">
           <Button size="lg">{m.order.browseProducts}</Button>
         </Link>
       </div>
@@ -78,6 +80,7 @@ export function OrderView() {
   const doneIcons = [Check, PackageCheck, Truck, Truck, CheckCircle2];
 
   return (
+    <NavTransition>
     <div className="mx-auto max-w-3xl px-4 py-10 md:px-6 md:py-14">
       {justConfirmed && (
         <div className="mb-8 flex items-start gap-3.5 rounded-card bg-volt-soft p-5 text-accent-ink">
@@ -89,7 +92,7 @@ export function OrderView() {
         </div>
       )}
 
-      <div className="flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3" data-reveal>
         <div>
           <h1 className="font-display text-3xl font-semibold tracking-tight md:text-4xl">
             {justConfirmed ? m.order.confirmedTitle : m.order.detailsTitle}
@@ -104,7 +107,7 @@ export function OrderView() {
         </span>
       </div>
 
-      <section className="mt-8 rounded-card border border-line bg-surface p-6 md:p-7" aria-label={m.order.tracking}>
+      <section className="mt-8 rounded-card border border-line bg-surface p-6 md:p-7" aria-label={m.order.tracking} data-reveal>
         <h2 className="font-display text-lg font-semibold">{m.order.tracking}</h2>
         <ol className="relative mt-6">
           <span className="absolute start-[15px] top-4 bottom-8 w-px bg-line" aria-hidden />
@@ -141,16 +144,17 @@ export function OrderView() {
         </ol>
       </section>
 
-      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px]">
+      <div className="mt-6 grid gap-6 md:grid-cols-[1fr_280px]" data-reveal>
         <section className="rounded-card border border-line bg-surface p-6" aria-label={m.order.items}>
           <h2 className="font-display text-lg font-semibold">{m.order.items}</h2>
           <ul className="mt-4 divide-y divide-line">
             {order.items.map((it) => (
               <li key={`${it.productId}-${it.variant}`} className="flex items-center gap-4 py-3.5">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={it.image} alt="" className="h-14 w-14 rounded-xl border border-line object-cover" />
+                <span className="relative h-14 w-14 shrink-0 overflow-hidden rounded-xl border border-line">
+                  <Image src={it.image} alt="" fill sizes="56px" className="object-cover" />
+                </span>
                 <div className="min-w-0 flex-1">
-                  <Link href={`/products/${it.productId}`} className="line-clamp-1 text-sm font-medium hover:text-accent-ink" dir="ltr">
+                  <Link href={`/products/${it.productId}`} transitionTypes={["nav-forward"]} className="line-clamp-1 text-sm font-medium hover:text-accent-ink" dir="ltr">
                     {it.name}
                   </Link>
                   <p className="text-xs text-faint">
@@ -205,12 +209,12 @@ export function OrderView() {
             </p>
           </section>
           <div className="flex flex-col gap-2.5">
-            <Link href="/products">
+            <Link href="/products" transitionTypes={["nav-back"]}>
               <Button className="w-full gap-1.5">
                 {m.order.continueShopping} <ChevronRight size={15} className="rtl:rotate-180" aria-hidden />
               </Button>
             </Link>
-            <Link href="/profile?tab=orders">
+            <Link href="/profile?tab=orders" transitionTypes={["nav-forward"]}>
               <Button variant="outline" className="w-full">
                 {m.order.viewAllOrders}
               </Button>
@@ -219,5 +223,6 @@ export function OrderView() {
         </div>
       </div>
     </div>
+    </NavTransition>
   );
 }

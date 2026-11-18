@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { ViewTransition } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Check, Heart, Plus } from "lucide-react";
@@ -17,14 +16,16 @@ import { Rating } from "@/components/ui/rating";
 export function ProductCard({
   product,
   priority = false,
+  morph = false,
 }: {
   product: Product;
-  index?: number;
   priority?: boolean;
+  /** Home rails morph their image into the detail hero; listing/favorites push. */
+  morph?: boolean;
 }) {
   const { addToCart, toggleFavorite, isFavorite } = useStore();
   const toast = useToast();
-  const { t, m, price: fmt, locale } = useI18n();
+  const { t, m, price: fmt } = useI18n();
   const [added, setAdded] = useState(false);
 
   const price = variantPrice(product, product.variants[0].id);
@@ -40,9 +41,7 @@ export function ProductCard({
   };
 
   const toggleFav = () => toggleFavorite(product.slug);
-  const favLabel = fav
-    ? locale === "ar" ? `إزالة ${product.name} من المفضلة` : `Retirer ${product.name} des favoris`
-    : locale === "ar" ? `إضافة ${product.name} إلى المفضلة` : `Ajouter ${product.name} aux favoris`;
+  const favLabel = t(fav ? "favorites.removeAria" : "favorites.addAria", { name: product.name });
 
   const badges: React.ReactNode[] = [];
   if (onSale) badges.push(<Badge key="sale" tone="sale"><span dir="ltr">−{pct}%</span></Badge>);
@@ -51,10 +50,9 @@ export function ProductCard({
 
   return (
     <div className="group relative flex h-full flex-col overflow-hidden rounded-card border border-line bg-surface transition-colors duration-150 hover:border-faint">
-      <ViewTransition>
       <Link
         href={`/products/${product.slug}`}
-        transitionTypes={["nav-forward"]}
+        transitionTypes={morph ? ["morph"] : ["nav-forward"]}
         className="block focus-visible:outline-none"
         aria-label={product.name}
       >
@@ -83,7 +81,6 @@ export function ProductCard({
           </div>
         </div>
       </Link>
-      </ViewTransition>
 
       <button
         type="button"

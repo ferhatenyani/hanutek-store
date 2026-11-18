@@ -394,24 +394,29 @@ export function StoreProvider({ children }: { children: ReactNode }) {
 
   const cartCount = useMemo(() => state.cart.reduce((n, i) => n + i.qty, 0), [state.cart]);
 
-  const value: StoreValue = {
-    ...state,
-    ready,
-    cartCount,
-    addToCart,
-    setQty,
-    removeItem,
-    clearCart,
-    login,
-    register,
-    logout,
-    updateProfile,
-    applyPromo,
-    removePromo,
-    placeOrder,
-    toggleFavorite,
-    isFavorite,
-  };
+  // Memoized so consumers only re-render when state or a callback actually
+  // changes — not on every unrelated provider render.
+  const value: StoreValue = useMemo(
+    () => ({
+      ...state,
+      ready,
+      cartCount,
+      addToCart,
+      setQty,
+      removeItem,
+      clearCart,
+      login,
+      register,
+      logout,
+      updateProfile,
+      applyPromo,
+      removePromo,
+      placeOrder,
+      toggleFavorite,
+      isFavorite,
+    }),
+    [state, ready, cartCount, addToCart, setQty, removeItem, clearCart, login, register, logout, updateProfile, applyPromo, removePromo, placeOrder, toggleFavorite, isFavorite],
+  );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }

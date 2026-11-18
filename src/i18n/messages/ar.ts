@@ -39,6 +39,7 @@ export const ar: Messages = {
     sort: "ترتيب",
     loading: "جارٍ التحميل…",
     seeMore: "عرض المزيد",
+    breadcrumb: "مسار التنقل",
   },
   nav: {
     home: "الرئيسية",
@@ -83,11 +84,8 @@ export const ar: Messages = {
     heroTitleA: "مصمم للطريق.",
     heroTitleB: "مفكر فيك.",
     viewAll: "عرض الكل",
-    spotCta: "شاهد المنتج",
     bestTitle: "الأكثر مبيعًا",
     bestSub: "ما يختاره السائقون الجزائريون أكثر من غيره.",
-    spotEyebrow: "تشكيلة الشهر",
-    spotBody: "اختيارنا لهذا الشهر، لجمعه بين الموثوقية وسعر ممتاز. جربناه في الفريق ووافقته الطريق.",
     newTitle: "وصل حديثًا",
     newSub: "أحدث المنتجات، جاهزة للنزول إلى الطريق.",
   },
@@ -131,6 +129,7 @@ export const ar: Messages = {
   },
   cart: {
     title: "السلة",
+    added: "أُضيف {name} إلى السلة",
     empty: "سلتك فارغة",
     emptyBody: "تصفح المتجر وأضف ما يعجبك.",
     startShopping: "اكتشف المتجر",
@@ -339,6 +338,8 @@ export const ar: Messages = {
   },
   favorites: {
     title: "المفضلة",
+    addAria: "إضافة {name} إلى المفضلة",
+    removeAria: "إزالة {name} من المفضلة",
     emptyTitle: "لا مفضلات بعد",
     emptyDesc: "اضغط القلب على أي منتج لتجده هنا.",
     browseCta: "تصفح المنتجات",

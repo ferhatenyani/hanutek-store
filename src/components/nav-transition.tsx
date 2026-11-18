@@ -1,52 +1,95 @@
 "use client";
 
 import { ViewTransition } from "react";
-import type { ReactNode } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
+import { usePathname } from "next/navigation";
 import { useMediaQuery } from "@/lib/use-media-query";
 
 /**
  * Directional page transition — exact port of the push in
- * ecommerce-transition-demo.html (old page drifts back 58px / scale .965 /
- * blur 5px / opacity .42 over 420ms; new page enters from 90px / scale .975 /
- * blur 4px / opacity .55 over 440ms, quint easing). Types are attached with
- * `transitionTypes` on next/link (or router.push). Untagged navigations stay
- * instant. `to-cart` / `to-checkout` carry the dedicated cart & checkout
- * entrances.
+ * ecommerce-transition-demo.html (440ms quint: old page drifts back 58px /
+ * scale .975 / blur 1.5px / opacity .42; new page enters from 90px /
+ * scale .965 / blur 2px / opacity 0). Types are attached with
+ * `transitionTypes` on next/link (or router.push). Untagged navigations
+ * cross-fade quickly; the "morph" type carries the shared-element pair.
  *
- * Under prefers-reduced-motion the ViewTransition boundary is removed entirely
- * so no browser view-transition is started — content swaps instantly instead of
- * leaving a frozen snapshot overlay (which `animation: none` alone can cause).
+ * On every route commit the entering page's [data-reveal] blocks run the
+ * reference's staggered reveal (480ms quint, delays 0 / 45 / 85ms on the
+ * first three). The reveal starts just before the push snapshot lifts so
+ * the snapshot itself never captures hidden content.
+ *
+ * Under prefers-reduced-motion the ViewTransition boundary is removed
+ * entirely so no browser view-transition is started — content swaps
+ * instantly instead of leaving a frozen snapshot overlay.
  */
 export function NavTransition({ children }: { children: ReactNode }) {
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
+  const pathname = usePathname();
+  const ref = useRef<HTMLDivElement>(null);
+  const firstRender = useRef(true);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el || reduceMotion) return;
+    const targets = Array.from(el.querySelectorAll<HTMLElement>("[data-reveal]"));
+    if (targets.length === 0) return;
+    const delays = [0, 45, 85];
+    let startTimer: ReturnType<typeof setTimeout> | undefined;
+    let doneTimer: ReturnType<typeof setTimeout> | undefined;
+    const start = () => {
+      targets.forEach((t, i) => {
+        t.style.animationDelay = `${delays[Math.min(i, 2)]}ms`;
+      });
+      el.classList.add("vt-entering");
+      doneTimer = setTimeout(() => {
+        el.classList.remove("vt-entering");
+        targets.forEach((t) => (t.style.animationDelay = ""));
+      }, 700);
+    };
+    if (firstRender.current) {
+      // Initial load: no snapshot overlay — reveal immediately (the
+      // reference runs its reveal on first show too).
+      firstRender.current = false;
+      start();
+    } else {
+      // Route change: let the push snapshot capture fully-visible content,
+      // then reveal the live DOM underneath just before the overlay lifts.
+      startTimer = setTimeout(start, 300);
+    }
+    return () => {
+      clearTimeout(startTimer);
+      clearTimeout(doneTimer);
+      el.classList.remove("vt-entering");
+      targets.forEach((t) => (t.style.animationDelay = ""));
+    };
+  }, [pathname, reduceMotion]);
+
   if (reduceMotion) return <>{children}</>;
   return (
     <ViewTransition
       default="none"
       enter={{
-        "nav-forward": "nav-in-forward",
-        "nav-back": "nav-in-back",
-        "to-cart": "cart-page-in",
-        "to-checkout": "checkout-in",
+        "nav-forward": "nav-forward",
+        "nav-back": "nav-back",
         default: "none",
       }}
       exit={{
-        "nav-forward": "nav-out-forward",
-        "nav-back": "nav-out-back",
-        "to-cart": "fade-out",
-        "to-checkout": "fade-out",
+        "nav-forward": "nav-forward",
+        "nav-back": "nav-back",
         default: "none",
       }}
     >
-      {children}
+      <div ref={ref}>{children}</div>
     </ViewTransition>
   );
 }
 
 /**
- * Shared-element morph pair: same `name` on the card/sheet/cart image and the
- * detail hero. `active=false` detaches the name (used while the cart sheet is
- * open so page images and sheet images never hold duplicate names).
+ * Shared-element morph pair: same `name` on the home card image and the
+ * detail hero. The name is only applied when the navigation carries the
+ * "morph" transition type (share map below) — listing → detail pushes and
+ * cart navigations never pick up stray product-image names.
+ * `active=false` detaches the name entirely (cart sheet rows).
  */
 export function ProductMorph({
   slug,
@@ -62,7 +105,7 @@ export function ProductMorph({
   return (
     <ViewTransition
       name={active ? `product-img-${slug}` : undefined}
-      share="product-morph"
+      share={{ morph: "morph", default: "none" }}
       default="none"
     >
       {children}

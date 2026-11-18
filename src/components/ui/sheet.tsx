@@ -19,6 +19,16 @@ interface SheetProps {
   children: ReactNode;
   className?: string;
   panelClassName?: string;
+  /** Animated panel height (bottom sheets) — lets the same sheet grow from
+   *  a compact preview to full screen without remounting. */
+  panelHeight?: string;
+  /** Override the swipe-dismiss action (e.g. collapse an expanded sheet
+   *  back to its preview instead of closing it). */
+  onSwipeDismiss?: () => void;
+  /** Override the backdrop-click action. */
+  onBackdropClick?: () => void;
+  /** Hide the bottom drag handle (expanded full-screen state). */
+  hideHandle?: boolean;
   /** Unmount immediately on close (no exit animation) — used when the close
    *  is part of a route navigation so view-transition snapshots stay clean. */
   skipExit?: boolean;
@@ -73,6 +83,10 @@ export function Sheet({
   children,
   className,
   panelClassName,
+  panelHeight,
+  onSwipeDismiss,
+  onBackdropClick,
+  hideHandle = false,
   skipExit = false,
 }: SheetProps) {
   const hydrated = useHydrated();
@@ -148,15 +162,15 @@ export function Sheet({
             animate={{ opacity: 1 }}
             exit={skipExit ? undefined : { opacity: 0 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            onClick={onClose}
+            onClick={onBackdropClick ?? onClose}
           />
           <motion.div
             ref={panelRef}
             tabIndex={-1}
-            className={cn(panelBySide[side], panelClassName)}
+            className={cn(panelBySide[side], "transition-[border-radius] duration-300", panelClassName)}
             style={{ viewTransitionName: skipExit ? undefined : "cart-sheet-panel" }}
-            initial={cfg.initial}
-            animate={{ x: 0, y: 0 }}
+            initial={{ ...cfg.initial, ...(panelHeight ? { height: panelHeight } : {}) }}
+            animate={{ x: 0, y: 0, ...(panelHeight ? { height: panelHeight } : {}) }}
             exit={
               skipExit
                 ? undefined
@@ -167,9 +181,9 @@ export function Sheet({
             dragConstraints={cfg.constraints}
             dragElastic={0.12}
             dragDirectionLock
-            onDragEnd={(_, info) => cfg.shouldClose(info) && onClose()}
+            onDragEnd={(_, info) => cfg.shouldClose(info) && (onSwipeDismiss ?? onClose)()}
           >
-            {side === "bottom" && (
+            {side === "bottom" && !hideHandle && (
               <div className="flex justify-center pt-3 pb-1" aria-hidden>
                 <div className="h-1 w-10 rounded-full bg-line" />
               </div>

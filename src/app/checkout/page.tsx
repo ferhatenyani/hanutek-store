@@ -100,6 +100,15 @@ export default function CheckoutPage() {
     postalCode: "",
   });
 
+  // Prefill contact details once the persisted user hydrates — `user` is null on
+  // the first render, so the initializer above can't see it. Render-phase sync
+  // fills only fields the shopper hasn't already typed.
+  const [prefilled, setPrefilled] = useState(false);
+  if (ready && user && !prefilled) {
+    setPrefilled(true);
+    setValues((v) => ({ ...v, name: v.name || user.name, email: v.email || user.email }));
+  }
+
   const base = cartTotals(cart, promoDiscountRate(promo));
   const shipping = delivery === "express" ? EXPRESS_FEE : base.shipping;
   const total = base.subtotal - base.discount + shipping;
@@ -151,7 +160,7 @@ export default function CheckoutPage() {
       <div className="mx-auto max-w-xl px-4 py-28 text-center">
         <h1 className="text-2xl font-semibold tracking-tight">{m.cart.empty}</h1>
         <p className="mt-2 text-sm text-muted">{m.cart.emptyBody}</p>
-        <Link href="/products" className={buttonClasses("dark", "lg", "mt-8")}>
+        <Link href="/products" transitionTypes={["nav-back"]} className={buttonClasses("dark", "lg", "mt-8")}>
           {m.cart.startShopping}
         </Link>
       </div>
@@ -180,21 +189,22 @@ export default function CheckoutPage() {
       <Link
         href="/cart"
         transitionTypes={["nav-back"]}
+        data-reveal
         className="mb-6 inline-flex items-center gap-1 text-xs text-muted transition-colors duration-150 hover:text-foreground"
       >
         <ChevronLeft size={13} className="rtl:rotate-180" /> {m.checkout.backToCart}
       </Link>
-      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">{m.checkout.title}</h1>
+      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl" data-reveal>{m.checkout.title}</h1>
       {!user && (
         <p className="mt-2 text-sm text-muted">
           {m.checkout.guestNote}{" "}
-          <Link href="/login" className="font-medium text-accent-ink underline underline-offset-2">
+          <Link href="/login" transitionTypes={["nav-forward"]} className="font-medium text-accent-ink underline underline-offset-2">
             {m.auth.loginCta}
           </Link>
         </p>
       )}
 
-      <form id="checkout-form" onSubmit={submit} noValidate className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_380px] lg:gap-10">
+      <form id="checkout-form" onSubmit={submit} noValidate data-reveal className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_380px] lg:gap-10">
         <div className="space-y-9">
           <section aria-label={m.checkout.contact}>
             <SectionTitle n="01">{m.checkout.contact}</SectionTitle>

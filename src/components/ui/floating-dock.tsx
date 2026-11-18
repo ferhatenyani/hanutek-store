@@ -13,7 +13,9 @@ import { useState } from "react";
 export type DockItem = {
   title: string;
   icon: React.ReactNode;
-  href: string;
+  href?: string;
+  /** Action items (e.g. the cart trigger) open UI instead of navigating. */
+  onClick?: () => void;
   active?: boolean;
   badge?: number;
   /** View-transition navigation types (see nav-transition.tsx). */
@@ -51,8 +53,56 @@ const FloatingDockDesktop = ({
   );
 };
 
-function IconContainer({ title, icon, href, active, badge, transitionTypes }: DockItem) {
+function IconContainer({ title, icon, href, onClick, active, badge, transitionTypes }: DockItem) {
   const [hovered, setHovered] = useState(false);
+
+  const inner = (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={cn(
+        "relative grid h-10 w-10 place-items-center rounded-full",
+        active
+          ? "text-background"
+          : "bg-gray-200 text-neutral-700 dark:bg-neutral-800 dark:text-white",
+      )}
+    >
+      {/* Active indicator slides between items; size never changes. */}
+      {active && (
+        <motion.span
+          layoutId="dock-active-pill"
+          className="absolute inset-0 rounded-full bg-accent"
+          transition={{ type: "spring", stiffness: 420, damping: 34 }}
+        />
+      )}
+      <AnimatePresence>
+        {hovered && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, x: "-50%" }}
+            animate={{ opacity: 1, y: 0, x: "-50%" }}
+            exit={{ opacity: 0, y: 2, x: "-50%" }}
+            className="absolute -top-8 left-1/2 z-10 w-fit rounded-md border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs whitespace-pre text-neutral-700 dark:border-neutral-900 dark:bg-neutral-800 dark:text-white"
+          >
+            {title}
+          </motion.div>
+        )}
+      </AnimatePresence>
+      {badge !== undefined && badge > 0 && (
+        <span className="absolute -end-1 -top-1 z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sale px-1 font-mono text-[10px] font-medium text-white">
+          {badge}
+        </span>
+      )}
+      <span className="relative z-[1] flex items-center justify-center">{icon}</span>
+    </div>
+  );
+
+  if (!href) {
+    return (
+      <button type="button" onClick={onClick} aria-label={title} className="cursor-pointer">
+        {inner}
+      </button>
+    );
+  }
 
   return (
     <Link
@@ -61,43 +111,7 @@ function IconContainer({ title, icon, href, active, badge, transitionTypes }: Do
       aria-label={title}
       aria-current={active ? "page" : undefined}
     >
-      <div
-        onMouseEnter={() => setHovered(true)}
-        onMouseLeave={() => setHovered(false)}
-        className={cn(
-          "relative grid h-10 w-10 place-items-center rounded-full",
-          active
-            ? "text-background"
-            : "bg-gray-200 text-neutral-700 dark:bg-neutral-800 dark:text-white",
-        )}
-      >
-        {/* Active indicator slides between items; size never changes. */}
-        {active && (
-          <motion.span
-            layoutId="dock-active-pill"
-            className="absolute inset-0 rounded-full bg-accent"
-            transition={{ type: "spring", stiffness: 420, damping: 34 }}
-          />
-        )}
-        <AnimatePresence>
-          {hovered && (
-            <motion.div
-              initial={{ opacity: 0, y: 10, x: "-50%" }}
-              animate={{ opacity: 1, y: 0, x: "-50%" }}
-              exit={{ opacity: 0, y: 2, x: "-50%" }}
-              className="absolute -top-8 left-1/2 z-10 w-fit rounded-md border border-gray-200 bg-gray-100 px-2 py-0.5 text-xs whitespace-pre text-neutral-700 dark:border-neutral-900 dark:bg-neutral-800 dark:text-white"
-            >
-              {title}
-            </motion.div>
-          )}
-        </AnimatePresence>
-        {badge !== undefined && badge > 0 && (
-          <span className="absolute -end-1 -top-1 z-10 flex h-[18px] min-w-[18px] items-center justify-center rounded-full bg-sale px-1 font-mono text-[10px] font-medium text-white">
-            {badge}
-          </span>
-        )}
-        <span className="relative z-[1] flex items-center justify-center">{icon}</span>
-      </div>
+      {inner}
     </Link>
   );
 }

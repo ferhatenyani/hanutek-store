@@ -6,6 +6,7 @@ import { useStore } from "@/lib/store";
 import { useI18n } from "@/i18n";
 import { FloatingDock, type DockItem } from "@/components/ui/floating-dock";
 import { navTypes } from "@/components/nav-transition";
+import { useSheetUI } from "./app-shell";
 
 /**
  * Bottom navigation for phones AND tablets (hidden on lg+).
@@ -14,6 +15,7 @@ import { navTypes } from "@/components/nav-transition";
 export function DockNav() {
   const pathname = usePathname() ?? "";
   const { cartCount, favorites, ready } = useStore();
+  const { openCart } = useSheetUI();
   const { m } = useI18n();
 
   const items: DockItem[] = [
@@ -27,7 +29,8 @@ export function DockNav() {
     {
       title: m.nav.cart,
       icon: <ShoppingBag size={20} strokeWidth={1.9} />,
-      href: "/cart",
+      // Phones + tablets open the expandable sheet — never a separate cart page.
+      onClick: openCart,
       active: pathname === "/cart" || pathname === "/checkout",
       badge: ready ? cartCount : 0,
     },
@@ -44,7 +47,7 @@ export function DockNav() {
       href: "/profile",
       active: pathname.startsWith("/profile"),
     },
-  ].map((item) => ({ ...item, transitionTypes: navTypes(pathname, item.href) }));
+  ].map((item) => ({ ...item, transitionTypes: item.href ? navTypes(pathname, item.href) : undefined }));
 
   return (
     <div

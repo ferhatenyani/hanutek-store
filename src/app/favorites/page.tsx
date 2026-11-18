@@ -18,7 +18,7 @@ export default function FavoritesPage() {
   return (
     <NavTransition>
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-14">
-      <h1 className="flex items-center gap-2.5 font-display text-3xl font-bold tracking-tight md:text-4xl">
+      <h1 className="flex items-center gap-2.5 font-display text-3xl font-bold tracking-tight md:text-4xl" data-reveal>
         <Heart size={26} className="text-sale" aria-hidden />
         {m.favorites.title}
         {ready && list.length > 0 && (
@@ -26,7 +26,20 @@ export default function FavoritesPage() {
         )}
       </h1>
 
-      {ready && list.length === 0 ? (
+      {!ready ? (
+        <div className="product-grid mt-7 md:mt-8" aria-busy="true">
+          {Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="flex flex-col overflow-hidden rounded-card border border-line bg-surface">
+              <div className="aspect-square animate-pulse bg-line/50" />
+              <div className="space-y-2.5 p-4">
+                <div className="h-3 w-1/3 animate-pulse rounded bg-line/60" />
+                <div className="h-4 w-2/3 animate-pulse rounded bg-line/60" />
+                <div className="h-9 w-full animate-pulse rounded-full bg-line/50" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : list.length === 0 ? (
         <div className="mt-10 flex flex-col items-center rounded-card border border-dashed border-line bg-surface/40 px-6 py-16 text-center">
           <span className="grid h-14 w-14 place-items-center rounded-full bg-accent-soft text-accent-ink">
             <Heart size={22} aria-hidden />

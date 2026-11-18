@@ -38,6 +38,7 @@ export const fr = {
     sort: "Trier",
     loading: "Chargement…",
     seeMore: "Voir plus",
+    breadcrumb: "Fil d’Ariane",
   },
   nav: {
     home: "Accueil",
@@ -82,12 +83,8 @@ export const fr = {
     heroTitleA: "Conçu pour la route.",
     heroTitleB: "Pensé pour vous.",
     viewAll: "Tout voir",
-    spotCta: "Voir le produit",
     bestTitle: "Les meilleures ventes",
     bestSub: "Ce que les conducteurs algériens choisissent le plus.",
-    spotEyebrow: "Sélection du mois",
-    spotBody:
-      "Notre coup de cœur du moment, choisi pour sa fiabilité et son rapport qualité-prix. Testé par l’équipe, approuvé par la route.",
     newTitle: "Nouveautés",
     newSub: "Les derniers arrivés, prêts à prendre la route.",
   },
@@ -132,6 +129,7 @@ export const fr = {
   },
   cart: {
     title: "Panier",
+    added: "{name} ajouté au panier",
     empty: "Votre panier est vide",
     emptyBody: "Parcourez la boutique et ajoutez ce qui vous plaît.",
     startShopping: "Découvrir la boutique",
@@ -340,6 +338,8 @@ export const fr = {
   },
   favorites: {
     title: "Mes favoris",
+    addAria: "Ajouter {name} aux favoris",
+    removeAria: "Retirer {name} des favoris",
     emptyTitle: "Aucun favori pour le moment",
     emptyDesc: "Touchez le cœur sur un produit pour le retrouver ici.",
     browseCta: "Parcourir la boutique",

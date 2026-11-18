@@ -2,47 +2,30 @@
 
 import Link from "next/link";
 import Image from "next/image";
-import { Banknote, ChevronLeft, ShoppingBag, Tag, Trash2, X } from "lucide-react";
-import { useState } from "react";
+import { Banknote, ChevronLeft, ShoppingBag, Trash2 } from "lucide-react";
 import { useStore, cartTotals, promoDiscountRate } from "@/lib/store";
-import { PROMO_CODE, getProduct, variantPrice } from "@/lib/products";
+import { getProduct, variantPrice } from "@/lib/products";
 import { useI18n } from "@/i18n";
-import { Button, buttonClasses, QtyStepper } from "@/components/ui/primitives";
-import { useToast } from "@/components/ui/toast";
+import { buttonClasses, QtyStepper } from "@/components/ui/primitives";
 import { NavTransition, ProductMorph } from "@/components/nav-transition";
-import { cn } from "@/lib/utils";
+import { CartPromo } from "@/components/cart-promo";
 
 export function CartView() {
   const { m, price: fmt } = useI18n();
-  const { cart, cartCount, setQty, removeItem, promo, applyPromo, removePromo, ready } = useStore();
-  const toast = useToast();
-  const [code, setCode] = useState("");
-  const [codeError, setCodeError] = useState(false);
-
+  const { cart, cartCount, setQty, removeItem, promo, ready } = useStore();
   const totals = cartTotals(cart, promoDiscountRate(promo));
   const vlabel = (slug: string, id: string) =>
     (m.products[slug as keyof typeof m.products] as { variants: Record<string, string> }).variants[id];
 
-  const submitPromo = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (applyPromo(code)) {
-      setCode("");
-      setCodeError(false);
-      toast(`${PROMO_CODE} · ${m.cart.promoApplied}`);
-    } else {
-      setCodeError(true);
-    }
-  };
-
   return (
     <NavTransition>
     <div className="mx-auto max-w-6xl px-4 py-8 md:px-6 md:py-14">
-      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label="Breadcrumb">
+      <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.common.breadcrumb} data-reveal>
         <Link href="/products" transitionTypes={["nav-back"]} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
           <ChevronLeft size={13} className="rtl:rotate-180" /> {m.cart.continueShopping}
         </Link>
       </nav>
-      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl">
+      <h1 className="text-3xl font-semibold tracking-tight md:text-4xl" data-reveal>
         {m.cart.title}{" "}
         {ready && cartCount > 0 && <span className="num font-mono text-lg font-normal text-faint">({cartCount})</span>}
       </h1>
@@ -61,7 +44,7 @@ export function CartView() {
           </Link>
         </div>
       ) : (
-        <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_360px] lg:gap-10">
+        <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_360px] lg:gap-10" data-reveal>
           <div className="min-w-0">
             <ul className="divide-y divide-line border-y border-line">
               {cart.map((item) => {
@@ -116,58 +99,7 @@ export function CartView() {
           </div>
 
           <div className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-24">
-            {/* Promo code — clearly visible, explained */}
-            {promo ? (
-              <div className="flex items-center justify-between rounded-card border border-volt/60 bg-volt-soft px-4 py-3.5">
-                <span className="flex items-center gap-2 text-sm font-medium text-accent-ink">
-                  <Tag size={15} aria-hidden />
-                  <span className="font-mono font-bold">{promo}</span> · {m.cart.promoApplied} (−10 %)
-                </span>
-                <button
-                  type="button"
-                  aria-label={m.cart.remove}
-                  onClick={removePromo}
-                  className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-muted transition-colors duration-150 hover:bg-white/60 hover:text-foreground"
-                >
-                  <X size={15} />
-                </button>
-              </div>
-            ) : (
-              <form
-                onSubmit={submitPromo}
-                className="rounded-card border border-line bg-accent-soft/60 p-4"
-                aria-label={m.cart.promoTitle}
-              >
-                <p className="flex items-center gap-2 text-sm font-semibold text-foreground">
-                  <Tag size={15} className="text-accent-ink" aria-hidden /> {m.cart.promoTitle}
-                </p>
-                <p className="mt-1 text-xs leading-relaxed text-muted">
-                  {m.cart.promoHelp.split("DRIVE10")[0]}
-                  <code className="mx-0.5 rounded-md border border-line bg-surface px-1.5 py-0.5 font-mono text-[11px] font-bold text-accent-ink">DRIVE10</code>
-                  {m.cart.promoHelp.split("DRIVE10")[1]}
-                </p>
-                <div className="mt-3 flex gap-2">
-                  <input
-                    value={code}
-                    onChange={(e) => {
-                      setCode(e.target.value);
-                      setCodeError(false);
-                    }}
-                    placeholder={m.cart.promoPlaceholder}
-                    aria-label={m.cart.promoPlaceholder}
-                    autoCapitalize="characters"
-                    className={cn(
-                      "h-11 min-w-0 flex-1 rounded-control border bg-surface px-3.5 font-mono text-sm uppercase text-foreground placeholder:font-sans placeholder:normal-case placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15",
-                      codeError ? "border-danger" : "border-line",
-                    )}
-                  />
-                  <Button type="submit" disabled={!code.trim()} className="shrink-0 px-5">
-                    {m.cart.promoApply}
-                  </Button>
-                </div>
-                {codeError && <p className="mt-2 text-xs text-danger">{m.cart.promoInvalid}</p>}
-              </form>
-            )}
+            <CartPromo />
 
             {/* Summary */}
             <div className="min-w-0 rounded-card border border-line bg-surface p-6 shadow-card">
@@ -192,7 +124,7 @@ export function CartView() {
                   <dd dir="ltr" className="num font-display text-lg font-semibold">{fmt(totals.total)}</dd>
                 </div>
               </dl>
-              <Link href="/checkout" transitionTypes={["to-checkout"]} className={buttonClasses("primary", "lg", "mt-6 w-full")}>
+              <Link href="/checkout" transitionTypes={["nav-forward"]} className={buttonClasses("primary", "lg", "mt-6 w-full")}>
                 {m.cart.checkout}
               </Link>
               <Link href="/products" transitionTypes={["nav-back"]} className={buttonClasses("ghost", "md", "mt-2 w-full")}>
