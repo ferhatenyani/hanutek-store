@@ -53,7 +53,7 @@ export default function FavoritesPage() {
       ) : (
         <div className="product-grid mt-7 md:mt-8">
           {list.map((p) => (
-            <ProductCard key={p.slug} product={p} morph />
+            <ProductCard key={p.slug} product={p} />
           ))}
         </div>
       )}

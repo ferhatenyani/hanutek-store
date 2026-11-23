@@ -220,14 +220,15 @@ button,
 }
 
 /* ---- View Transitions — rebuilt on the two references' mechanism ----
-   A1 shared image morph: nextjs/react-view-transitions-demo — named
-     <ViewTransition> on both ends, gated to the "morph" transition type via
-     the share map; group morphs 400ms, image pair passes through a 3px blur
-     (via-blur). Names never apply outside morph navigations, so listing and
-     cart pushes can't pick up stray product images.
+   A1 shared image morph: nextjs/react-view-transitions-demo — same-named
+     <ViewTransition share="morph" default="none"> on the product card and
+     the detail hero (components/product-morph.tsx). Runs on clicks and on
+     browser Back/Forward; only the target card is named, so exactly one
+     image morphs. Group morphs 400ms, image pair passes through a 3px blur.
    A2 cinematic push: ecommerce-transition-demo.html — old page goes to
-     translateX(∓58px) scale(.975) blur(1.5px) opacity .42 and the new page
-     enters from translateX(±90px) scale(.965) blur(2px) opacity 0,
+     translateX(∓58px) scale(.975) opacity .42 and the new page enters from
+     translateX(±90px) scale(.965) opacity 0 (no filter: blurring two
+     full-viewport snapshots every frame was the main source of jank),
      440ms cubic-bezier(.22,1,.36,1), on the ROOT snapshot pair, switched on
      per-navigation by the --vt-old/--vt-new animation-name custom
      properties (see app/layout.tsx + stampNav). RTL mirrors the slide.
@@ -248,8 +249,7 @@ button,
    --vt-old/--vt-new name keys are set on <html> just before the snapshot
    and cleared after it settles, by:
      (1) the early inline script in app/layout.tsx — link clicks (capture
-         phase) and history pops (manual startViewTransition around the
-         router's synchronous commit), with RTL already resolved there;
+         phase) and history pops, with RTL already resolved there;
      (2) stampNav() in nav-transition.tsx — JS router.push sites (buy-now,
          search, order submit).
    Unset => animation-name:none => instant swap, so in-page URL state
@@ -262,20 +262,24 @@ button,
 }
 
 @keyframes vt-push-out-fwd {
-  to { transform: translateX(-58px) scale(0.975); opacity: 0.42; filter: blur(1.5px); }
+  to { transform: translateX(-58px) scale(0.975); opacity: 0.42; }
 }
 @keyframes vt-push-in-fwd {
-  from { transform: translateX(90px) scale(0.965); opacity: 0; filter: blur(2px); }
+  from { transform: translateX(90px) scale(0.965); opacity: 0; }
 }
 @keyframes vt-push-out-back {
-  to { transform: translateX(58px) scale(0.975); opacity: 0.42; filter: blur(1.5px); }
+  to { transform: translateX(58px) scale(0.975); opacity: 0.42; }
 }
 @keyframes vt-push-in-back {
-  from { transform: translateX(-90px) scale(0.965); opacity: 0; filter: blur(2px); }
+  from { transform: translateX(-90px) scale(0.965); opacity: 0; }
 }
 
 /* A1 — shared image morph (reference values). */
-::view-transition-group(.morph) { animation-duration: 400ms; }
+/* z-index: the incoming page's snapshot is stacked above the image group,
+   and our hero frame is opaque (bg-surface) — without this the moving image
+   slides UNDER a blank white box and only appears when the transition ends.
+   50 keeps it below the pinned header/dock (100). */
+::view-transition-group(.morph) { animation-duration: 400ms; z-index: 50; }
 ::view-transition-image-pair(.morph) { animation-name: vt-via-blur; }
 @keyframes vt-via-blur { 30% { filter: blur(3px); } }
 

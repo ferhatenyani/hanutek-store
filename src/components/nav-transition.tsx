@@ -3,6 +3,7 @@
 import { ViewTransition } from "react";
 import type { ReactNode } from "react";
 import { useMediaQuery } from "@/lib/use-media-query";
+import { detailSlug, setMorphTarget } from "@/components/product-morph";
 
 /**
  * Page transition boundary — rebuilt from the two references.
@@ -11,14 +12,12 @@ import { useMediaQuery } from "@/lib/use-media-query";
  *   content in this typed ViewTransition boundary; links carry
  *   transitionTypes ["nav-forward"] / ["nav-back"] and the exact push motion
  *   lives in globals.css (::view-transition-*(.nav-*)).
- * - Hardware Back/Forward is handled OUTSIDE React, by the early inline
- *   script in app/layout.tsx: Next 16 only starts a view transition for
- *   typed navigations, so an untyped pop would swap instantly. The script
- *   wins the popstate race (it runs before the router chunk registers its
- *   listener), starts a manual document.startViewTransition around the
- *   router's synchronous commit and stamps <html data-nav="nav-forward|
- *   nav-back"> BEFORE the old snapshot is taken — globals.css then pushes
- *   the root pair with the same cinematic values.
+ * - Hardware Back/Forward: Next runs history traversals inside
+ *   startTransition, so React starts the view transition itself (the
+ *   product image morph pairs on pops too). The early inline script in
+ *   app/layout.tsx only stamps the push direction (--vt-old/--vt-new) on
+ *   <html> before the old snapshot is taken.
+ * - Shared product image: see product-morph.tsx.
  * - Reduced motion: the boundary is removed entirely (a CSS-only kill can
  *   leave a stuck snapshot overlay); navigations then swap instantly. The
  *   inline pop script bails on prefers-reduced-motion as well.
@@ -77,6 +76,8 @@ export function NavTransition({ children }: { children: ReactNode }) {
  */
 export function stampNav(from: string, to: string, force?: "nav-forward" | "nav-back"): void {
   if (typeof document === "undefined" || from === to) return;
+  // Same rule as a plain link click: only the leaving detail hero may morph.
+  setMorphTarget(detailSlug(from));
   if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
   const dir = force ?? navTypes(from, to)?.[0];
   if (!dir) return;
@@ -85,38 +86,12 @@ export function stampNav(from: string, to: string, force?: "nav-forward" | "nav-
   const el = document.documentElement;
   el.style.setProperty("--vt-old", fwd ? (rtl ? "vt-push-out-back" : "vt-push-out-fwd") : rtl ? "vt-push-out-fwd" : "vt-push-out-back");
   el.style.setProperty("--vt-new", fwd ? (rtl ? "vt-push-in-back" : "vt-push-in-fwd") : rtl ? "vt-push-in-fwd" : "vt-push-in-back");
-  window.setTimeout(() => {
+  // Shared with the inline script: a newer stamp must not be wiped by the
+  // previous navigation's clean-up timer.
+  const w = window as unknown as { __vtStampT?: number };
+  window.clearTimeout(w.__vtStampT);
+  w.__vtStampT = window.setTimeout(() => {
     el.style.removeProperty("--vt-old");
     el.style.removeProperty("--vt-new");
   }, 900);
-}
-
-/**
- * A1 shared image morph (react-view-transitions-demo mechanism): the SAME
- * `name` on a <ViewTransition> on both ends of the pair. The name only
- * applies while the navigation carries the "morph" transition type
- * (share={{ morph: "morph", default: "none" }}), so listing/cart pushes and
- * plain navigations never pick up product-image names. `enabled=false`
- * renders the child bare — for rows that must never claim a name.
- */
-export function MorphImage({
-  slug,
-  enabled = true,
-  children,
-}: {
-  slug: string;
-  enabled?: boolean;
-  children: ReactNode;
-}) {
-  const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  if (!enabled || reduceMotion) return <>{children}</>;
-  return (
-    <ViewTransition
-      name={`product-img-${slug}`}
-      share={{ morph: "morph", default: "none" }}
-      default="none"
-    >
-      {children}
-    </ViewTransition>
-  );
 }

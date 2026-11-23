@@ -80,9 +80,9 @@ export default function HomePage() {
           sub={m.home.bestSub}
           action={<ViewAll href="/products" />}
         />
-        <div className="product-rail no-scrollbar">
+        <div className="product-rail no-scrollbar" data-scroll-key="home-best">
           {bestSellers.map((p, i) => (
-            <ProductCard key={p.slug} product={p} priority={i < 2} morph />
+            <ProductCard key={p.slug} product={p} priority={i < 2} />
           ))}
         </div>
       </section>
@@ -96,9 +96,9 @@ export default function HomePage() {
             sub={m.home.newSub}
             action={<ViewAll href="/products" />}
           />
-          <div className="product-rail no-scrollbar">
+          <div className="product-rail no-scrollbar" data-scroll-key="home-new">
             {newArrivals.map((p) => (
-              <ProductCard key={p.slug} product={p} morph />
+              <ProductCard key={p.slug} product={p} />
             ))}
           </div>
         </div>

@@ -14,7 +14,8 @@ import { useI18n } from "@/i18n";
 import { Button, Badge, QtyStepper, SectionHead } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/product-card";
 import { useToast } from "@/components/ui/toast";
-import { NavTransition, MorphImage, stampNav } from "@/components/nav-transition";
+import { NavTransition, stampNav } from "@/components/nav-transition";
+import { ProductMorph, backIfPrevious } from "@/components/product-morph";
 
 type ProductMsg = {
   short: string;
@@ -98,13 +99,14 @@ export function ProductDetail({ product }: { product: Product }) {
     <NavTransition>
     <div className="mx-auto max-w-6xl px-4 pt-6 pb-16 md:px-6 md:pt-10 md:pb-24">
       <nav className="mb-6 flex items-center gap-1.5 text-xs text-muted" aria-label={m.common.breadcrumb}>
-        <Link href="/" transitionTypes={["morph", "nav-back"]} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
+        <Link href="/" transitionTypes={["nav-back"]} onClick={(e) => backIfPrevious(e, "/")} className="flex items-center gap-1 transition-colors duration-150 hover:text-foreground">
           <ChevronLeft size={13} className="rtl:rotate-180" /> {m.nav.home}
         </Link>
         <span className="text-faint">/</span>
         <Link
           href={`/products?category=${product.category}`}
           transitionTypes={["nav-back"]}
+          onClick={(e) => backIfPrevious(e, `/products?category=${product.category}`)}
           className="transition-colors duration-150 hover:text-foreground"
         >
           {catName}
@@ -117,7 +119,7 @@ export function ProductDetail({ product }: { product: Product }) {
         {/* Imagery */}
         <div>
           <div className="relative aspect-square overflow-hidden rounded-card border border-line bg-surface">
-            <MorphImage slug={product.slug}>
+            <ProductMorph slug={product.slug} variant="hero" className="rounded-[13px]">
               <Image
                 src={product.image}
                 alt={product.name}
@@ -126,7 +128,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 sizes="(min-width: 768px) 50vw, 100vw"
                 className="object-cover"
               />
-            </MorphImage>
+            </ProductMorph>
           </div>
           <div className="mt-4 flex flex-wrap gap-1.5">
             {onSale && <Badge tone="sale"><span dir="ltr">−{pct}%</span></Badge>}

@@ -32,21 +32,26 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
     <html
       lang="fr"
       dir="ltr"
+      data-scroll-behavior="smooth"
       className={`${inter.variable} ${grotesk.variable} ${spaceMono.variable} ${arabic.variable} h-full`}
     >
       <body className="min-h-full">
         {/*
-          A2 hardware Back/Forward — direction-aware push.
-          Next 16 starts a view transition ONLY for typed navigations, and
-          handles `popstate` synchronously before any React-side listener
-          could react. This inline script executes during parsing (before
-          the deferred router chunk registers its popstate listener), so it
-          wins the race: it stamps <html data-nav> and starts a manual
-          startViewTransition whose OLD snapshot is captured before the
-          router mutates the DOM; the callback resolves after the
-          router's synchronous commit, so the NEW snapshot holds the
-          destination. globals.css animates the root pair from data-nav.
-          Kept minimal on purpose: tab order + depth fallback only.
+          Runs during parsing, so its listeners are registered before the
+          router's.
+          - Push direction: stamps --vt-old/--vt-new on <html> for link
+            clicks and Back/Forward BEFORE the old snapshot is taken;
+            globals.css animates the root pair from these properties.
+          - Back/Forward view transitions: React flushes a transition started
+            DURING a popstate event eagerly with SyncLane mixed in (so the
+            browser can restore scroll synchronously), and a lane set with
+            SyncLane is never view-transition eligible — pops would swap
+            with no product-image morph. The native popstate is stopped here
+            and replayed as a new PopStateEvent in the next task: Next's
+            router handles it identically, React sees an ordinary transition
+            and runs the view transition. Scroll is restored inside that
+            transition by NavigationTracker (components/product-morph.tsx).
+            Same-pathname pops and reduced motion keep the native path.
         */}
         <script
           dangerouslySetInnerHTML={{
@@ -60,7 +65,8 @@ var e=document.documentElement,rtl=e.dir==="rtl";
 e.dataset.nav=d;
 e.style.setProperty("--vt-old",d==="nav-forward"?(rtl?"vt-push-out-back":"vt-push-out-fwd"):(rtl?"vt-push-out-fwd":"vt-push-out-back"));
 e.style.setProperty("--vt-new",d==="nav-forward"?(rtl?"vt-push-in-back":"vt-push-in-fwd"):(rtl?"vt-push-in-fwd":"vt-push-in-back"));
-setTimeout(function(){e.style.removeProperty("--vt-old");e.style.removeProperty("--vt-new");delete e.dataset.nav},900);
+clearTimeout(window.__vtStampT);
+window.__vtStampT=setTimeout(function(){e.style.removeProperty("--vt-old");e.style.removeProperty("--vt-new");delete e.dataset.nav},900);
 }
 var last=location.pathname;
 var ps=history.pushState.bind(history),rs=history.replaceState.bind(history);
@@ -73,12 +79,15 @@ var u;try{u=new URL(a.href,location.href)}catch(x){return}
 if(u.origin!==location.origin||u.pathname===location.pathname)return;
 stamp(dir(location.pathname,u.pathname));
 },true);
-window.addEventListener("popstate",function(){
+window.addEventListener("popstate",function(e){
+if(e.__replay)return;
 var to=location.pathname,from=last;last=to;
 if(from===to)return;
 if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
+e.stopImmediatePropagation();
 stamp(dir(from,to));
-var t=document.startViewTransition(function(){return new Promise(function(r){setTimeout(r,140)})});
+var st=e.state;
+setTimeout(function(){var r=new PopStateEvent("popstate",{state:st});r.__replay=1;window.dispatchEvent(r)},0);
 });
 })();`,
           }}
