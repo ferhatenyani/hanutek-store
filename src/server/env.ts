@@ -33,6 +33,8 @@ const schema = z.object({
   S3_BUCKET: z.string().optional(),
   S3_ACCESS_KEY_ID: z.string().optional(),
   S3_SECRET_ACCESS_KEY: z.string().optional(),
+  /** Absolute directory for STORAGE_DRIVER=local uploads (production: a persistent path served by nginx at /uploads). */
+  UPLOAD_DIR: z.string().optional(),
   /** Public base URL the stored media is served from (CDN), e.g. https://cdn.hanutek.dz */
   MEDIA_PUBLIC_URL: z.string().url().optional(),
 

@@ -40,7 +40,6 @@ const securityHeaders = [
 
 const nextConfig: NextConfig = {
   poweredByHeader: false,
-  output: "standalone",
   // Native / WASM modules stay external to the server bundle.
   serverExternalPackages: ["@electric-sql/pglite", "@node-rs/argon2", "sharp", "pg"],
   images: {

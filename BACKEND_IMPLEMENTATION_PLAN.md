@@ -231,7 +231,7 @@ npm ci
 npm run db:migrate                    # apply SQL migrations (DATABASE_URL)
 SEED_ADMIN_EMAIL=… SEED_ADMIN_PASSWORD=… npm run db:seed   # first deploy only, idempotent
 npm run build                         # needs DATABASE_URL + JWT_SECRET (catalog pages prerender from the DB)
-node .next/standalone/server.js       # output: "standalone"; copy .next/static and public/ next to it
+npm start                             # behind nginx; see DEPLOYMENT.md for the full VPS setup
 ```
 
 Checklist: `TRUST_PROXY_HOPS=1` behind one proxy · Google OAuth redirect URI `https://<domain>/api/v1/auth/google/callback` · Resend domain verified (SPF/DKIM) · daily Postgres backups · uptime check on `/api/v1/health` · never set `LOCAL_PREVIEW` on a server.

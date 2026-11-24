@@ -36,15 +36,18 @@ interface Storage {
   remove(key: string): Promise<void>;
 }
 
+/** Local uploads dir (served at /uploads by nginx in production, by Next in dev). */
+const uploadDir = () => env().UPLOAD_DIR ?? path.join(process.cwd(), "public", "uploads");
+
 const localStorage: Storage = {
   async put(key, body) {
-    const file = path.join(process.cwd(), "public", "uploads", key);
+    const file = path.join(uploadDir(), key);
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, body);
     return `/uploads/${key}`;
   },
   async remove(key) {
-    await unlink(path.join(process.cwd(), "public", "uploads", key)).catch(() => undefined);
+    await unlink(path.join(uploadDir(), key)).catch(() => undefined);
   },
 };
 
