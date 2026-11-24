@@ -40,6 +40,8 @@ export const ar: Messages = {
     loading: "جارٍ التحميل…",
     seeMore: "عرض المزيد",
     breadcrumb: "مسار التنقل",
+    options: "{n} خيارات",
+    inCartCount: "{n} في السلة",
   },
   nav: {
     home: "الرئيسية",

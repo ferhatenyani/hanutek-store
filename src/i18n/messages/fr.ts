@@ -39,6 +39,8 @@ export const fr = {
     loading: "Chargement…",
     seeMore: "Voir plus",
     breadcrumb: "Fil d’Ariane",
+    options: "{n} options",
+    inCartCount: "{n} au panier",
   },
   nav: {
     home: "Accueil",

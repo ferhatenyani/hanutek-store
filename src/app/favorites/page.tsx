@@ -29,12 +29,12 @@ export default function FavoritesPage() {
       {!ready ? (
         <div className="product-grid mt-7 md:mt-8" aria-busy="true">
           {Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex flex-col overflow-hidden rounded-card border border-line bg-surface">
-              <div className="aspect-square animate-pulse bg-line/50" />
-              <div className="space-y-2.5 p-4">
-                <div className="h-3 w-1/3 animate-pulse rounded bg-line/60" />
+            <div key={i} className="flex flex-col overflow-hidden rounded-card border border-line bg-surface max-lg:rounded-none max-lg:border-0 max-lg:bg-transparent">
+              <div className="aspect-square animate-pulse bg-line/50 max-lg:rounded-[18px]" />
+              <div className="space-y-2.5 p-4 max-lg:space-y-2 max-lg:px-1 max-lg:pb-0 max-lg:pt-2.5">
+                <div className="h-3 w-1/3 animate-pulse rounded bg-line/60 max-lg:hidden" />
                 <div className="h-4 w-2/3 animate-pulse rounded bg-line/60" />
-                <div className="h-9 w-full animate-pulse rounded-full bg-line/50" />
+                <div className="h-9 w-full animate-pulse rounded-full bg-line/50 max-lg:h-3 max-lg:w-1/2 max-lg:rounded" />
               </div>
             </div>
           ))}
