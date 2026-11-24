@@ -10,6 +10,7 @@ import { Footer } from "./footer";
 import { DockNav } from "./dock-nav";
 import { CartSheet } from "./cart-sheet";
 import { NavigationTracker } from "@/components/product-morph";
+import { NavProgress } from "@/components/nav-transition";
 
 interface SheetUI {
   cartOpen: boolean;
@@ -46,6 +47,7 @@ function Shell({ children }: { children: ReactNode }) {
       <CartSheet open={cartOpen} onClose={() => setCartOpen(false)} />
       {/* last in the tree: its layout effect runs after Next's scroll handling */}
       <NavigationTracker />
+      <NavProgress />
     </SheetUIContext.Provider>
   );
 }

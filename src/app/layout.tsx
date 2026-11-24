@@ -63,10 +63,10 @@ function dir(f,t){var a=ix(f),b=ix(t);if(a!==b)return b>a?"nav-forward":"nav-bac
 function stamp(d){
 var e=document.documentElement,rtl=e.dir==="rtl";
 e.dataset.nav=d;
-e.style.setProperty("--vt-old",d==="nav-forward"?(rtl?"vt-push-out-back":"vt-push-out-fwd"):(rtl?"vt-push-out-fwd":"vt-push-out-back"));
-e.style.setProperty("--vt-new",d==="nav-forward"?(rtl?"vt-push-in-back":"vt-push-in-fwd"):(rtl?"vt-push-in-fwd":"vt-push-in-back"));
-clearTimeout(window.__vtStampT);
-window.__vtStampT=setTimeout(function(){e.style.removeProperty("--vt-old");e.style.removeProperty("--vt-new");delete e.dataset.nav},900);
+e.style.setProperty("--vt-old",d==="nav-forward"?(rtl?"vt-out-back":"vt-out-fwd"):(rtl?"vt-out-fwd":"vt-out-back"));
+e.style.setProperty("--vt-new",d==="nav-forward"?(rtl?"vt-in-back":"vt-in-fwd"):(rtl?"vt-in-fwd":"vt-in-back"));
+window.__vtStampId=(window.__vtStampId||0)+1;clearTimeout(window.__vtStampT);
+window.__vtStampT=setTimeout(function(){e.style.removeProperty("--vt-old");e.style.removeProperty("--vt-new");delete e.dataset.nav},10000);
 }
 var last=location.pathname;
 var ps=history.pushState.bind(history),rs=history.replaceState.bind(history);

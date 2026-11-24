@@ -2,25 +2,28 @@
 
 import { ViewTransition } from "react";
 import type { ReactNode } from "react";
+import { useEffect, useRef, useState } from "react";
+import { usePathname } from "next/navigation";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { detailSlug, setMorphTarget } from "@/components/product-morph";
 
 /**
- * Page transition boundary — rebuilt from the two references.
+ * Page transition boundary.
  *
- * - A2 cinematic push (ecommerce-transition-demo.html): each page wraps its
- *   content in this typed ViewTransition boundary; links carry
- *   transitionTypes ["nav-forward"] / ["nav-back"] and the exact push motion
- *   lives in globals.css (::view-transition-*(.nav-*)).
- * - Hardware Back/Forward: Next runs history traversals inside
- *   startTransition, so React starts the view transition itself (the
- *   product image morph pairs on pops too). The early inline script in
- *   app/layout.tsx only stamps the push direction (--vt-old/--vt-new) on
- *   <html> before the old snapshot is taken.
- * - Shared product image: see product-morph.tsx.
- * - Reduced motion: the boundary is removed entirely (a CSS-only kill can
- *   leave a stuck snapshot overlay); navigations then swap instantly. The
- *   inline pop script bails on prefers-reduced-motion as well.
+ * One mechanism, three parts:
+ * - This boundary tags the PAGE snapshot with the "nav-page" view-transition
+ *   class on enter/exit. globals.css animates ::view-transition-*(.nav-page):
+ *   the old page fades out fast while the new page slides in from frame 0
+ *   (opacity + translate only — compositor-only, no blur/scale/blend layers).
+ * - Direction (forward/back, RTL-aware) is stamped on <html> as
+ *   --vt-old/--vt-new animation names by the inline script in app/layout.tsx
+ *   (link clicks + history pops) or stampNav() (JS router.push sites), and
+ *   released by NavigationTracker once the transition has settled. No stamp
+ *   => animation-name:none => instant swap (in-page URL state, filters).
+ * - Shared product image morph: see product-morph.tsx.
+ *
+ * Reduced motion keeps the tree identical (no remount on hydration) and
+ * simply maps every class to "none", so React never starts a transition.
  */
 
 /** Tab order used to derive forward/back; anything else (cart, order, auth,
@@ -45,24 +48,9 @@ export function navTypes(from: string, to: string): string[] | undefined {
 
 export function NavTransition({ children }: { children: ReactNode }) {
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
-  if (reduceMotion) return <>{children}</>;
-
-  // This 19.3 build snapshots ViewTransition boundaries by NAME only, and a
-  // named page boundary captures blank mid-flight under the App Router —
-  // so the PAGE push is driven on the root pair instead: the inline pop
-  // script (layout.tsx) stamps <html data-nav> on history pops AND typed
-  // link clicks (capture phase, before the router starts its own transition
-  // which — with transitionTypes — still runs a view transition whose root
-  // snapshots cover the whole viewport). globals.css animates
-  // :root[data-nav]::view-transition-*(root). This boundary keeps the typed
-  // navigation "typed" so React starts the transition; its class maps are
-  // belt-and-braces for builds where nameless boundaries do snapshot.
+  const cls = reduceMotion ? "none" : "nav-page";
   return (
-    <ViewTransition
-      default="none"
-      enter={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
-      exit={{ "nav-forward": "nav-forward", "nav-back": "nav-back", default: "none" }}
-    >
+    <ViewTransition default="none" enter={{ default: cls }} exit={{ default: cls }}>
       {children}
     </ViewTransition>
   );
@@ -84,14 +72,86 @@ export function stampNav(from: string, to: string, force?: "nav-forward" | "nav-
   const rtl = document.documentElement.dir === "rtl";
   const fwd = dir === "nav-forward";
   const el = document.documentElement;
-  el.style.setProperty("--vt-old", fwd ? (rtl ? "vt-push-out-back" : "vt-push-out-fwd") : rtl ? "vt-push-out-fwd" : "vt-push-out-back");
-  el.style.setProperty("--vt-new", fwd ? (rtl ? "vt-push-in-back" : "vt-push-in-fwd") : rtl ? "vt-push-in-fwd" : "vt-push-in-back");
-  // Shared with the inline script: a newer stamp must not be wiped by the
-  // previous navigation's clean-up timer.
+  el.style.setProperty("--vt-old", fwd ? (rtl ? "vt-out-back" : "vt-out-fwd") : rtl ? "vt-out-fwd" : "vt-out-back");
+  el.style.setProperty("--vt-new", fwd ? (rtl ? "vt-in-back" : "vt-in-fwd") : rtl ? "vt-in-fwd" : "vt-in-back");
+  const w = window as unknown as { __vtStampT?: number; __vtStampId?: number };
+  w.__vtStampId = (w.__vtStampId ?? 0) + 1;
+  window.clearTimeout(w.__vtStampT);
+  // Safety net only (slow network / navigation that never commits); the
+  // normal release happens in NavigationTracker after the route commits.
+  w.__vtStampT = window.setTimeout(releaseStamp, 10000);
+}
+
+/** Clears the direction stamp once no view transition is running. */
+export function releaseStamp(): void {
+  const el = document.documentElement;
   const w = window as unknown as { __vtStampT?: number };
   window.clearTimeout(w.__vtStampT);
-  w.__vtStampT = window.setTimeout(() => {
-    el.style.removeProperty("--vt-old");
-    el.style.removeProperty("--vt-new");
-  }, 900);
+  let busy = false;
+  try {
+    busy = el.matches(":active-view-transition");
+  } catch {
+    /* unsupported pseudo-class: fall through and clear */
+  }
+  if (busy) {
+    w.__vtStampT = window.setTimeout(releaseStamp, 200);
+    return;
+  }
+  el.style.removeProperty("--vt-old");
+  el.style.removeProperty("--vt-new");
+  delete el.dataset.nav;
+}
+
+/** Called when a route commits: release the stamp after the animation, but
+ *  only if no newer navigation has restamped in the meantime. */
+export function releaseStampSoon(): void {
+  const id = (window as unknown as { __vtStampId?: number }).__vtStampId;
+  window.setTimeout(() => {
+    if ((window as unknown as { __vtStampId?: number }).__vtStampId === id) releaseStamp();
+  }, 700);
+}
+
+/**
+ * Thin top progress line for navigations that take a while (cold route,
+ * slow network). Appears only after 180ms so fast navigations never show it;
+ * transform/opacity only. The view transition itself waits for the new
+ * route, so this is the only feedback while the old page is still shown.
+ */
+export function NavProgress() {
+  const pathname = usePathname();
+  // Pending is tied to the pathname it was armed on, so a route commit
+  // hides the bar without a synchronous setState in an effect.
+  const [armedOn, setArmedOn] = useState<string | null>(null);
+  const pending = armedOn === pathname;
+  const timers = useRef<{ show: number; safety: number }>({ show: 0, safety: 0 });
+
+  // Route committed (or first mount): cancel anything armed and hide.
+  useEffect(() => {
+    window.clearTimeout(timers.current.show);
+    window.clearTimeout(timers.current.safety);
+  }, [pathname]);
+
+  useEffect(() => {
+    const tm = timers.current;
+    const onClick = (e: MouseEvent) => {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      const a = (e.target as Element | null)?.closest?.("a[href]") as HTMLAnchorElement | null;
+      if (!a || a.target || a.hasAttribute("download")) return;
+      const u = new URL(a.href, location.href);
+      if (u.origin !== location.origin || u.pathname === location.pathname) return;
+      window.clearTimeout(tm.show);
+      window.clearTimeout(tm.safety);
+      const from = location.pathname;
+      tm.show = window.setTimeout(() => setArmedOn(from), 180);
+      tm.safety = window.setTimeout(() => setArmedOn(null), 8000);
+    };
+    document.addEventListener("click", onClick, true);
+    return () => {
+      document.removeEventListener("click", onClick, true);
+      window.clearTimeout(tm.show);
+      window.clearTimeout(tm.safety);
+    };
+  }, []);
+
+  return <div aria-hidden className="nav-progress" data-on={pending ? "" : undefined} />;
 }

@@ -6,6 +6,7 @@ import { flushSync } from "react-dom";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
+import { releaseStampSoon } from "@/components/nav-transition";
 
 /**
  * Product image shared-element transition (card ⇄ detail hero).
@@ -270,7 +271,15 @@ export function NavigationTracker() {
     committedPath = pathname;
     committedKey = entryKey();
     committedIndex = nav()?.currentEntry?.index ?? null;
-    scrollByEntry.set(entryKey(), window.scrollY);
+    // Reading scrollY here would force a synchronous layout of the whole new
+    // page inside the view transition's update step (delaying the first
+    // animation frame). Record it after paint instead; the scroll listener
+    // keeps it current from then on.
+    const key = entryKey();
+    requestAnimationFrame(() => {
+      if (!pendingRestore && entryKey() === key) scrollByEntry.set(key, window.scrollY);
+    });
+    releaseStampSoon();
   }, [pathname]);
 
   return null;
