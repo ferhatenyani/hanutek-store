@@ -14,7 +14,8 @@
     "db:setup": "tsx --conditions=react-server --env-file-if-exists=.env scripts/db.ts setup",
     "test": "node scripts/vitest.mjs run",
     "test:watch": "node scripts/vitest.mjs",
-    "test:ui": "node scripts/ui-smoke.mjs"
+    "test:ui": "node scripts/ui-smoke.mjs",
+    "vercel-build": "npm run db:migrate && npm run db:seed && next build"
   },
   "dependencies": {
     "@electric-sql/pglite": "^0.6.0",

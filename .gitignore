@@ -43,3 +43,6 @@ next-env.d.ts
 /public/uploads/
 /ui-smoke-fail-*.png
 !.env.example
+
+.vercel
+.env*.local

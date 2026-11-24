@@ -37,17 +37,18 @@ interface Storage {
 }
 
 /** Local uploads dir (served at /uploads by nginx in production, by Next in dev). */
-const uploadDir = () => env().UPLOAD_DIR ?? path.join(process.cwd(), "public", "uploads");
+// turbopackIgnore: a runtime path, not a build input — keeps file tracing from bundling the whole project
+const uploadDir = () => env().UPLOAD_DIR ?? path.join(/*turbopackIgnore: true*/ process.cwd(), "public", "uploads");
 
 const localStorage: Storage = {
   async put(key, body) {
-    const file = path.join(uploadDir(), key);
+    const file = path.join(/*turbopackIgnore: true*/ uploadDir(), key);
     await mkdir(path.dirname(file), { recursive: true });
     await writeFile(file, body);
     return `/uploads/${key}`;
   },
   async remove(key) {
-    await unlink(path.join(uploadDir(), key)).catch(() => undefined);
+    await unlink(path.join(/*turbopackIgnore: true*/ uploadDir(), key)).catch(() => undefined);
   },
 };
 

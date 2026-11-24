@@ -9,7 +9,8 @@ import { seed } from "../src/server/db/seed/seed";
 
 async function main() {
   const cmd = process.argv[2];
-  const url = process.env.DATABASE_URL ?? "pglite:./.data/pglite";
+  // Prefer the direct (non-pooled) connection for DDL when the host provides one (Neon / Vercel).
+  const url = process.env.DATABASE_URL_UNPOOLED || process.env.DATABASE_URL || "pglite:./.data/pglite";
   const { db, migrate, close } = createDb(url);
   try {
     if (cmd === "migrate" || cmd === "setup") {
