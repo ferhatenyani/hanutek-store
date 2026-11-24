@@ -247,6 +247,22 @@ button,
   inset-inline-start: auto !important;
   inset-inline-end: auto !important;
 }
+/* In RTL every group's captured transform is also offset by (viewport − own
+   width): the morphing image and toast landed off-screen, and full-width page
+   groups ended up one scrollbar-width (the scrollbar sits on the left) off
+   the live page, so the page visibly jumped when the transition ended.
+   Cancel it with an individual `translate` (composes with the UA's animated
+   `transform`; the percentage tracks the group's animated width, so it stays
+   exact for the whole animation). Verified against live element rects. */
+:root[dir="rtl"]::view-transition-group(*) {
+  translate: calc(100% - 100vw) 0 !important;
+}
+/* The pinned chrome groups already land on the live elements. */
+:root[dir="rtl"]::view-transition-group(site-header),
+:root[dir="rtl"]::view-transition-group(site-announcement),
+:root[dir="rtl"]::view-transition-group(site-dock) {
+  translate: none !important;
+}
 
 :root { --vt-dist: 64px; }
 @media (max-width: 40rem) { :root { --vt-dist: 36px; } }
@@ -289,26 +305,6 @@ button,
 ::view-transition-old(root),
 ::view-transition-new(root) { animation: none; mix-blend-mode: normal; }
 
-/* Navigation progress line (slow routes only; see NavProgress). */
-.nav-progress {
-  position: fixed;
-  inset: 0 0 auto 0;
-  z-index: 120;
-  height: 2px;
-  background: var(--color-accent, currentColor);
-  transform-origin: left center;
-  transform: scaleX(0);
-  opacity: 0;
-  pointer-events: none;
-  transition: opacity 150ms linear, transform 0s 150ms;
-}
-[dir="rtl"] .nav-progress { transform-origin: right center; }
-.nav-progress[data-on] {
-  opacity: 1;
-  transform: scaleX(0.85);
-  transition: opacity 120ms linear, transform 6s cubic-bezier(0.1, 0.7, 0.2, 1);
-}
-
 /* A1 — shared image morph (reference values). */
 /* z-index: the incoming page's snapshot is stacked above the image group,
    and our hero frame is opaque (bg-surface) — without this the moving image
@@ -348,7 +344,6 @@ button,
 
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
-  .nav-progress[data-on] { transition: opacity 0s; transform: scaleX(1); }
   ::view-transition-old(*),
   ::view-transition-new(*),
   ::view-transition-group(*) {
