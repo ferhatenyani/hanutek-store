@@ -1,6 +1,7 @@
 import { route } from "@/server/lib/http";
 import { adminProductQuery, productSchema } from "@/server/validation";
-import { adminListProducts, createProduct } from "@/server/services/admin-catalog";
+import { createProduct } from "@/server/services/admin-catalog";
+import { adminListProducts } from "@/server/services/admin-products";
 import { actorOf, invalidateCatalog } from "@/server/lib/route-helpers";
 
 export const GET = route({ auth: { permission: "catalog:read" } }, async (ctx) => adminListProducts(ctx.query(adminProductQuery)));

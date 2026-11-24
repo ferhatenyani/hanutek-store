@@ -563,3 +563,26 @@ export const newsletterSubscribers = pgTable(
   },
   (t) => [uniqueIndex("newsletter_email_uq").on(t.email)],
 );
+
+// ---------------------------------------------------------------- shipping
+
+/**
+ * Delivery carriers staff can pick when shipping an order. Orders keep the
+ * carrier *name* as a snapshot (orders.carrier), so renaming or retiring a
+ * carrier never rewrites history. `trackingUrl` may contain `{number}`.
+ */
+export const carriers = pgTable(
+  "carriers",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    name: text("name").notNull(),
+    trackingUrl: text("tracking_url"),
+    phone: text("phone"),
+    note: text("note"),
+    isActive: boolean("is_active").notNull().default(true),
+    position: integer("position").notNull().default(0),
+    createdAt: createdAt(),
+    updatedAt: updatedAt(),
+  },
+  (t) => [uniqueIndex("carriers_name_uq").on(sql`lower(${t.name})`)],
+);

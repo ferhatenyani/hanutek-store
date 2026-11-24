@@ -4,8 +4,17 @@ import Link from "next/link";
 import { Compass } from "lucide-react";
 import { buttonClasses } from "@/components/ui/primitives";
 import { useI18n } from "@/i18n/provider";
+import { AppShell } from "@/components/layout/app-shell";
 
 export default function NotFound() {
+  return (
+    <AppShell>
+      <NotFoundBody />
+    </AppShell>
+  );
+}
+
+function NotFoundBody() {
   const { m } = useI18n();
   return (
     <div className="mx-auto flex max-w-6xl flex-col items-center gap-5 px-4 py-28 text-center md:px-6">

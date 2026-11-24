@@ -16,6 +16,8 @@ export const PERMISSIONS = [
   "media:write",
   "audit:read",
   "users:manage_roles",
+  /** Store configuration: carriers, operational tools. */
+  "settings:manage",
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 export type Role = "customer" | "staff" | "admin";
@@ -40,3 +42,9 @@ export function can(role: Role, permission: Permission): boolean {
 }
 
 export const permissionsOf = (role: Role): readonly Permission[] => ROLE_PERMISSIONS[role];
+
+/** Roles that may sign in to the admin app. */
+export const isStaffRole = (role: Role) => role === "staff" || role === "admin";
+
+/** Read-only matrix for the admin "Roles & permissions" screen. */
+export const roleMatrix = () => (Object.keys(ROLE_PERMISSIONS) as Role[]).map((role) => ({ role, permissions: [...ROLE_PERMISSIONS[role]] }));

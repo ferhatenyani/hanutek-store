@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, getTableColumns, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import { and, asc, eq, inArray, sql } from "drizzle-orm";
 import { getDb, type Tx } from "../db/client";
 import {
   categories,
@@ -13,7 +13,7 @@ import {
 } from "../db/schema";
 import { AppError } from "../lib/errors";
 import { audit, type AuditActor } from "./audit";
-import { getProductBySlug, hydrateProducts, likeEscape, refreshProductPricing } from "./catalog";
+import { getProductBySlug, refreshProductPricing } from "./catalog";
 import { deleteStoredImage, processImageUpload } from "./media";
 import type { Locale } from "@/lib/api-types";
 
@@ -151,13 +151,22 @@ export async function createProduct(input: ProductInput, actor: AuditActor) {
   return adminGetProduct(id);
 }
 
-export async function updateProduct(productId: string, input: Partial<ProductInput>, actor: AuditActor) {
+export async function updateProduct(
+  productId: string,
+  patch: Partial<ProductInput> & { expectedUpdatedAt?: string },
+  actor: AuditActor,
+) {
   const db = await getDb();
+  const { expectedUpdatedAt, ...input } = patch;
   await db
     .transaction(async (tx) => {
       const [before] = await tx.select().from(products).where(eq(products.id, productId)).for("update");
       if (!before) throw new AppError("NOT_FOUND", "Product not found");
-      const set: Partial<typeof products.$inferInsert> = {};
+      // Optimistic concurrency: an editor working on a stale copy must reload instead of overwriting.
+      if (expectedUpdatedAt && new Date(expectedUpdatedAt).getTime() !== before.updatedAt.getTime()) {
+        throw new AppError("CONFLICT", "This product was changed by someone else. Reload to see the latest version.", { reason: "stale" });
+      }
+      const set: Partial<typeof products.$inferInsert> = { updatedAt: new Date() };
       if (input.slug !== undefined) set.slug = input.slug;
       if (input.name !== undefined) set.name = input.name;
       if (input.categorySlug !== undefined) set.categoryId = await categoryId(tx, input.categorySlug);
@@ -166,7 +175,7 @@ export async function updateProduct(productId: string, input: Partial<ProductInp
       if (input.isBestSeller !== undefined) set.isBestSeller = input.isBestSeller;
       if (input.isNew !== undefined) set.isNew = input.isNew;
       if (input.position !== undefined) set.position = input.position;
-      if (Object.keys(set).length) await tx.update(products).set(set).where(eq(products.id, productId));
+      await tx.update(products).set(set).where(eq(products.id, productId));
       if (input.translations) await upsertTranslations(tx, productId, input.translations);
       for (const v of input.variants ?? []) await upsertVariant(tx, productId, v, actor);
       await refreshProductPricing(tx, productId);
@@ -196,6 +205,8 @@ export async function adminGetProduct(productId: string) {
   const dto = await getProductBySlug(p.slug, { includeInactive: true }, db);
   const variants = await db.select().from(productVariants).where(eq(productVariants.productId, productId)).orderBy(asc(productVariants.position));
   const images = await db.select().from(productImages).where(eq(productImages.productId, productId)).orderBy(asc(productImages.position));
+  const labels = variants.length ? await db.select().from(variantTranslations).where(inArray(variantTranslations.variantId, variants.map((v) => v.id))) : [];
+  const labelOf = (id: string, l: Locale) => labels.find((x) => x.variantId === id && x.locale === l)?.label ?? "";
   return {
     ...dto!,
     status: p.status,
@@ -212,83 +223,12 @@ export async function adminGetProduct(productId: string) {
       isActive: v.isActive,
       attributes: v.attributes,
       position: v.position,
+      labels: { fr: labelOf(v.id, "fr"), ar: labelOf(v.id, "ar") },
     })),
     adminImages: images.map((i) => ({ id: i.id, url: i.url, variants: i.variants, alt: i.alt, position: i.position, width: i.width, height: i.height })),
   };
 }
 
-export async function adminListProducts(q: { search?: string; status?: "draft" | "active" | "archived"; category?: string; page?: number; pageSize?: number }) {
-  const db = await getDb();
-  const page = Math.max(1, q.page ?? 1);
-  const pageSize = Math.min(100, Math.max(1, q.pageSize ?? 25));
-  const conds: SQL[] = [];
-  if (q.status) conds.push(eq(products.status, q.status));
-  if (q.category) conds.push(eq(categories.slug, q.category));
-  if (q.search) {
-    const pattern = `%${likeEscape(q.search)}%`;
-    conds.push(
-      or(
-        ilike(products.name, pattern),
-        ilike(products.slug, pattern),
-        sql`exists (select 1 from product_variants v where v.product_id = ${products.id} and v.sku ilike ${pattern})`,
-      )!,
-    );
-  }
-  const where = conds.length ? and(...conds) : undefined;
-  const rows = await db
-    .select({ ...getTableColumns(products), categorySlug: categories.slug })
-    .from(products)
-    .innerJoin(categories, eq(categories.id, products.categoryId))
-    .where(where)
-    .orderBy(desc(products.updatedAt))
-    .limit(pageSize)
-    .offset((page - 1) * pageSize);
-  const [{ total }] = await db
-    .select({ total: sql<number>`count(*)::int` })
-    .from(products)
-    .innerJoin(categories, eq(categories.id, products.categoryId))
-    .where(where);
-  const hydrated = await hydrateProducts(db, rows);
-  const stock = rows.length
-    ? await db
-        .select({ productId: productVariants.productId, stock: sql<number>`sum(${productVariants.stock})::int` })
-        .from(productVariants)
-        .where(inArray(productVariants.productId, rows.map((r) => r.id)))
-        .groupBy(productVariants.productId)
-    : [];
-  return {
-    items: hydrated.map((h, i) => ({ ...h, status: rows[i].status, totalStock: stock.find((s) => s.productId === h.id)?.stock ?? 0 })),
-    total,
-    page,
-    pageSize,
-  };
-}
-
-// ------------------------------------------------------------ inventory
-
-export async function adjustStock(
-  variantId: string,
-  input: { delta?: number; set?: number; reason: "adjustment" | "restock" | "return"; note?: string | null },
-  actor: AuditActor,
-) {
-  const db = await getDb();
-  return db.transaction(async (tx) => {
-    const [v] = await tx.select().from(productVariants).where(eq(productVariants.id, variantId)).for("update");
-    if (!v) throw new AppError("NOT_FOUND", "Variant not found");
-    const next = input.set !== undefined ? input.set : v.stock + (input.delta ?? 0);
-    if (next < 0) throw new AppError("VALIDATION", "Stock cannot go below zero", { fields: { delta: "negative_stock" } });
-    const delta = next - v.stock;
-    await tx.update(productVariants).set({ stock: next }).where(eq(productVariants.id, variantId));
-    await tx.insert(inventoryMovements).values({ variantId, delta, stockAfter: next, reason: input.reason, actorId: actor.id, note: input.note ?? null });
-    await audit(tx, actor, "inventory.adjust", { type: "variant", id: variantId }, { before: { stock: v.stock }, after: { stock: next, reason: input.reason } });
-    return { variantId, stock: next };
-  });
-}
-
-export async function stockHistory(variantId: string, limit = 50) {
-  const db = await getDb();
-  return db.select().from(inventoryMovements).where(eq(inventoryMovements.variantId, variantId)).orderBy(desc(inventoryMovements.createdAt)).limit(limit);
-}
 
 // ------------------------------------------------------------ images
 

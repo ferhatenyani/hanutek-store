@@ -39,6 +39,8 @@ const securityHeaders = [
 ];
 
 const nextConfig: NextConfig = {
+  // E2E builds use their own output folder so they never clobber the regular build
+  distDir: process.env.NEXT_DIST_DIR || ".next",
   poweredByHeader: false,
   // Native / WASM modules stay external to the server bundle.
   serverExternalPackages: ["@electric-sql/pglite", "@node-rs/argon2", "sharp", "pg"],

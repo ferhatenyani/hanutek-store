@@ -88,7 +88,7 @@ type OrderRow = typeof orders.$inferSelect;
 
 async function toOrderDTO(d: DbOrTx, o: OrderRow): Promise<OrderDTO> {
   const [items, events] = await Promise.all([
-    d.select().from(orderItems).where(eq(orderItems.orderId, o.id)).orderBy(asc(orderItems.productName)),
+    d.select().from(orderItems).where(eq(orderItems.orderId, o.id)).orderBy(asc(orderItems.productName), asc(orderItems.id)),
     d
       .select({ status: orderEvents.status, createdAt: orderEvents.createdAt })
       .from(orderEvents)
@@ -505,29 +505,56 @@ export async function updateOrderByStaff(
 // ------------------------------------------------------------ admin listing
 
 export interface AdminOrderQuery {
-  status?: OrderStatus;
+  /** One status or several (comma separated in the query string). */
+  status?: OrderStatus | OrderStatus[];
+  paymentStatus?: "unpaid" | "paid" | "refunded";
+  wilaya?: string;
+  carrier?: string;
+  userId?: string;
   q?: string;
   from?: Date;
   to?: Date;
+  sort?: "placed" | "total" | "updated";
+  dir?: "asc" | "desc";
   page?: number;
   pageSize?: number;
+}
+
+function orderWhere(query: AdminOrderQuery) {
+  const conds: SQL[] = [];
+  const statuses = query.status === undefined ? [] : Array.isArray(query.status) ? query.status : [query.status];
+  if (statuses.length === 1) conds.push(eq(orders.status, statuses[0]));
+  if (statuses.length > 1) conds.push(inArray(orders.status, statuses));
+  if (query.paymentStatus) conds.push(eq(orders.paymentStatus, query.paymentStatus));
+  if (query.wilaya) conds.push(eq(orders.shipWilaya, query.wilaya));
+  if (query.carrier) conds.push(ilike(orders.carrier, likeEscape(query.carrier)));
+  if (query.userId) conds.push(eq(orders.userId, query.userId));
+  if (query.from) conds.push(gte(orders.placedAt, query.from));
+  if (query.to) conds.push(lte(orders.placedAt, query.to));
+  if (query.q) {
+    const p = `%${likeEscape(query.q.trim())}%`;
+    conds.push(
+      or(
+        ilike(orders.number, p),
+        ilike(orders.contactPhone, p),
+        ilike(orders.contactEmail, p),
+        ilike(orders.contactName, p),
+        ilike(orders.trackingNumber, p),
+      )!,
+    );
+  }
+  return conds.length ? and(...conds) : undefined;
 }
 
 export async function adminListOrders(query: AdminOrderQuery) {
   const db = await getDb();
   const page = Math.max(1, query.page ?? 1);
   const pageSize = Math.min(100, Math.max(1, query.pageSize ?? 25));
-  const conds: SQL[] = [];
-  if (query.status) conds.push(eq(orders.status, query.status));
-  if (query.from) conds.push(gte(orders.placedAt, query.from));
-  if (query.to) conds.push(lte(orders.placedAt, query.to));
-  if (query.q) {
-    const p = `%${likeEscape(query.q.trim())}%`;
-    conds.push(or(ilike(orders.number, p), ilike(orders.contactPhone, p), ilike(orders.contactEmail, p), ilike(orders.contactName, p))!);
-  }
-  const where = conds.length ? and(...conds) : undefined;
+  const where = orderWhere(query);
+  const col = { placed: orders.placedAt, total: orders.total, updated: orders.updatedAt }[query.sort ?? "placed"];
+  const order = (query.dir ?? "desc") === "asc" ? asc(col) : desc(col);
   const [rows, [{ total }]] = await Promise.all([
-    db.select().from(orders).where(where).orderBy(desc(orders.placedAt)).limit(pageSize).offset((page - 1) * pageSize),
+    db.select().from(orders).where(where).orderBy(order, desc(orders.id)).limit(pageSize).offset((page - 1) * pageSize),
     db.select({ total: sql<number>`count(*)::int` }).from(orders).where(where),
   ]);
   const sums = await summaries(db, rows);
@@ -536,7 +563,13 @@ export async function adminListOrders(query: AdminOrderQuery) {
       ...sums[i],
       customer: { userId: o.userId, name: o.contactName, phone: o.contactPhone, email: o.contactEmail },
       wilaya: o.shipWilaya,
+      commune: o.shipCommune,
       paymentStatus: o.paymentStatus,
+      carrier: o.carrier,
+      trackingNumber: o.trackingNumber,
+      discount: o.discount,
+      promoCode: o.promotionCode,
+      updatedAt: o.updatedAt.toISOString(),
     })),
     total,
     page,
@@ -544,20 +577,98 @@ export async function adminListOrders(query: AdminOrderQuery) {
   };
 }
 
+const csvCell = (v: unknown) => {
+  const s = v === null || v === undefined ? "" : String(v);
+  // Neutralize spreadsheet formula injection, then quote.
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
+  return `"${safe.replace(/"/g, '""')}"`;
+};
+
+/** CSV of the orders matching a filter (capped at 5 000 rows). */
+export async function exportOrdersCsv(query: AdminOrderQuery): Promise<string> {
+  const db = await getDb();
+  const rows = await db.select().from(orders).where(orderWhere(query)).orderBy(desc(orders.placedAt)).limit(5000);
+  const header = ["number", "placed_at", "status", "payment_status", "customer", "phone", "email", "wilaya", "commune", "subtotal", "discount", "shipping_fee", "total", "promo_code", "carrier", "tracking_number"];
+  const lines = rows.map((o) =>
+    [o.number, o.placedAt.toISOString(), o.status, o.paymentStatus, o.contactName, o.contactPhone, o.contactEmail, o.shipWilaya, o.shipCommune, o.subtotal, o.discount, o.shippingFee, o.total, o.promotionCode, o.carrier, o.trackingNumber]
+      .map(csvCell)
+      .join(","),
+  );
+  return [header.join(","), ...lines].join("\r\n") + "\r\n";
+}
+
+/**
+ * Applies the same status change to many orders. Each order is its own
+ * transaction (so one invalid transition does not block the others) and the
+ * result reports what happened per order.
+ */
+export async function bulkChangeStatus(
+  numbers: string[],
+  to: OrderStatus,
+  actor: AuditActor,
+  extra: { note?: string | null; carrier?: string | null } = {},
+) {
+  const results: { number: string; ok: boolean; code?: string; message?: string }[] = [];
+  for (const number of [...new Set(numbers.map((n) => n.toUpperCase()))]) {
+    try {
+      await changeStatusByStaff(number, to, actor, extra);
+      results.push({ number, ok: true });
+    } catch (err) {
+      if (!(err instanceof AppError)) throw err;
+      results.push({ number, ok: false, code: err.code, message: err.message });
+    }
+  }
+  return { results, updated: results.filter((r) => r.ok).length, failed: results.filter((r) => !r.ok).length };
+}
+
 export async function adminGetOrder(number: string) {
   const db = await getDb();
   const [o] = await db.select().from(orders).where(eq(orders.number, number.toUpperCase()));
   if (!o) throw new AppError("NOT_FOUND", "Order not found");
-  const [dto, events] = await Promise.all([
+  const [dto, events, lines, account] = await Promise.all([
     toOrderDTO(db, o),
-    db.select().from(orderEvents).where(eq(orderEvents.orderId, o.id)).orderBy(asc(orderEvents.createdAt)),
+    db
+      .select({ status: orderEvents.status, note: orderEvents.note, actorId: orderEvents.actorId, createdAt: orderEvents.createdAt, actorName: users.name, actorRole: users.role })
+      .from(orderEvents)
+      .leftJoin(users, eq(users.id, orderEvents.actorId))
+      .where(eq(orderEvents.orderId, o.id))
+      .orderBy(asc(orderEvents.createdAt)),
+    db
+      .select({ id: orderItems.id, productId: orderItems.productId, variantId: orderItems.variantId, sku: orderItems.sku, productSlug: orderItems.productSlug })
+      .from(orderItems)
+      .where(eq(orderItems.orderId, o.id))
+      .orderBy(asc(orderItems.productName), asc(orderItems.id)),
+    o.userId
+      ? db
+          .select({
+            id: users.id,
+            name: users.name,
+            email: users.email,
+            createdAt: users.createdAt,
+            orderCount: sql<number>`(select count(*)::int from orders x where x.user_id = "users"."id")`,
+          })
+          .from(users)
+          .where(eq(users.id, o.userId))
+      : Promise.resolve([]),
   ]);
   return {
     ...dto,
+    items: dto.items.map((it, i) => ({ ...it, ...lines[i] })),
     userId: o.userId,
+    account: account[0] ? { ...account[0], createdAt: account[0].createdAt.toISOString() } : null,
     internalNote: o.internalNote,
     customerNote: o.customerNote,
-    events: events.map((e) => ({ status: e.status, note: e.note, actorId: e.actorId, at: e.createdAt.toISOString() })),
+    locale: o.locale,
+    deliveredAt: o.deliveredAt?.toISOString() ?? null,
+    updatedAt: o.updatedAt.toISOString(),
+    events: events.map((e) => ({
+      status: e.status,
+      note: e.note,
+      actorId: e.actorId,
+      actorName: e.actorName,
+      actorRole: e.actorRole,
+      at: e.createdAt.toISOString(),
+    })),
     allowedTransitions: TRANSITIONS[o.status],
   };
 }

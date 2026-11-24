@@ -2,6 +2,7 @@ import { eq, sql } from "drizzle-orm";
 import { hash } from "@node-rs/argon2";
 import type { Db } from "../client";
 import {
+  carriers,
   categories,
   categoryTranslations,
   inventoryMovements,
@@ -141,6 +142,15 @@ export async function seed(db: Db, opts: { adminEmail?: string; adminPassword?: 
       .onConflictDoNothing()
       .returning({ id: promotions.id });
     summary.promotions += inserted.length;
+
+    // Default delivery carriers (no API integration yet; staff pick one when shipping).
+    await tx
+      .insert(carriers)
+      .values([
+        { name: "Yalidine", position: 0 },
+        { name: "ZR Express", position: 1 },
+      ])
+      .onConflictDoNothing();
 
     if (opts.adminEmail && opts.adminPassword) {
       const email = opts.adminEmail.trim().toLowerCase();

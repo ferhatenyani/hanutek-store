@@ -371,3 +371,148 @@ html[data-lite][data-enter] main > * {
     animation-delay: 0s !important;
   }
 }
+
+/* ==========================================================================
+   Admin console tokens — scoped to .adm so the storefront is untouched.
+   Neutral greys, one ink colour, muted status hues. Light + dark.
+   ========================================================================== */
+.adm {
+  --ad-bg: #fafafa;
+  --ad-panel: #ffffff;
+  --ad-subtle: #f4f4f5;
+  --ad-hover: #f0f0f1;
+  --ad-border: #e8e8ea;
+  --ad-border-strong: #d6d6da;
+  --ad-fg: #111113;
+  --ad-muted: #5f5f67;
+  --ad-faint: #8b8b93;
+  --ad-ink: #111113;
+  --ad-ink-fg: #ffffff;
+  --ad-ring: rgba(17, 17, 19, 0.16);
+  --ad-overlay: rgba(10, 10, 12, 0.28);
+  --ad-green: #15803d;
+  --ad-green-soft: #ecf7ef;
+  --ad-amber: #b45309;
+  --ad-amber-soft: #fdf4e4;
+  --ad-red: #c2362f;
+  --ad-red-soft: #fcecea;
+  --ad-blue: #2557c7;
+  --ad-blue-soft: #ebf0fc;
+  --ad-violet: #6d4ac4;
+  --ad-violet-soft: #f1edfb;
+  --ad-chart: #111113;
+  --ad-chart-2: #a1a1aa;
+  --ad-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+  --ad-shadow-pop: 0 1px 2px rgba(0, 0, 0, 0.05), 0 8px 24px -4px rgba(0, 0, 0, 0.12);
+  color-scheme: light;
+  background: var(--ad-bg);
+  color: var(--ad-fg);
+  font-family: var(--font-geist), var(--font-arabic), ui-sans-serif, system-ui, sans-serif;
+  font-feature-settings: "ss01" 0;
+  letter-spacing: -0.005em;
+}
+html[data-admin-theme="dark"] .adm {
+  --ad-bg: #0b0b0c;
+  --ad-panel: #121214;
+  --ad-subtle: #19191c;
+  --ad-hover: #1d1d20;
+  --ad-border: #26262a;
+  --ad-border-strong: #36363b;
+  --ad-fg: #ededef;
+  --ad-muted: #a0a0a8;
+  --ad-faint: #74747c;
+  --ad-ink: #ededef;
+  --ad-ink-fg: #0b0b0c;
+  --ad-ring: rgba(237, 237, 239, 0.22);
+  --ad-overlay: rgba(0, 0, 0, 0.6);
+  --ad-green: #4ac27a;
+  --ad-green-soft: rgba(74, 194, 122, 0.12);
+  --ad-amber: #e0a23a;
+  --ad-amber-soft: rgba(224, 162, 58, 0.13);
+  --ad-red: #ef6a5f;
+  --ad-red-soft: rgba(239, 106, 95, 0.13);
+  --ad-blue: #6f9bf5;
+  --ad-blue-soft: rgba(111, 155, 245, 0.13);
+  --ad-violet: #a98af0;
+  --ad-violet-soft: rgba(169, 138, 240, 0.14);
+  --ad-chart: #ededef;
+  --ad-chart-2: #52525b;
+  --ad-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --ad-shadow-pop: 0 0 0 1px rgba(255, 255, 255, 0.04), 0 12px 32px -6px rgba(0, 0, 0, 0.7);
+  color-scheme: dark;
+}
+html[data-admin-theme="dark"] body {
+  background: #0b0b0c;
+}
+
+@theme inline {
+  --color-ad-bg: var(--ad-bg);
+  --color-ad-panel: var(--ad-panel);
+  --color-ad-subtle: var(--ad-subtle);
+  --color-ad-hover: var(--ad-hover);
+  --color-ad-border: var(--ad-border);
+  --color-ad-border-strong: var(--ad-border-strong);
+  --color-ad-fg: var(--ad-fg);
+  --color-ad-muted: var(--ad-muted);
+  --color-ad-faint: var(--ad-faint);
+  --color-ad-ink: var(--ad-ink);
+  --color-ad-ink-fg: var(--ad-ink-fg);
+  --color-ad-green: var(--ad-green);
+  --color-ad-green-soft: var(--ad-green-soft);
+  --color-ad-amber: var(--ad-amber);
+  --color-ad-amber-soft: var(--ad-amber-soft);
+  --color-ad-red: var(--ad-red);
+  --color-ad-red-soft: var(--ad-red-soft);
+  --color-ad-blue: var(--ad-blue);
+  --color-ad-blue-soft: var(--ad-blue-soft);
+  --color-ad-violet: var(--ad-violet);
+  --color-ad-violet-soft: var(--ad-violet-soft);
+  --font-admin-mono: var(--font-geist-mono), ui-monospace, "SF Mono", monospace;
+  --shadow-ad: var(--ad-shadow);
+  --shadow-ad-pop: var(--ad-shadow-pop);
+}
+
+.adm :focus-visible {
+  outline: 2px solid var(--ad-fg);
+  outline-offset: 1px;
+  border-radius: 6px;
+}
+.adm ::selection {
+  background: var(--ad-fg);
+  color: var(--ad-bg);
+}
+.adm h1,
+.adm h2,
+.adm h3,
+.adm h4 {
+  font-family: inherit;
+}
+.adm .tnum {
+  font-variant-numeric: tabular-nums;
+}
+/* Thin, quiet scrollbars inside the console. */
+.adm .ad-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--ad-border-strong) transparent;
+}
+@keyframes ad-fade-in { from { opacity: 0; } }
+@keyframes ad-pop-in { from { opacity: 0; transform: translateY(-4px) scale(0.98); } }
+@keyframes ad-sheet-in { from { transform: translateX(100%); } }
+@keyframes ad-sheet-in-bottom { from { transform: translateY(100%); } }
+@keyframes ad-dialog-in { from { opacity: 0; transform: translateY(6px) scale(0.98); } }
+@keyframes ad-shimmer { 50% { opacity: 0.55; } }
+.adm .ad-anim-fade { animation: ad-fade-in 140ms ease-out both; }
+.adm .ad-anim-pop { animation: ad-pop-in 140ms cubic-bezier(0.22, 1, 0.36, 1) both; transform-origin: top; }
+.adm .ad-anim-sheet { animation: ad-sheet-in 260ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.adm .ad-anim-drawer { animation: ad-sheet-in-bottom 260ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+@media (min-width: 40rem) { .adm .ad-anim-drawer { animation-name: ad-sheet-in; } }
+.adm .ad-anim-dialog { animation: ad-dialog-in 160ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+.adm .ad-skeleton { background: var(--ad-subtle); border-radius: 6px; animation: ad-shimmer 1.4s ease-in-out infinite; }
+@media (prefers-reduced-motion: reduce) {
+  .adm .ad-anim-fade,
+  .adm .ad-anim-pop,
+  .adm .ad-anim-sheet,
+  .adm .ad-anim-drawer,
+  .adm .ad-anim-dialog,
+  .adm .ad-skeleton { animation: none; }
+}

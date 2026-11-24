@@ -1,7 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, Space_Grotesk, Space_Mono, IBM_Plex_Sans_Arabic } from "next/font/google";
 import "./globals.css";
-import { AppShell } from "@/components/layout/app-shell";
 
 export const viewport: Viewport = {
   width: "device-width",
@@ -97,7 +96,7 @@ setTimeout(function(){var r=new PopStateEvent("popstate",{state:st});r.__replay=
 })();`,
           }}
         />
-        <AppShell>{children}</AppShell>
+        {children}
       </body>
     </html>
   );

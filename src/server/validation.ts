@@ -145,14 +145,73 @@ export const productSchema = z.object({
   translations: z.object({ fr: localizedProductCopy, ar: localizedProductCopy.optional() }),
   variants: z.array(variantSchema).max(50).optional(),
 });
-export const productPatchSchema = productSchema.partial();
+export const productPatchSchema = productSchema.partial().extend({
+  /** Optimistic concurrency: the `updatedAt` the editor loaded. A mismatch returns 409. */
+  expectedUpdatedAt: z.string().datetime({ offset: true }).optional(),
+});
+
+const sortDir = z.enum(["asc", "desc"]).optional();
+const productStatus = z.enum(["draft", "active", "archived"]);
+const stockLevel = z.enum(["in", "low", "out"]).optional();
 
 export const adminProductQuery = z.object({
   search: text(100).optional(),
-  status: z.enum(["draft", "active", "archived"]).optional(),
+  status: productStatus.optional(),
   category: slug.optional(),
+  stock: stockLevel,
+  flag: z.enum(["featured", "bestSeller", "new", "sale"]).optional(),
+  sort: z.enum(["updated", "created", "name", "price", "stock", "rating"]).optional(),
+  dir: sortDir,
   page,
   pageSize: pageSize(100, 25),
+});
+
+const idList = z.array(uuid).min(1, "required").max(200);
+
+export const productBulkSchema = z.object({
+  ids: idList,
+  patch: z
+    .object({
+      status: productStatus.optional(),
+      isFeatured: z.boolean().optional(),
+      isBestSeller: z.boolean().optional(),
+      isNew: z.boolean().optional(),
+      categorySlug: slug.optional(),
+    })
+    .refine((p) => Object.values(p).some((v) => v !== undefined), { message: "nothing to update" }),
+});
+
+export const inventoryQuery = z.object({
+  search: text(100).optional(),
+  stock: stockLevel,
+  category: slug.optional(),
+  status: productStatus.optional(),
+  sort: z.enum(["stock", "sku", "name", "price", "updated"]).optional(),
+  dir: sortDir,
+  page,
+  pageSize: pageSize(100, 50),
+});
+
+export const movementQuery = z.object({
+  variantId: uuid.optional(),
+  productId: uuid.optional(),
+  reason: z.enum(["order", "cancel", "return", "adjustment", "restock"]).optional(),
+  page,
+  pageSize: pageSize(100, 50),
+});
+
+export const stockBulkSchema = z.object({
+  items: z
+    .array(
+      z
+        .object({ variantId: uuid, delta: z.number().int().min(-1_000_000).max(1_000_000).optional(), set: z.number().int().min(0).max(1_000_000).optional() })
+        .refine((v) => (v.delta === undefined) !== (v.set === undefined), { message: "provide exactly one of delta or set" }),
+    )
+    .min(1)
+    .max(200)
+    .refine((items) => new Set(items.map((i) => i.variantId)).size === items.length, { message: "duplicate variant" }),
+  reason: z.enum(["adjustment", "restock", "return"]),
+  note: text(300).nullable().optional(),
 });
 
 export const stockAdjustSchema = z
@@ -178,12 +237,30 @@ export const categorySchema = z.object({
 
 const orderStatus = z.enum(["pending", "confirmed", "packed", "shipped", "out_for_delivery", "delivered", "cancelled", "returned"]);
 export const adminOrderQuery = z.object({
-  status: orderStatus.optional(),
+  /** one status, or several comma separated */
+  status: z
+    .string()
+    .max(200)
+    .transform((s) => s.split(",").map((x) => x.trim()).filter(Boolean))
+    .pipe(z.array(orderStatus).max(8))
+    .optional(),
+  paymentStatus: z.enum(["unpaid", "paid", "refunded"]).optional(),
+  wilaya: wilaya.optional(),
+  carrier: text(60).optional(),
+  userId: uuid.optional(),
   q: text(100).optional(),
   from: z.coerce.date().optional(),
   to: z.coerce.date().optional(),
+  sort: z.enum(["placed", "total", "updated"]).optional(),
+  dir: sortDir,
   page,
   pageSize: pageSize(100, 25),
+});
+export const orderBulkStatusSchema = z.object({
+  numbers: z.array(z.string().trim().regex(/^[A-Za-z]{2}-\d{4,10}$/, "invalid_number")).min(1).max(100),
+  status: orderStatus,
+  note: text(500).nullable().optional(),
+  carrier: text(60).nullable().optional(),
 });
 export const statusChangeSchema = z.object({
   status: orderStatus,
@@ -201,6 +278,11 @@ export const orderPatchSchema = z.object({
 export const adminCustomerQuery = z.object({
   search: text(100).optional(),
   role: z.enum(["customer", "staff", "admin"]).optional(),
+  scope: z.enum(["team"]).optional(),
+  status: z.enum(["active", "disabled"]).optional(),
+  verified: z.enum(["yes", "no"]).optional(),
+  sort: z.enum(["created", "name", "orders", "spent", "lastLogin"]).optional(),
+  dir: sortDir,
   page,
   pageSize: pageSize(100, 25),
 });
@@ -228,6 +310,52 @@ export const auditQuery = z.object({
   entityType: text(40).optional(),
   entityId: text(100).optional(),
   actorId: uuid.optional(),
+  action: text(60).optional(),
+  q: text(100).optional(),
+  from: z.coerce.date().optional(),
+  to: z.coerce.date().optional(),
   page,
   pageSize: pageSize(200, 50),
 });
+
+export const analyticsQuery = z.object({
+  days: z.coerce.number().int().refine((d) => [7, 30, 90, 365].includes(d), "invalid_range").default(30),
+});
+
+export const adminReviewQuery = z.object({
+  status: z.enum(["published", "hidden"]).optional(),
+  rating: z.coerce.number().int().min(1).max(5).optional(),
+  productId: uuid.optional(),
+  q: text(100).optional(),
+  sort: z.enum(["created", "rating"]).optional(),
+  dir: sortDir,
+  page,
+  pageSize: pageSize(100, 25),
+});
+export const reviewBulkSchema = z.object({ ids: idList, status: z.enum(["published", "hidden"]) });
+
+export const subscriberQuery = z.object({
+  q: text(100).optional(),
+  status: z.enum(["subscribed", "unsubscribed"]).optional(),
+  page,
+  pageSize: pageSize(500, 50),
+});
+
+const httpUrl = z
+  .string()
+  .trim()
+  .max(500)
+  .url("invalid_url")
+  .refine((u) => /^https?:\/\//i.test(u), "invalid_url");
+export const carrierSchema = z.object({
+  name: required(60),
+  /** may contain {number} — replaced with the tracking number */
+  trackingUrl: httpUrl.nullable().optional().or(z.literal("").transform(() => null)),
+  phone: text(30).nullable().optional(),
+  note: text(300).nullable().optional(),
+  isActive: z.boolean().optional(),
+  position: z.number().int().min(0).max(1000).optional(),
+});
+export const carrierPatchSchema = carrierSchema.partial();
+
+export const purgeCartsSchema = z.object({ days: z.number().int().min(7).max(365).default(60), dryRun: z.boolean().default(false) });

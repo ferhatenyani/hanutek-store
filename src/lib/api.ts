@@ -29,7 +29,7 @@ type Options = {
 let refreshing: Promise<boolean> | null = null;
 
 /** Single-flight refresh shared by every request that hit an expired token. */
-function refreshOnce(): Promise<boolean> {
+export function refreshOnce(): Promise<boolean> {
   refreshing ??= (async () => {
     try {
       for (let attempt = 0; attempt < 2; attempt++) {

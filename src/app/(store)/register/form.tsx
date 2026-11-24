@@ -11,7 +11,7 @@ import { useI18n } from "@/i18n/provider";
 import { Button, Input } from "@/components/ui/primitives";
 import { AuthShell } from "@/components/auth-shell";
 import { useToast } from "@/components/ui/toast";
-import { GoogleButton } from "@/app/login/form";
+import { GoogleButton } from "@/app/(store)/login/form";
 
 export function RegisterForm() {
   const { register, features } = useStore();
