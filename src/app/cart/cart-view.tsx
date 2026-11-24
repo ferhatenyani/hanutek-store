@@ -5,8 +5,8 @@ import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { Banknote, ChevronLeft, ShoppingBag, Trash2 } from "lucide-react";
-import { useStore, cartTotals, promoDiscountRate } from "@/lib/store";
-import { getProduct, variantPrice } from "@/lib/products";
+import { useStore } from "@/lib/store";
+import { tr } from "@/lib/catalog-client";
 import { useI18n } from "@/i18n";
 import { buttonClasses, QtyStepper } from "@/components/ui/primitives";
 import { NavTransition } from "@/components/nav-transition";
@@ -20,17 +20,15 @@ function scrollToCheckout() {
 }
 
 export function CartView() {
-  const { m, price: fmt } = useI18n();
+  const { m, price: fmt, locale } = useI18n();
   const { cart, cartCount, setQty, removeItem, promo, ready } = useStore();
   const pathname = usePathname();
-  const totals = cartTotals(cart, promoDiscountRate(promo));
-  const vlabel = (slug: string, id: string) =>
-    (m.products[slug as keyof typeof m.products] as { variants: Record<string, string> }).variants[id];
+  const totals = cart;
 
   // /cart#checkout (buy-now, redirected /checkout deep links): auto-scroll to
   // the form once the cart has hydrated and the section actually exists.
   useEffect(() => {
-    if (!ready || cart.length === 0) return;
+    if (!ready || cart.lines.length === 0) return;
     if (window.location.hash === "#checkout") {
       const raf = requestAnimationFrame(() => {
         document.getElementById("checkout")?.scrollIntoView({ block: "start" });
@@ -38,7 +36,7 @@ export function CartView() {
       });
       return () => cancelAnimationFrame(raf);
     }
-  }, [ready, cart.length, pathname]);
+  }, [ready, cart.lines.length, pathname]);
 
   return (
     <NavTransition>
@@ -53,7 +51,13 @@ export function CartView() {
         {ready && cartCount > 0 && <span className="num font-mono text-lg font-normal text-faint">({cartCount})</span>}
       </h1>
 
-      {ready && cart.length === 0 ? (
+      {!ready ? (
+        <div className="mt-8 space-y-4" aria-busy="true">
+          {[0, 1].map((i) => (
+            <div key={i} className="h-28 animate-pulse rounded-card bg-line/40" />
+          ))}
+        </div>
+      ) : cart.lines.length === 0 ? (
         <div className="flex flex-col items-center gap-5 py-24 text-center">
           <span className="grid h-16 w-16 place-items-center rounded-full bg-accent-soft text-muted">
             <ShoppingBag size={26} />
@@ -71,12 +75,11 @@ export function CartView() {
         <div className="mt-8 grid items-start gap-8 lg:grid-cols-[1fr_360px] lg:gap-10">
           <div className="min-w-0">
             <ul className="divide-y divide-line border-y border-line">
-              {cart.map((item) => {
-                const p = getProduct(item.productId);
-                if (!p) return null;
-                const price = variantPrice(p, item.variantId);
+              {cart.lines.map((item) => {
+                const p = { slug: item.slug, name: item.name, image: item.image };
+                const price = item.unitPrice;
                 return (
-                  <li key={`${item.productId}-${item.variantId}`} className="flex gap-4 py-5 md:gap-6">
+                  <li key={item.variantId} className="flex gap-4 py-5 md:gap-6">
                     <Link
                       href={`/products/${p.slug}`}
                       transitionTypes={["nav-forward"]}
@@ -95,7 +98,12 @@ export function CartView() {
                           >
                             {p.name}
                           </Link>
-                          <p className="mt-0.5 text-xs text-muted">{vlabel(p.slug, item.variantId)}</p>
+                          <p className="mt-0.5 text-xs text-muted">{tr(item.variantLabel, locale)}</p>
+                          {!item.available && (
+                            <p className="mt-0.5 text-xs font-medium text-danger">
+                              {item.maxQty > 0 ? m.cart.limitedStock.replace("{n}", String(item.maxQty)) : m.common.soldOut}
+                            </p>
+                          )}
                           <p className="mt-1 text-xs text-faint">
                             <span dir="ltr" className="num font-mono">{fmt(price)}</span> · {m.cart.each}
                           </p>
@@ -103,15 +111,15 @@ export function CartView() {
                         <button
                           type="button"
                           aria-label={`${m.cart.remove} ${p.name}`}
-                          onClick={() => removeItem(item.productId, item.variantId)}
+                          onClick={() => removeItem(item.variantId)}
                           className="cursor-pointer text-faint transition-colors duration-150 hover:text-danger"
                         >
                           <Trash2 size={16} />
                         </button>
                       </div>
                       <div className="mt-auto flex flex-wrap items-center justify-between gap-2 pt-3">
-                        <QtyStepper qty={item.qty} onChange={(q) => setQty(item.productId, item.variantId, q)} />
-                        <span dir="ltr" className="num font-mono text-[15px] font-medium">{fmt(price * item.qty)}</span>
+                        <QtyStepper qty={item.qty} onChange={(q) => setQty(item.variantId, q)} max={Math.max(1, item.maxQty)} />
+                        <span dir="ltr" className="num font-mono text-[15px] font-medium">{fmt(item.lineTotal)}</span>
                       </div>
                     </div>
                   </li>
@@ -137,10 +145,6 @@ export function CartView() {
                     <dd dir="ltr" className="num font-mono">−{fmt(totals.discount)}</dd>
                   </div>
                 )}
-                <div className="flex justify-between">
-                  <dt className="text-muted">{m.cart.shipping}</dt>
-                  <dd dir="ltr" className="num font-mono">{fmt(totals.shipping)}</dd>
-                </div>
                 <div className="flex items-baseline justify-between border-t border-line pt-3">
                   <dt className="font-medium">{m.cart.total}</dt>
                   <dd dir="ltr" className="num font-display text-lg font-semibold">{fmt(totals.total)}</dd>

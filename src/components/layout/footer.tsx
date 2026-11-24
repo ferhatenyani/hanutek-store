@@ -3,8 +3,9 @@
 import Link from "next/link";
 import { ArrowUp, AtSign, Banknote, MapPin, Play } from "lucide-react";
 import { useState, type FormEvent } from "react";
-import { categories } from "@/lib/products";
 import { useStore } from "@/lib/store";
+import { api } from "@/lib/api";
+import { tr, useCategoryList } from "@/lib/catalog-client";
 import { useI18n } from "@/i18n";
 import { useToast } from "@/components/ui/toast";
 import { useSheetUI } from "./app-shell";
@@ -15,18 +16,28 @@ import { usePathname } from "next/navigation";
 export function Footer() {
   const toast = useToast();
   const { user } = useStore();
-  const { m } = useI18n();
+  const { m, locale } = useI18n();
+  const categories = useCategoryList();
   const { openCart } = useSheetUI();
   const pathname = usePathname() ?? "";
   const [email, setEmail] = useState("");
+  const [subscribing, setSubscribing] = useState(false);
   const f = m.footer;
   const year = "2026";
 
-  const subscribe = (e: FormEvent) => {
+  const subscribe = async (e: FormEvent) => {
     e.preventDefault();
-    if (!email.trim()) return;
-    setEmail("");
-    toast(f.subscribedToast);
+    if (!email.trim() || subscribing) return;
+    setSubscribing(true);
+    try {
+      await api("/newsletter", { method: "POST", body: { email: email.trim(), locale } });
+      setEmail("");
+      toast(f.subscribedToast);
+    } catch {
+      toast(m.common.actionFailed);
+    } finally {
+      setSubscribing(false);
+    }
   };
 
   const linkCls = "text-background/70 transition-colors duration-150 hover:text-volt";
@@ -57,7 +68,7 @@ export function Footer() {
                   key={s.label}
                   type="button"
                   aria-label={s.label}
-                  onClick={() => toast(f.socialMock)}
+                  onClick={() => toast(f.comingSoon)}
                   className="flex h-9 w-9 cursor-pointer items-center justify-center rounded-full border border-background/20 bg-background/10 text-background/70 transition-colors duration-150 hover:border-volt/60 hover:text-volt"
                 >
                   <s.icon size={16} />
@@ -89,7 +100,7 @@ export function Footer() {
               {categories.map((c) => (
                 <li key={c.slug}>
                   <Link href={`/products?category=${c.slug}`} transitionTypes={navTypes(pathname, `/products?category=${c.slug}`)} className={linkCls}>
-                    {m.categories[c.slug].name}
+                    {tr(c.name, locale)}
                   </Link>
                 </li>
               ))}
@@ -146,7 +157,8 @@ export function Footer() {
               />
               <button
                 type="submit"
-                className="h-11 shrink-0 cursor-pointer rounded-full bg-volt px-5 text-sm font-medium text-accent transition-colors duration-150 hover:bg-[#c8e01e]"
+                disabled={subscribing}
+                className="h-11 shrink-0 cursor-pointer rounded-full bg-volt px-5 text-sm font-medium text-accent transition-colors duration-150 hover:bg-[#c8e01e] disabled:opacity-60"
               >
                 {f.newsletterCta}
               </button>
@@ -164,7 +176,7 @@ export function Footer() {
               <button
                 key={l}
                 type="button"
-                onClick={() => toast(f.demoNote)}
+                onClick={() => toast(f.comingSoon)}
                 className="cursor-pointer text-background/60 transition-colors duration-150 hover:text-volt"
               >
                 {l}
@@ -172,10 +184,7 @@ export function Footer() {
             ))}
           </nav>
           <div className="flex flex-col items-start justify-between gap-3 text-xs text-background/60 sm:flex-row sm:items-center">
-            <p>
-              {f.copyright.replace("{year}", year)}{" "}
-              <span className="block sm:inline sm:ms-2">{f.demoNote}</span>
-            </p>
+            <p>{f.copyright.replace("{year}", year)}</p>
             <button
               type="button"
               onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}

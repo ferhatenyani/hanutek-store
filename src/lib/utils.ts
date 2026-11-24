@@ -50,3 +50,8 @@ export function savingsPercent(price: number, compareAt?: number): number | null
   if (!compareAt || compareAt <= price) return null;
   return Math.round(((compareAt - price) / compareAt) * 100);
 }
+/** Same-site relative path only (prevents open redirects via ?next=). */
+export function safeNextPath(next: string | null | undefined, fallback = "/profile"): string {
+  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
+  return next;
+}

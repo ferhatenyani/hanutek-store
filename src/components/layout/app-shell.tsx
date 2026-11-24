@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { MotionConfig } from "motion/react";
 import { StoreProvider } from "@/lib/store";
+import { CategoriesProvider } from "@/lib/catalog-client";
 import { ToastProvider } from "@/components/ui/toast";
 import { LocaleProvider } from "@/i18n";
 import { Header } from "./header";
@@ -54,11 +55,13 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <LocaleProvider>
       <StoreProvider>
-        <ToastProvider>
-          <MotionConfig reducedMotion="user">
-            <Shell>{children}</Shell>
-          </MotionConfig>
-        </ToastProvider>
+        <CategoriesProvider>
+          <ToastProvider>
+            <MotionConfig reducedMotion="user">
+              <Shell>{children}</Shell>
+            </MotionConfig>
+          </ToastProvider>
+        </CategoriesProvider>
       </StoreProvider>
     </LocaleProvider>
   );

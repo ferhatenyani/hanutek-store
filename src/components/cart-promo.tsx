@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Tag, X } from "lucide-react";
 import { useStore } from "@/lib/store";
-import { PROMO_CODE } from "@/lib/products";
 import { useI18n } from "@/i18n";
 import { Button } from "@/components/ui/primitives";
 import { useToast } from "@/components/ui/toast";
@@ -12,34 +11,40 @@ import { cn } from "@/lib/utils";
 /** Promo-code form / applied chip — shared by the cart page and the
  *  expanded cart sheet so both surfaces behave identically. */
 export function CartPromo() {
-  const { m } = useI18n();
-  const { promo, applyPromo, removePromo } = useStore();
+  const { m, price } = useI18n();
+  const { promo, cart, applyPromo, removePromo } = useStore();
   const toast = useToast();
   const [code, setCode] = useState("");
-  const [codeError, setCodeError] = useState(false);
+  const [codeError, setCodeError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const submitPromo = (e: React.FormEvent) => {
+  const submitPromo = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (applyPromo(code)) {
+    if (busy) return;
+    setBusy(true);
+    const res = await applyPromo(code.trim());
+    setBusy(false);
+    if (res.ok) {
       setCode("");
-      setCodeError(false);
-      toast(`${PROMO_CODE} · ${m.cart.promoApplied}`);
+      setCodeError(null);
+      toast(`${code.trim().toUpperCase()} · ${m.cart.promoApplied}`);
     } else {
-      setCodeError(true);
+      setCodeError(res.reason === "min_subtotal" ? m.cart.promoMinSubtotal : res.reason === "network" ? m.common.actionFailed : m.cart.promoInvalid);
     }
   };
+  const promoLabel = cart.promo ? (cart.promo.type === "percent" ? `−${cart.promo.value} %` : `−${price(cart.promo.value)}`) : "";
 
   if (promo) {
     return (
       <div className="flex items-center justify-between rounded-card border border-volt/60 bg-volt-soft px-4 py-3.5">
         <span className="flex items-center gap-2 text-sm font-medium text-accent-ink">
           <Tag size={15} aria-hidden />
-          <span className="font-mono font-bold">{promo}</span> · {m.cart.promoApplied} (−10 %)
+          <span className="font-mono font-bold">{promo}</span> · {m.cart.promoApplied} (<span dir="ltr">{promoLabel}</span>)
         </span>
         <button
           type="button"
           aria-label={m.cart.remove}
-          onClick={removePromo}
+          onClick={() => void removePromo().catch(() => toast(m.common.actionFailed))}
           className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-muted transition-colors duration-150 hover:bg-white/60 hover:text-foreground"
         >
           <X size={15} />
@@ -67,7 +72,7 @@ export function CartPromo() {
           value={code}
           onChange={(e) => {
             setCode(e.target.value);
-            setCodeError(false);
+            setCodeError(null);
           }}
           placeholder={m.cart.promoPlaceholder}
           aria-label={m.cart.promoPlaceholder}
@@ -77,11 +82,11 @@ export function CartPromo() {
             codeError ? "border-danger" : "border-line",
           )}
         />
-        <Button type="submit" disabled={!code.trim()} className="shrink-0 px-5">
+        <Button type="submit" disabled={!code.trim() || busy} className="shrink-0 px-5">
           {m.cart.promoApply}
         </Button>
       </div>
-      {codeError && <p className="mt-2 text-xs text-danger">{m.cart.promoInvalid}</p>}
+      {codeError && <p className="mt-2 text-xs text-danger">{codeError}</p>}
     </form>
   );
 }

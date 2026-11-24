@@ -6,8 +6,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
 import { Banknote, ChevronDown, ChevronLeft, ShoppingBag, Zap } from "lucide-react";
-import type { Product } from "@/lib/products";
-import { productsInCategory, variantPrice } from "@/lib/products";
+import type { ProductDTO } from "@/lib/api-types";
+import { tr, useCategoryLabel } from "@/lib/catalog-client";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useI18n } from "@/i18n";
@@ -16,14 +16,7 @@ import { ProductCard } from "@/components/product-card";
 import { useToast } from "@/components/ui/toast";
 import { NavTransition, stampNav } from "@/components/nav-transition";
 import { HERO_SIZES, ProductMorph, backIfPrevious } from "@/components/product-morph";
-
-type ProductMsg = {
-  short: string;
-  description: string;
-  specs: string[][];
-  inTheBox: string[];
-  variants: Record<string, string>;
-};
+import { ProductReviews } from "@/components/product-reviews";
 
 function Accordion({
   items,
@@ -66,29 +59,45 @@ function Accordion({
   );
 }
 
-export function ProductDetail({ product }: { product: Product }) {
-  const { t, m, price: fmt } = useI18n();
+export function ProductDetail({ product, related }: { product: ProductDTO; related: ProductDTO[] }) {
+  const { t, m, price: fmt, locale } = useI18n();
   const router = useRouter();
   const { addToCart } = useStore();
   const toast = useToast();
-  const [variantId, setVariantId] = useState(product.variants[0].id);
+  const catLabel = useCategoryLabel(locale, m.categories);
+  const [variantId, setVariantId] = useState((product.variants.find((v) => v.inStock) ?? product.variants[0])?.id);
   const [qty, setQty] = useState(1);
+  const [busy, setBusy] = useState(false);
 
-  const mp = m.products[product.slug as keyof typeof m.products] as ProductMsg;
-  const catName = m.categories[product.category as keyof typeof m.categories].name;
+  const catName = catLabel(product.category);
   const variant = product.variants.find((v) => v.id === variantId) ?? product.variants[0];
-  const price = variantPrice(product, variantId);
-  const compareAt = product.compareAt ? product.compareAt + variant.priceDelta : undefined;
+  const price = variant?.price ?? product.price;
+  const compareAt = variant?.compareAt ?? undefined;
   const onSale = compareAt != null && compareAt > price;
   const pct = onSale ? Math.round((1 - price / compareAt!) * 100) : 0;
-  const related = productsInCategory(product.category).filter((p) => p.slug !== product.slug);
+  const soldOut = !variant?.inStock;
+  const maxQty = Math.max(1, variant?.maxQty ?? 1);
+  const detail = product.detail;
 
-  const add = () => {
-    addToCart(product.slug, variantId, qty);
-    toast(`${product.name} · ${m.product.addedToCart}`);
+  /** Adds the current selection; resolves false (after a toast) when it failed. */
+  const put = async () => {
+    if (!variant || soldOut || busy) return false;
+    setBusy(true);
+    try {
+      await addToCart(variant.id, Math.min(qty, maxQty));
+      return true;
+    } catch {
+      toast(m.common.actionFailed);
+      return false;
+    } finally {
+      setBusy(false);
+    }
   };
-  const buyNow = () => {
-    addToCart(product.slug, variantId, qty);
+  const add = async () => {
+    if (await put()) toast(`${product.name} · ${m.product.addedToCart}`);
+  };
+  const buyNow = async () => {
+    if (!(await put())) return;
     // Checkout is no longer a route: land on the cart at its form (below the
     // lines); the cart page turns the #checkout hash into the auto-scroll.
     stampNav(window.location.pathname, "/cart", "nav-forward");
@@ -143,7 +152,7 @@ export function ProductDetail({ product }: { product: Product }) {
           <h1 dir="ltr" className="mt-2 text-balance text-3xl font-semibold tracking-tight text-foreground md:text-4xl rtl:text-right rtl:tracking-normal">
             {product.name}
           </h1>
-          <p className="mt-3 text-[15px] leading-relaxed text-muted">{mp.short}</p>
+          <p className="mt-3 text-[15px] leading-relaxed text-muted">{tr(product.short, locale)}</p>
 
           <div className="mt-5 flex flex-wrap items-baseline gap-3">
             <span dir="ltr" className="num font-display text-2xl font-semibold text-foreground">{fmt(price)}</span>
@@ -157,7 +166,8 @@ export function ProductDetail({ product }: { product: Product }) {
 
           <div className="mt-6">
             <p className="mb-2 text-xs font-medium text-muted">
-              {m.product.chooseVariant}: <span className="text-foreground">{mp.variants[variantId]}</span>
+              {m.product.chooseVariant}: <span className="text-foreground">{tr(variant?.label, locale)}</span>
+              {soldOut && <span className="ms-2 text-danger">· {m.common.soldOut}</span>}
             </p>
             <div className="flex flex-wrap gap-2" role="radiogroup" aria-label={m.product.chooseVariant}>
               {product.variants.map((v) => {
@@ -168,15 +178,19 @@ export function ProductDetail({ product }: { product: Product }) {
                     type="button"
                     role="radio"
                     aria-checked={active}
-                    onClick={() => setVariantId(v.id)}
+                    onClick={() => {
+                      setVariantId(v.id);
+                      setQty((q) => Math.min(q, Math.max(1, v.maxQty)));
+                    }}
                     className={cn(
                       "h-10 cursor-pointer rounded-full border px-4 text-[13px] font-medium transition-colors duration-150",
+                      !v.inStock && "line-through decoration-1 opacity-60",
                       active
                         ? "border-accent bg-accent-soft text-accent-ink"
                         : "border-line bg-background text-muted hover:border-foreground/30 hover:text-foreground",
                     )}
                   >
-                    {mp.variants[v.id]}
+                    {tr(v.label, locale)}
                     {v.priceDelta > 0 && <span dir="ltr" className="num ms-1.5 font-mono text-[11px] opacity-70">+{fmt(v.priceDelta)}</span>}
                   </button>
                 );
@@ -187,9 +201,9 @@ export function ProductDetail({ product }: { product: Product }) {
           {/* One decision, two clear paths: add to cart OR order this item now */}
           <div className="mt-8 rounded-card border border-line bg-surface/60 p-4 sm:p-5">
             <div className="flex items-center gap-3">
-              <QtyStepper qty={qty} onChange={setQty} />
-              <Button onClick={add} variant="outline" className="flex-1 gap-2">
-                <ShoppingBag size={16} /> {m.product.addToCart}
+              <QtyStepper qty={qty} onChange={setQty} max={maxQty} />
+              <Button onClick={add} variant="outline" className="flex-1 gap-2" disabled={soldOut || busy}>
+                <ShoppingBag size={16} /> {soldOut ? m.common.soldOut : m.product.addToCart}
               </Button>
             </div>
 
@@ -199,7 +213,7 @@ export function ProductDetail({ product }: { product: Product }) {
               <span className="h-px flex-1 bg-line" />
             </div>
 
-            <Button onClick={buyNow} size="lg" className="w-full gap-2">
+            <Button onClick={buyNow} size="lg" className="w-full gap-2" disabled={soldOut || busy}>
               <Zap size={16} /> {m.product.buyNow} · <span dir="ltr" className="num">{fmt(price * qty)}</span>
             </Button>
 
@@ -215,14 +229,14 @@ export function ProductDetail({ product }: { product: Product }) {
       <div className="mt-14 max-w-3xl">
         <Accordion
           items={[
-            { id: "description", title: m.product.descriptionTitle, content: <p>{mp.description}</p> },
+            { id: "description", title: m.product.descriptionTitle, content: <p>{tr(detail?.description, locale)}</p> },
             {
               id: "specs",
               title: m.product.specsTitle,
               content: (
                 <table className="w-full">
                   <tbody className="divide-y divide-line">
-                    {mp.specs.map(([k, v]) => (
+                    {(detail?.specs[locale] ?? []).map(([k, v]) => (
                       <tr key={k}>
                         <td className="w-40 py-2.5 pe-4 align-top text-xs text-faint">{k}</td>
                         <td className="py-2.5 text-[13px] text-foreground">{v}</td>
@@ -237,11 +251,16 @@ export function ProductDetail({ product }: { product: Product }) {
               title: m.product.inTheBoxTitle,
               content: (
                 <ul className="list-disc space-y-1 ps-5">
-                  {mp.inTheBox.map((item) => (
+                  {(detail?.inTheBox[locale] ?? []).map((item) => (
                     <li key={item}>{item}</li>
                   ))}
                 </ul>
               ),
+            },
+            {
+              id: "reviews",
+              title: `${m.reviews.title} (${product.reviews})`,
+              content: <ProductReviews slug={product.slug} />,
             },
           ]}
         />

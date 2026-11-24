@@ -10,412 +10,359 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import {
-  PROMO_CODE,
-  PROMO_RATE,
-  SHIPPING_FLAT,
-  getProduct,
-  variantLabel,
-  variantPrice,
-} from "./products";
+import { api, ApiError, SESSION_LOST_EVENT } from "./api";
+import type {
+  CartDTO,
+  Locale,
+  PlaceOrderResultDTO,
+  SessionDTO,
+  UserDTO,
+  AddressDTO,
+} from "./api-types";
 
-export interface CartItem {
-  productId: string;
-  variantId: string;
-  qty: number;
+/*
+ * Client state backed by the API. The server is the source of truth for the
+ * user, cart (prices, stock, promo) and favorites; this store keeps a local
+ * mirror with optimistic updates so the UI stays instant.
+ *
+ *  - One bootstrap request on load (POST /auth/session) restores the session
+ *    (rotating an expired access token) and returns user + cart + favorites.
+ *  - Cart writes are optimistic; responses are applied only if no newer write
+ *    started meanwhile (sequence guard), so rapid clicks never flicker back.
+ *  - Quantity steppers are debounced per line.
+ *  - Guests keep favorites in localStorage; they merge into the account on sign-in.
+ */
+
+export type { CartDTO, UserDTO };
+export type User = UserDTO;
+
+const FAV_KEY = "hanutek-favorites-v1";
+const LEGACY_KEY = "hanutek-store-v1";
+const GUEST_ORDERS_KEY = "hanutek-guest-orders-v1";
+const EMPTY_CART: CartDTO = { lines: [], count: 0, promo: null, subtotal: 0, discount: 0, total: 0 };
+
+export interface CheckoutInput {
+  contact: { name: string; phone: string; email?: string | null };
+  address: { line1: string; commune: string; wilaya: string; postalCode?: string | null };
+  note?: string | null;
+  saveAddress?: boolean;
+  idempotencyKey: string;
+  locale: Locale;
 }
 
-export interface Address {
-  fullName: string;
-  line1: string;
-  city: string;
-  postcode: string;
-  country: string;
-  wilaya?: string;
-  phone?: string;
-}
-
-export interface User {
-  name: string;
-  email: string;
-  phone?: string;
-  address?: Address;
-}
-
-export interface OrderItem {
-  productId: string;
-  name: string;
-  variant: string;
-  image: string;
-  price: number;
-  qty: number;
-}
-
-export type OrderStatus = "processing" | "shipped" | "delivered";
-
-export interface TrackingEvent {
-  label: string;
-  detail: string;
-  at: string | null;
-}
-
-export interface Order {
-  id: string;
-  createdAt: string;
-  items: OrderItem[];
-  subtotal: number;
-  shipping: number;
-  discount: number;
-  total: number;
-  status: OrderStatus;
-  events: TrackingEvent[];
-  address: Address;
-  payment: string;
-}
-
-interface StoreState {
-  user: User | null;
-  cart: CartItem[];
-  orders: Order[];
+interface StoreValue {
+  ready: boolean;
+  user: UserDTO | null;
+  cart: CartDTO;
+  cartCount: number;
   promo: string | null;
   favorites: string[];
-}
-
-interface StoreValue extends StoreState {
-  ready: boolean;
-  cartCount: number;
-  addToCart: (productId: string, variantId: string, qty?: number) => void;
-  setQty: (productId: string, variantId: string, qty: number) => void;
-  removeItem: (productId: string, variantId: string) => void;
-  clearCart: () => void;
-  login: (email: string, name?: string) => void;
-  register: (name: string, email: string) => void;
-  logout: () => void;
-  updateProfile: (patch: Partial<User>) => void;
-  applyPromo: (code: string) => boolean;
-  removePromo: () => void;
-  placeOrder: (opts: { address: Address; payment: string; discount?: number; shippingOverride?: number }) => Order;
+  features: SessionDTO["features"];
+  /** Line count currently being saved (for subtle busy states). */
+  syncing: boolean;
+  addToCart: (variantId: string, qty?: number) => Promise<void>;
+  setQty: (variantId: string, qty: number) => void;
+  removeItem: (variantId: string) => void;
+  applyPromo: (code: string) => Promise<{ ok: true } | { ok: false; reason: string }>;
+  removePromo: () => Promise<void>;
+  login: (email: string, password: string) => Promise<void>;
+  register: (input: { name: string; email: string; password: string; locale: Locale }) => Promise<void>;
+  logout: () => Promise<void>;
+  updateProfile: (patch: { name?: string; phone?: string | null; defaultAddress?: Omit<AddressDTO, "id"> | null }) => Promise<UserDTO>;
+  placeOrder: (input: CheckoutInput) => Promise<PlaceOrderResultDTO>;
   toggleFavorite: (slug: string) => void;
   isFavorite: (slug: string) => boolean;
+  reloadSession: () => Promise<void>;
 }
-
-const STORAGE_KEY = "hanutek-store-v1";
-const EMPTY: StoreState = { user: null, cart: [], orders: [], promo: null, favorites: [] };
 
 const StoreContext = createContext<StoreValue | null>(null);
 
-const daysAgo = (n: number, hour = 10) => {
-  const d = new Date(Date.now() - n * 86400000);
-  d.setHours(hour, 24, 0, 0);
-  return d.toISOString();
-};
+// ------------------------------------------------------------ local helpers
 
-function seedOrders(): Order[] {
-  const mk = (
-    id: string,
-    created: string,
-    items: OrderItem[],
-    events: TrackingEvent[],
-    address: Address,
-  ): Order => {
-    const subtotal = items.reduce((s, i) => s + i.price * i.qty, 0);
-    const shipping = SHIPPING_FLAT;
-    const done = events.filter((e) => e.at).length;
-    const status: OrderStatus = done >= 5 ? "delivered" : done >= 3 ? "shipped" : "processing";
-    return {
-      id,
-      createdAt: created,
-      items,
-      subtotal,
-      shipping,
-      discount: 0,
-      total: subtotal + shipping,
-      status,
-      events,
-      address,
-      payment: "Paiement à la livraison",
-    };
-  };
-  const address: Address = {
-    fullName: "Demo Driver",
-    line1: "12 Rue Didouche Mourad",
-    city: "Alger Centre",
-    postcode: "16000",
-    country: "Algérie",
-    wilaya: "16",
-    phone: "0550 00 00 00",
-  };
-  const p3 = getProduct("gripdash-phone-mount")!;
-  const p12 = getProduct("sportgrip-wheel-cover")!;
-  const p9 = getProduct("jumpcore-1000-starter")!;
-  return [
-    mk(
-      "HT-251904",
-      daysAgo(3, 9),
-      [
-        {
-          productId: p9.slug,
-          name: p9.name,
-          variant: variantLabel(p9, "1000"),
-          image: p9.image,
-          price: variantPrice(p9, "1000"),
-          qty: 1,
-        },
-      ],
-      [
-        { label: "placed", detail: "paymentConfirmed", at: daysAgo(3, 9) },
-        { label: "packed", detail: "warehouse", at: daysAgo(2, 14) },
-        { label: "shipped", detail: "carrier", at: daysAgo(1, 8) },
-        { label: "out", detail: "depot", at: null },
-        { label: "delivered", detail: "signature", at: null },
-      ],
-      address,
-    ),
-    mk(
-      "HT-248173",
-      daysAgo(18, 11),
-      [
-        {
-          productId: p3.slug,
-          name: p3.name,
-          variant: variantLabel(p3, "black"),
-          image: p3.image,
-          price: variantPrice(p3, "black"),
-          qty: 1,
-        },
-        {
-          productId: p12.slug,
-          name: p12.name,
-          variant: variantLabel(p12, "m-tan"),
-          image: p12.image,
-          price: variantPrice(p12, "m-tan"),
-          qty: 1,
-        },
-      ],
-      [
-        { label: "placed", detail: "paymentConfirmed", at: daysAgo(18, 11) },
-        { label: "packed", detail: "warehouse", at: daysAgo(17, 15) },
-        { label: "shipped", detail: "carrier", at: daysAgo(16, 9) },
-        { label: "out", detail: "depot", at: daysAgo(14, 8) },
-        { label: "delivered", detail: "leftRecipient", at: daysAgo(14, 13) },
-      ],
-      address,
-    ),
-  ];
+function readLocalFavorites(): string[] {
+  try {
+    const raw = localStorage.getItem(FAV_KEY);
+    const list = raw ? (JSON.parse(raw) as unknown) : null;
+    if (Array.isArray(list)) return list.filter((x): x is string => typeof x === "string");
+    // one-time migration from the pre-backend localStorage store
+    const legacy = localStorage.getItem(LEGACY_KEY);
+    if (legacy) {
+      const parsed = JSON.parse(legacy) as { favorites?: unknown };
+      localStorage.removeItem(LEGACY_KEY);
+      if (Array.isArray(parsed.favorites)) return parsed.favorites.filter((x): x is string => typeof x === "string");
+    }
+  } catch {
+    /* unavailable / corrupted */
+  }
+  return [];
 }
 
-export function cartTotals(items: CartItem[], discountRate = 0) {
-  const subtotal = items.reduce((sum, item) => {
-    const p = getProduct(item.productId);
-    if (!p) return sum;
-    return sum + variantPrice(p, item.variantId) * item.qty;
-  }, 0);
-  const discount = Math.round(subtotal * discountRate * 100) / 100;
-  const shipping = subtotal === 0 ? 0 : SHIPPING_FLAT;
-  const total = Math.max(0, subtotal - discount + shipping);
-  return { subtotal, discount, shipping, total };
+function writeLocalFavorites(list: string[]) {
+  try {
+    if (list.length) localStorage.setItem(FAV_KEY, JSON.stringify(list));
+    else localStorage.removeItem(FAV_KEY);
+  } catch {
+    /* non-fatal */
+  }
 }
 
-export const promoDiscountRate = (promo: string | null) => (promo ? PROMO_RATE : 0);
+/** Guest order access keys (the server only hands them out once, at checkout). */
+export function rememberGuestOrder(number: string, key: string) {
+  try {
+    const map = JSON.parse(localStorage.getItem(GUEST_ORDERS_KEY) ?? "{}") as Record<string, string>;
+    map[number] = key;
+    localStorage.setItem(GUEST_ORDERS_KEY, JSON.stringify(map));
+  } catch {
+    /* non-fatal */
+  }
+}
+
+export function guestOrderKey(number: string): string | null {
+  try {
+    return (JSON.parse(localStorage.getItem(GUEST_ORDERS_KEY) ?? "{}") as Record<string, string>)[number] ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Local re-pricing for optimistic quantity changes (server response reconciles). */
+function withQty(cart: CartDTO, variantId: string, qty: number): CartDTO {
+  const lines = cart.lines
+    .map((l) => (l.variantId === variantId ? { ...l, qty, lineTotal: l.unitPrice * qty, available: l.available && qty <= l.maxQty } : l))
+    .filter((l) => l.qty > 0);
+  const subtotal = lines.filter((l) => l.available).reduce((s, l) => s + l.lineTotal, 0);
+  let discount = 0;
+  if (cart.promo && cart.discount > 0) {
+    discount = cart.promo.type === "percent" ? Math.round((subtotal * cart.promo.value) / 100) : Math.min(cart.promo.value, subtotal);
+  }
+  return { ...cart, lines, subtotal, discount, total: Math.max(0, subtotal - discount), count: lines.reduce((n, l) => n + l.qty, 0) };
+}
+
+// ------------------------------------------------------------ provider
 
 export function StoreProvider({ children }: { children: ReactNode }) {
-  const [state, setState] = useState<StoreState>(EMPTY);
   const [ready, setReady] = useState(false);
-  // Skip the first persist after hydration so StrictMode's double-mount can't
-  // overwrite saved storage with the initial EMPTY state before it loads.
-  const skipPersist = useRef(true);
+  const [user, setUser] = useState<UserDTO | null>(null);
+  const [cart, setCart] = useState<CartDTO>(EMPTY_CART);
+  const [favorites, setFavorites] = useState<string[]>([]);
+  const [features, setFeatures] = useState<SessionDTO["features"]>({ google: false });
+  const [pending, setPending] = useState(0);
+
+  const cartSeq = useRef(0);
+  const qtyTimers = useRef(new Map<string, ReturnType<typeof setTimeout>>());
+  const userRef = useRef<UserDTO | null>(null);
+  const favoritesRef = useRef<string[]>([]);
+  useEffect(() => {
+    userRef.current = user;
+    favoritesRef.current = favorites;
+  }, [user, favorites]);
+
+  const track = useCallback(async <T,>(p: Promise<T>): Promise<T> => {
+    setPending((n) => n + 1);
+    try {
+      return await p;
+    } finally {
+      setPending((n) => n - 1);
+    }
+  }, []);
+
+  const loadSession = useCallback(async () => {
+    let s: SessionDTO;
+    try {
+      s = await api<SessionDTO>("/auth/session", { method: "POST" });
+    } catch (err) {
+      // Concurrent tab rotated the refresh token: one retry with the fresh cookie.
+      if (err instanceof ApiError && err.code === "REFRESH_RACE") s = await api<SessionDTO>("/auth/session", { method: "POST" });
+      else throw err;
+    }
+    cartSeq.current++;
+    setUser(s.user);
+    setCart(s.cart);
+    setFeatures(s.features);
+    if (s.user) {
+      const local = readLocalFavorites();
+      if (local.length) {
+        const merged = await api<{ slugs: string[] }>("/me/favorites", { method: "POST", body: { slugs: local } }).catch(() => null);
+        writeLocalFavorites([]);
+        setFavorites(merged?.slugs ?? s.favorites);
+      } else setFavorites(s.favorites);
+    } else {
+      setFavorites(readLocalFavorites());
+    }
+  }, []);
 
   useEffect(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (raw) {
-        const parsed = JSON.parse(raw) as StoreState;
-        // Intentional SSR-safe mount hydration: render EMPTY first (matching the
-        // server snapshot), then load persisted state once on the client. Moving
-        // this to useSyncExternalStore would require rewriting every store action
-        // to write localStorage directly; the load-on-mount effect is correct here.
-        // eslint-disable-next-line react-hooks/set-state-in-effect
-        setState({
-          user: parsed.user ?? null,
-          cart: Array.isArray(parsed.cart) ? parsed.cart : [],
-          orders: Array.isArray(parsed.orders) ? parsed.orders : [],
-          promo: parsed.promo ?? null,
-          favorites: Array.isArray(parsed.favorites) ? parsed.favorites : [],
-        });
+    let alive = true;
+    // Bootstrap from the server once; all state updates happen after the network round-trip.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadSession()
+      .catch(() => {
+        // Offline / server down: degrade to an empty guest session.
+        if (alive) setFavorites(readLocalFavorites());
+      })
+      .finally(() => alive && setReady(true));
+    const onLost = () => {
+      setUser(null);
+      void loadSession().catch(() => undefined);
+    };
+    window.addEventListener(SESSION_LOST_EVENT, onLost);
+    return () => {
+      alive = false;
+      window.removeEventListener(SESSION_LOST_EVENT, onLost);
+    };
+  }, [loadSession]);
+
+  /** Runs a cart write; applies the server cart only if it is still the latest write. */
+  const cartWrite = useCallback(
+    async (call: () => Promise<{ cart: CartDTO }>) => {
+      const mine = ++cartSeq.current;
+      try {
+        const { cart: next } = await track(call());
+        if (mine === cartSeq.current) setCart(next);
+      } catch (err) {
+        // Re-sync with the server's truth, then surface the error.
+        const fresh = await api<{ cart: CartDTO }>("/cart").catch(() => null);
+        if (fresh && mine === cartSeq.current) setCart(fresh.cart);
+        throw err;
       }
-    } catch {
-      /* corrupted storage — start fresh */
-    }
-    setReady(true);
+    },
+    [track],
+  );
+
+  const addToCart = useCallback(
+    (variantId: string, qty = 1) => cartWrite(() => api("/cart/items", { method: "POST", body: { variantId, qty } })),
+    [cartWrite],
+  );
+
+  const setQty = useCallback(
+    (variantId: string, qty: number) => {
+      cartSeq.current++;
+      setCart((c) => withQty(c, variantId, Math.max(0, Math.min(10, qty))));
+      const timers = qtyTimers.current;
+      clearTimeout(timers.get(variantId));
+      timers.set(
+        variantId,
+        setTimeout(() => {
+          timers.delete(variantId);
+          void cartWrite(() =>
+            qty <= 0
+              ? api(`/cart/items/${variantId}`, { method: "DELETE" })
+              : api(`/cart/items/${variantId}`, { method: "PATCH", body: { qty } }),
+          ).catch(() => undefined);
+        }, 280),
+      );
+    },
+    [cartWrite],
+  );
+
+  const removeItem = useCallback((variantId: string) => setQty(variantId, 0), [setQty]);
+
+  const applyPromo = useCallback(
+    async (code: string): Promise<{ ok: true } | { ok: false; reason: string }> => {
+      try {
+        await cartWrite(() => api("/cart/promo", { method: "POST", body: { code } }));
+        return { ok: true };
+      } catch (err) {
+        return { ok: false, reason: err instanceof ApiError ? (err.reason ?? err.code) : "network" };
+      }
+    },
+    [cartWrite],
+  );
+
+  const removePromo = useCallback(() => cartWrite(() => api("/cart/promo", { method: "DELETE" })), [cartWrite]);
+
+  const login = useCallback(
+    async (email: string, password: string) => {
+      await api("/auth/login", { method: "POST", body: { email, password } });
+      await loadSession();
+    },
+    [loadSession],
+  );
+
+  const register = useCallback(
+    async (input: { name: string; email: string; password: string; locale: Locale }) => {
+      await api("/auth/register", { method: "POST", body: { ...input, acceptTerms: true } });
+      await loadSession();
+    },
+    [loadSession],
+  );
+
+  const logout = useCallback(async () => {
+    await api("/auth/logout", { method: "POST" }).catch(() => undefined);
+    cartSeq.current++;
+    setUser(null);
+    setCart(EMPTY_CART);
+    setFavorites([]);
+    await loadSession().catch(() => undefined);
+  }, [loadSession]);
+
+  const updateProfile = useCallback(async (patch: Parameters<StoreValue["updateProfile"]>[0]) => {
+    const { user: next } = await api<{ user: UserDTO }>("/me", { method: "PATCH", body: patch });
+    setUser(next);
+    return next;
   }, []);
-
-  useEffect(() => {
-    if (!ready) return;
-    if (skipPersist.current) {
-      skipPersist.current = false;
-      return;
-    }
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-    } catch {
-      /* storage full / unavailable — non-fatal */
-    }
-  }, [state, ready]);
-
-  const addToCart = useCallback((productId: string, variantId: string, qty = 1) => {
-    setState((s) => {
-      const idx = s.cart.findIndex((i) => i.productId === productId && i.variantId === variantId);
-      const cart = [...s.cart];
-      if (idx >= 0) cart[idx] = { ...cart[idx], qty: Math.min(10, cart[idx].qty + qty) };
-      else cart.push({ productId, variantId, qty: Math.min(10, qty) });
-      return { ...s, cart };
-    });
-  }, []);
-
-  const setQty = useCallback((productId: string, variantId: string, qty: number) => {
-    setState((s) => ({
-      ...s,
-      cart:
-        qty <= 0
-          ? s.cart.filter((i) => !(i.productId === productId && i.variantId === variantId))
-          : s.cart.map((i) =>
-              i.productId === productId && i.variantId === variantId
-                ? { ...i, qty: Math.min(10, qty) }
-                : i,
-            ),
-    }));
-  }, []);
-
-  const removeItem = useCallback((productId: string, variantId: string) => {
-    setState((s) => ({
-      ...s,
-      cart: s.cart.filter((i) => !(i.productId === productId && i.variantId === variantId)),
-    }));
-  }, []);
-
-  const clearCart = useCallback(() => setState((s) => ({ ...s, cart: [] })), []);
-
-  const login = useCallback((email: string, name?: string) => {
-    setState((s) => ({
-      ...s,
-      user: s.user ?? {
-        name: name ?? email.split("@")[0].replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase()),
-        email,
-      },
-      orders: s.orders.length > 0 ? s.orders : seedOrders(),
-    }));
-  }, []);
-
-  const register = useCallback((name: string, email: string) => {
-    setState((s) => ({
-      ...s,
-      user: { name, email },
-      orders: s.orders.length > 0 ? s.orders : seedOrders(),
-    }));
-  }, []);
-
-  const logout = useCallback(() => setState((s) => ({ ...s, user: null })), []);
-
-  const updateProfile = useCallback((patch: Partial<User>) => {
-    setState((s) => (s.user ? { ...s, user: { ...s.user, ...patch } } : s));
-  }, []);
-
-  const applyPromo = useCallback((code: string) => {
-    if (code.trim().toUpperCase() === PROMO_CODE) {
-      setState((s) => ({ ...s, promo: PROMO_CODE }));
-      return true;
-    }
-    return false;
-  }, []);
-
-  const removePromo = useCallback(() => setState((s) => ({ ...s, promo: null })), []);
 
   const placeOrder = useCallback(
-    ({
-      address,
-      payment,
-      discount = 0,
-      shippingOverride,
-    }: {
-      address: Address;
-      payment: string;
-      discount?: number;
-      shippingOverride?: number;
-    }) => {
-      const items: OrderItem[] = state.cart.flatMap((item) => {
-        const p = getProduct(item.productId);
-        if (!p) return [];
-        return [
-          {
-            productId: p.slug,
-            name: p.name,
-            variant: variantLabel(p, item.variantId),
-            image: p.image,
-            price: variantPrice(p, item.variantId),
-            qty: item.qty,
-          },
-        ];
-      });
-      const base = cartTotals(state.cart);
-      const discountAmount = Math.min(discount, base.subtotal);
-      const shipping = shippingOverride ?? (base.subtotal === 0 ? 0 : SHIPPING_FLAT);
-      const order: Order = {
-        id: `HT-${Math.floor(100000 + Math.random() * 900000)}`,
-        createdAt: new Date().toISOString(),
-        items,
-        subtotal: base.subtotal,
-        shipping,
-        discount: Math.round(discountAmount * 100) / 100,
-        total: Math.max(0, base.subtotal - discountAmount + shipping),
-        status: "processing",
-        events: [
-          { label: "placed", detail: "paymentConfirmed", at: new Date().toISOString() },
-          { label: "packed", detail: "warehouse", at: null },
-          { label: "shipped", detail: "carrierPending", at: null },
-          { label: "out", detail: "depot", at: null },
-          { label: "delivered", detail: "signature", at: null },
-        ],
-        address,
-        payment,
-      };
-      setState((s) => ({ ...s, cart: [], orders: [order, ...s.orders], promo: null }));
-      return order;
+    async (input: CheckoutInput) => {
+      // flush pending debounced quantity changes so the server cart matches what the shopper sees
+      for (const [variantId, t] of qtyTimers.current) {
+        clearTimeout(t);
+        qtyTimers.current.delete(variantId);
+        const line = cart.lines.find((l) => l.variantId === variantId);
+        await (line ? api(`/cart/items/${variantId}`, { method: "PATCH", body: { qty: line.qty } }) : api(`/cart/items/${variantId}`, { method: "DELETE" })).catch(() => undefined);
+      }
+      const result = await track(api<PlaceOrderResultDTO>("/orders", { method: "POST", body: input }));
+      if (result.accessKey) rememberGuestOrder(result.order.number, result.accessKey);
+      cartSeq.current++;
+      setCart(EMPTY_CART);
+      if (userRef.current && input.saveAddress) void api<{ user: UserDTO }>("/me").then((r) => setUser(r.user)).catch(() => undefined);
+      return result;
     },
-    [state.cart],
+    [cart.lines, track],
   );
 
   const toggleFavorite = useCallback((slug: string) => {
-    setState((s) => ({
-      ...s,
-      favorites: s.favorites.includes(slug) ? s.favorites.filter((x) => x !== slug) : [...s.favorites, slug],
-    }));
+    const prev = favoritesRef.current;
+    const on = !prev.includes(slug);
+    const next = on ? [slug, ...prev] : prev.filter((s) => s !== slug);
+    favoritesRef.current = next;
+    setFavorites(next);
+    if (userRef.current) {
+      api<{ slugs: string[] }>(`/me/favorites/${encodeURIComponent(slug)}`, { method: on ? "PUT" : "DELETE" })
+        .then((r) => setFavorites(r.slugs))
+        .catch(() => setFavorites(prev));
+    } else {
+      writeLocalFavorites(next);
+    }
   }, []);
-  const isFavorite = useCallback((slug: string) => state.favorites.includes(slug), [state.favorites]);
 
-  const cartCount = useMemo(() => state.cart.reduce((n, i) => n + i.qty, 0), [state.cart]);
+  const isFavorite = useCallback((slug: string) => favorites.includes(slug), [favorites]);
 
-  // Memoized so consumers only re-render when state or a callback actually
-  // changes — not on every unrelated provider render.
-  const value: StoreValue = useMemo(
+  const value = useMemo<StoreValue>(
     () => ({
-      ...state,
       ready,
-      cartCount,
+      user,
+      cart,
+      cartCount: cart.count,
+      promo: cart.promo?.code ?? null,
+      favorites,
+      features,
+      syncing: pending > 0,
       addToCart,
       setQty,
       removeItem,
-      clearCart,
+      applyPromo,
+      removePromo,
       login,
       register,
       logout,
       updateProfile,
-      applyPromo,
-      removePromo,
       placeOrder,
       toggleFavorite,
       isFavorite,
+      reloadSession: loadSession,
     }),
-    [state, ready, cartCount, addToCart, setQty, removeItem, clearCart, login, register, logout, updateProfile, applyPromo, removePromo, placeOrder, toggleFavorite, isFavorite],
+    [ready, user, cart, favorites, features, pending, addToCart, setQty, removeItem, applyPromo, removePromo, login, register, logout, updateProfile, placeOrder, toggleFavorite, isFavorite, loadSession],
   );
 
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;

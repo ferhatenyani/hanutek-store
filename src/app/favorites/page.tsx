@@ -2,18 +2,45 @@
 
 import Link from "next/link";
 import { Heart } from "lucide-react";
-import { getProduct } from "@/lib/products";
+import { useEffect, useState } from "react";
 import { useStore } from "@/lib/store";
+import { api } from "@/lib/api";
+import type { ProductDTO, ProductListDTO } from "@/lib/api-types";
 import { useI18n } from "@/i18n";
 import { buttonClasses } from "@/components/ui/primitives";
 import { ProductCard } from "@/components/product-card";
 import { NavTransition } from "@/components/nav-transition";
 
 export default function FavoritesPage() {
-  const { favorites, ready } = useStore();
+  const { favorites, ready: storeReady } = useStore();
   const { m } = useI18n();
+  // slug → product (null = requested but unavailable). Only unseen slugs are fetched,
+  // so un-favoriting never triggers a request.
+  const [loaded, setLoaded] = useState<Record<string, ProductDTO | null>>({});
+  const missing = favorites.filter((s) => !(s in loaded)).sort().join(",");
 
-  const list = favorites.map(getProduct).filter((p): p is NonNullable<typeof p> => Boolean(p));
+  useEffect(() => {
+    if (!storeReady || !missing) return;
+    const ctrl = new AbortController();
+    const slugs = missing.split(",");
+    api<ProductListDTO>(`/products/by-slugs?slugs=${encodeURIComponent(missing)}`, { signal: ctrl.signal })
+      .then((r) =>
+        setLoaded((prev) => {
+          const next = { ...prev };
+          for (const s of slugs) next[s] = r.items.find((p) => p.slug === s) ?? null;
+          return next;
+        }),
+      )
+      .catch((err) => {
+        if ((err as Error)?.name === "AbortError") return;
+        setLoaded((prev) => ({ ...prev, ...Object.fromEntries(slugs.map((s) => [s, null])) }));
+      });
+    return () => ctrl.abort();
+  }, [missing, storeReady]);
+
+  const ready = storeReady && !missing;
+  // Keep the user's order; removing a favorite hides it immediately.
+  const list = favorites.map((s) => loaded[s]).filter((p): p is ProductDTO => Boolean(p));
 
   return (
     <NavTransition>

@@ -1,13 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, Search, X } from "lucide-react";
-import { categories, products, categoryBySlug, variantPrice, type CategorySlug } from "@/lib/products";
+import type { CategoryDTO, ProductDTO } from "@/lib/api-types";
+import { tr } from "@/lib/catalog-client";
 import { cn } from "@/lib/utils";
 import { ProductCard } from "@/components/product-card";
 import { SelectMenu } from "@/components/ui/select-menu";
-import { categoryIcons } from "@/components/icons";
+import { categoryIcon } from "@/components/icons";
 import { useI18n } from "@/i18n";
 import { NavTransition } from "@/components/nav-transition";
 
@@ -18,17 +20,32 @@ const chipBase = "flex h-9 shrink-0 cursor-pointer items-center rounded-full bor
 const chipActive = "border-foreground bg-foreground text-background";
 const chipIdle = "border-line bg-surface text-muted hover:border-foreground/30 hover:text-foreground";
 
-export function ProductsBrowser() {
-  const { t, m } = useI18n();
-  const params = useSearchParams();
-  const router = useRouter();
+export interface BrowserQuery {
+  category: string | null;
+  sort: SortKey;
+  sale: boolean;
+  q: string;
+  page: number;
+}
 
-  const rawCat = params.get("category");
-  const category = categories.some((c) => c.slug === rawCat) ? (rawCat as CategorySlug) : null;
-  const rawSort = params.get("sort");
-  const sort: SortKey = SORT_VALUES.includes(rawSort as SortKey) ? (rawSort as SortKey) : "featured";
-  const sale = params.get("sale") === "1";
-  const q = params.get("q")?.trim() ?? "";
+export function ProductsBrowser({
+  items,
+  total,
+  categories,
+  query,
+  hasMore,
+}: {
+  items: ProductDTO[];
+  total: number;
+  categories: CategoryDTO[];
+  query: BrowserQuery;
+  hasMore: boolean;
+}) {
+  const { t, m, locale } = useI18n();
+  const router = useRouter();
+  const [pending, startTransition] = useTransition();
+  const { category, sort, sale, q } = query;
+  const navigate = (href: string) => startTransition(() => router.replace(href, { scroll: false }));
 
   const sortLabels: Record<SortKey, string> = {
     featured: m.listing.sortFeatured,
@@ -38,42 +55,20 @@ export function ProductsBrowser() {
     name: m.listing.sortName,
   };
 
-  const hrefFor = (cat: CategorySlug | null, s: SortKey, onSale: boolean, query = q) => {
+  const hrefFor = (cat: string | null, s: SortKey, onSale: boolean, search = q, page = 1) => {
     const qp = new URLSearchParams();
     if (cat) qp.set("category", cat);
     if (s !== "featured") qp.set("sort", s);
     if (onSale) qp.set("sale", "1");
-    if (query) qp.set("q", query);
+    if (search) qp.set("q", search);
+    if (page > 1) qp.set("page", String(page));
     const str = qp.toString();
     return str ? `/products?${str}` : "/products";
   };
 
-  const list = (() => {
-    let filtered = category ? products.filter((p) => p.category === category) : [...products];
-    if (sale) filtered = filtered.filter((p) => p.compareAt != null && p.compareAt > variantPrice(p, p.variants[0].id));
-    if (q) {
-      const s = q.toLowerCase();
-      filtered = filtered.filter((p) => `${p.name} ${p.short} ${m.categories[p.category].name}`.toLowerCase().includes(s));
-    }
-    switch (sort) {
-      case "price-asc":
-        return filtered.sort((a, b) => variantPrice(a, a.variants[0].id) - variantPrice(b, b.variants[0].id));
-      case "price-desc":
-        return filtered.sort((a, b) => variantPrice(b, b.variants[0].id) - variantPrice(a, a.variants[0].id));
-      case "newest":
-        return filtered.sort((a, b) => Number(b.isNew ?? false) - Number(a.isNew ?? false) || b.rating - a.rating);
-      case "name":
-        return filtered.sort((a, b) => a.name.localeCompare(b.name));
-      default:
-        return filtered.sort(
-          (a, b) => Number(b.bestSeller ?? false) - Number(a.bestSeller ?? false) || Number(b.isNew ?? false) - Number(a.isNew ?? false),
-        );
-    }
-  })();
-
-  const activeCategory = category ? categoryBySlug[category] : null;
-  const title = activeCategory ? m.categories[category!].name : m.listing.title;
-  const sub = activeCategory ? m.categories[category!].tagline : m.listing.sub;
+  const activeCategory = category ? categories.find((c) => c.slug === category) ?? null : null;
+  const title = activeCategory ? tr(activeCategory.name, locale) : m.listing.title;
+  const sub = activeCategory ? tr(activeCategory.tagline, locale) : m.listing.sub;
   const hasFilters = category != null || sale || q.length > 0;
 
   return (
@@ -94,14 +89,14 @@ export function ProductsBrowser() {
         </div>
         <div className="flex items-center gap-3">
           <span className="rounded-full bg-accent-soft px-2.5 py-1 font-mono text-[11px] text-muted">
-            {t("listing.resultsCount", { n: list.length })}
+            {t("listing.resultsCount", { n: total })}
           </span>
           <SelectMenu
             ariaLabel={m.listing.sortBy}
             value={sort}
             options={SORT_VALUES.map((s) => ({ value: s, label: sortLabels[s] }))}
             triggerPrefix={`${m.listing.sortBy}:`}
-            onChange={(v) => router.replace(hrefFor(category, v as SortKey, sale), { scroll: false })}
+            onChange={(v) => navigate(hrefFor(category, v as SortKey, sale))}
             className="w-44 md:w-56"
           />
         </div>
@@ -116,7 +111,7 @@ export function ProductsBrowser() {
             <button
               type="button"
               aria-label={m.common.clear}
-              onClick={() => router.replace(hrefFor(category, sort, sale, ""), { scroll: false })}
+              onClick={() => navigate(hrefFor(category, sort, sale, ""))}
               className="cursor-pointer rounded-full p-0.5 hover:bg-background/20"
             >
               <X size={13} />
@@ -134,7 +129,7 @@ export function ProductsBrowser() {
           {m.listing.all}
         </Link>
         {categories.map((c) => {
-          const Icon = categoryIcons[c.slug];
+          const Icon = categoryIcon(c.slug);
           const active = category === c.slug;
           return (
             <Link
@@ -144,7 +139,7 @@ export function ProductsBrowser() {
               className={cn(chipBase, "gap-2", active ? chipActive : chipIdle)}
             >
               <Icon size={14} />
-              {m.categories[c.slug].short}
+              {tr(c.short, locale)}
             </Link>
           );
         })}
@@ -152,7 +147,7 @@ export function ProductsBrowser() {
         <button
           type="button"
           aria-pressed={sale}
-          onClick={() => router.replace(hrefFor(category, sort, !sale), { scroll: false })}
+          onClick={() => navigate(hrefFor(category, sort, !sale))}
           className={cn(
             chipBase,
             "gap-2",
@@ -165,7 +160,7 @@ export function ProductsBrowser() {
         {hasFilters && (
           <button
             type="button"
-            onClick={() => router.replace("/products", { scroll: false })}
+            onClick={() => navigate("/products")}
             className="flex h-9 shrink-0 cursor-pointer items-center gap-1 rounded-full px-3 text-[12px] font-medium text-muted transition-colors duration-150 hover:text-foreground"
           >
             <X size={13} />
@@ -174,15 +169,30 @@ export function ProductsBrowser() {
         )}
       </div>
 
-      {list.length > 0 ? (
-        <div
-          key={`${category ?? "all"}-${sort}-${sale ? "sale" : "all"}-${q}`}
-          className="product-grid mt-7 md:mt-8"
-        >
-          {list.map((p, i) => (
-            <ProductCard key={p.slug} product={p} priority={i < 4} />
-          ))}
-        </div>
+      {items.length > 0 ? (
+        <>
+          <div
+            key={`${category ?? "all"}-${sort}-${sale ? "sale" : "all"}-${q}`}
+            aria-busy={pending}
+            className={cn("product-grid mt-7 md:mt-8 transition-opacity duration-200", pending && "opacity-60")}
+          >
+            {items.map((p, i) => (
+              <ProductCard key={p.slug} product={p} priority={i < 4} />
+            ))}
+          </div>
+          {hasMore && (
+            <div className="mt-10 flex justify-center">
+              <Link
+                href={hrefFor(category, sort, sale, q, query.page + 1)}
+                scroll={false}
+                replace
+                className="inline-flex h-11 items-center rounded-full border border-line bg-surface px-6 text-[13px] font-semibold text-foreground transition-colors duration-150 hover:border-foreground/30"
+              >
+                {m.common.seeMore}
+              </Link>
+            </div>
+          )}
+        </>
       ) : (
         <div className="mt-10 flex flex-col items-center rounded-card border border-line bg-surface px-6 py-16 text-center">
           <span className="grid size-12 place-items-center rounded-full bg-accent-soft text-muted">

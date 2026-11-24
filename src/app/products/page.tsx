@@ -1,24 +1,38 @@
-import { Suspense } from "react";
 import type { Metadata } from "next";
+import { cachedCategories, cachedProductList } from "@/server/queries";
+import { SORTS, type SortKey } from "@/server/services/catalog";
 import { ProductsBrowser } from "./browser";
 
 export const metadata: Metadata = { title: "All products" };
 
-export default function ProductsPage() {
+const PAGE = 24;
+
+/**
+ * Catalogue listing. Filters live in the URL (shareable, back/forward-safe)
+ * and are resolved on the server: category, sale, search, sort and "see more"
+ * (`page` = how many pages are shown).
+ */
+export default async function ProductsPage({ searchParams }: PageProps<"/products">) {
+  const sp = await searchParams;
+  const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
+  const categories = await cachedCategories();
+
+  const rawCat = one(sp.category);
+  const category = categories.some((c) => c.slug === rawCat) ? rawCat! : null;
+  const rawSort = one(sp.sort);
+  const sort: SortKey = SORTS.includes(rawSort as SortKey) ? (rawSort as SortKey) : "featured";
+  const sale = one(sp.sale) === "1";
+  const q = (one(sp.q) ?? "").trim().slice(0, 100);
+  const page = Math.min(20, Math.max(1, Math.floor(Number(one(sp.page))) || 1));
+
+  const result = await cachedProductList({ category, sort, sale, q, page: 1, pageSize: PAGE * page });
   return (
-    <Suspense
-      fallback={
-        <div className="mx-auto max-w-6xl px-4 py-16 md:px-6">
-          <div className="h-9 w-56 animate-pulse rounded-lg bg-line" />
-          <div className="mt-8 grid grid-cols-2 gap-5 md:grid-cols-4">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="aspect-square animate-pulse rounded-card bg-line" />
-            ))}
-          </div>
-        </div>
-      }
-    >
-      <ProductsBrowser />
-    </Suspense>
+    <ProductsBrowser
+      items={result.items}
+      total={result.total}
+      categories={categories}
+      query={{ category, sort, sale, q, page }}
+      hasMore={result.total > PAGE * page && page < 20}
+    />
   );
 }

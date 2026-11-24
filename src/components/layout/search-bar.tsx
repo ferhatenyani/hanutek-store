@@ -4,17 +4,30 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowRight, Clock, CornerDownLeft, Search, TrendingUp, X } from "lucide-react";
-import { categories, products, variantPrice, type CategorySlug } from "@/lib/products";
+import { api } from "@/lib/api";
+import type { ProductListDTO, SuggestionDTO } from "@/lib/api-types";
+import { tr } from "@/lib/catalog-client";
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
-import { categoryIcons } from "@/components/icons";
+import { categoryIcon } from "@/components/icons";
 import { stampNav } from "@/components/nav-transition";
 
 const RECENT_KEY = "hanutek-rec…h-v1";
 
 type Suggestion =
   | { kind: "product"; slug: string; href: string; label: string; sub: string; price: number; image: string }
-  | { kind: "category"; slug: CategorySlug; href: string; label: string; sub: string };
+  | { kind: "category"; slug: string; href: string; label: string; sub: string };
+
+/** Small in-memory cache: retyping a query never refetches it. */
+const suggestCache = new Map<string, SuggestionDTO[]>();
+let popularPromise: Promise<{ slug: string; name: string }[]> | null = null;
+const loadPopular = () =>
+  (popularPromise ??= api<ProductListDTO>("/products?sort=featured&pageSize=8")
+    .then((r) => r.items.filter((p) => p.bestSeller).slice(0, 4).map((p) => ({ slug: p.slug, name: p.name })))
+    .catch(() => {
+      popularPromise = null;
+      return [];
+    }));
 
 function readRecent(): string[] {
   try {
@@ -49,7 +62,7 @@ function Highlight({ text, q }: { text: string; q: string }) {
 
 export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   const router = useRouter();
-  const { m, t, price } = useI18n();
+  const { m, t, price, locale } = useI18n();
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
   const [active, setActive] = useState(-1);
@@ -72,34 +85,39 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
   }, [open]);
 
   const s = q.trim().toLowerCase();
+  const [raw, setRaw] = useState<{ q: string; items: SuggestionDTO[] } | null>(null);
+  const [popular, setPopular] = useState<{ slug: string; name: string }[]>([]);
 
+  // Debounced, abortable suggestion fetch; cached queries are served during render.
+  const cachedItems = s ? suggestCache.get(s) : undefined;
+  useEffect(() => {
+    if (!s || suggestCache.has(s)) return;
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => {
+      api<{ items: SuggestionDTO[] }>(`/search/suggest?q=${encodeURIComponent(s)}`, { signal: ctrl.signal })
+        .then((r) => {
+          if (suggestCache.size > 50) suggestCache.delete(suggestCache.keys().next().value!);
+          suggestCache.set(s, r.items);
+          setRaw({ q: s, items: r.items });
+        })
+        .catch(() => undefined);
+    }, 140);
+    return () => {
+      clearTimeout(timer);
+      ctrl.abort();
+    };
+  }, [s]);
+
+  const items = cachedItems ?? (raw?.q === s ? raw.items : null);
+  const loading = Boolean(s) && !items;
   const suggestions: Suggestion[] = useMemo(() => {
-    if (!s) return [];
-    const out: Suggestion[] = [];
-    for (const c of categories) {
-      const label = m.categories[c.slug].name;
-      if (`${label} ${c.name}`.toLowerCase().includes(s)) {
-        out.push({ kind: "category", slug: c.slug, href: `/products?category=${c.slug}`, label, sub: m.categories[c.slug].tagline });
-      }
-    }
-    for (const p of products) {
-      if (out.length >= 10) break;
-      if (`${p.name} ${p.short}`.toLowerCase().includes(s)) {
-        out.push({
-          kind: "product",
-          slug: p.slug,
-          href: `/products/${p.slug}`,
-          label: p.name,
-          sub: m.categories[p.category].name,
-          price: variantPrice(p, p.variants[0].id),
-          image: p.image,
-        });
-      }
-    }
-    return out;
-  }, [s, m]);
-
-  const popular = useMemo(() => products.filter((p) => p.bestSeller).slice(0, 4), []);
+    if (!s || !items) return [];
+    return items.map((it) =>
+      it.kind === "category"
+        ? { kind: "category" as const, slug: it.slug, href: `/products?category=${it.slug}`, label: tr(it.label, locale), sub: tr(it.sub, locale) }
+        : { kind: "product" as const, slug: it.slug, href: `/products/${it.slug}`, label: it.label, sub: tr(it.sub, locale), price: it.price, image: it.image },
+    );
+  }, [s, items, locale]);
   const list = s ? suggestions : [];
   const showSeeAll = s.length > 0 && list.length > 0;
 
@@ -180,6 +198,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
           onFocus={() => {
             setOpen(true);
             if (recent.length === 0) setRecent(readRecent());
+            if (popular.length === 0) void loadPopular().then(setPopular);
           }}
           onKeyDown={onKeyDown}
           placeholder={m.header.searchPlaceholder}
@@ -271,7 +290,14 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
           </div>
         )}
 
-        {s && list.length === 0 && (
+        {s && list.length === 0 && loading && (
+          <div className="flex items-center justify-center gap-2 px-6 py-10 text-sm text-muted" aria-live="polite">
+            <span className="size-4 animate-spin rounded-full border-2 border-line border-t-foreground" aria-hidden />
+            {m.common.loading}
+          </div>
+        )}
+
+        {s && list.length === 0 && !loading && (
           <div className="flex flex-col items-center gap-3 px-6 py-10 text-center">
             <span className="grid h-12 w-12 place-items-center rounded-full bg-accent-soft text-muted">
               <Search size={20} />
@@ -292,7 +318,7 @@ export function SearchBar({ autoFocus = false }: { autoFocus?: boolean }) {
           <ul role="listbox" aria-label={t("shell.searchResults", { n: list.length })} className="max-h-[55vh] space-y-0.5 overflow-y-auto p-2">
             {list.map((item, i) => {
               const isActive = active === i;
-              const Icon = item.kind === "category" ? categoryIcons[item.slug] : null;
+              const Icon = item.kind === "category" ? categoryIcon(item.slug) : null;
               return (
                 <li key={`${item.kind}-${item.slug}`}>
                   <Link

@@ -32,11 +32,3 @@ export function AuthShell({
     </NavTransition>
   );
 }
-
-export function MockNote({ children }: { children: ReactNode }) {
-  return (
-    <p className="mt-5 rounded-xl bg-accent-soft/60 px-4 py-3 text-center text-[11px] leading-relaxed text-faint">
-      {children}
-    </p>
-  );
-}

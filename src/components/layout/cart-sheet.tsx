@@ -4,14 +4,10 @@ import { useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Banknote, ChevronDown, ChevronLeft, ChevronUp, ShoppingBag, Trash2, X } from "lucide-react";
-import { useStore, cartTotals, promoDiscountRate } from "@/lib/store";
+import { useStore } from "@/lib/store";
 import { useI18n } from "@/i18n";
-import {
-  getProduct,
-  variantPrice,
-  variantLabel,
-  type Product,
-} from "@/lib/products";
+import type { CartLineDTO } from "@/lib/api-types";
+import { tr } from "@/lib/catalog-client";
 import { cn } from "@/lib/utils";
 import { buttonClasses, QtyStepper } from "@/components/ui/primitives";
 import { Sheet } from "@/components/ui/sheet";
@@ -30,7 +26,7 @@ import { useMediaQuery } from "@/lib/use-media-query";
  */
 export function CartSheet({ open, onClose }: { open: boolean; onClose: () => void }) {
   const { cart, cartCount, promo, setQty, removeItem } = useStore();
-  const { m, t, price, isRTL } = useI18n();
+  const { m, t, price, isRTL, locale } = useI18n();
   const isDesktop = useMediaQuery("(min-width: 1024px)");
 
   // Expanded (full-screen) state only applies to the bottom sheet. It lives
@@ -70,21 +66,17 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
   const sheetFormRef = useRef<HTMLElement>(null);
   const scrollToSheetCheckout = () => sheetFormRef.current?.scrollIntoView({ block: "start" });
 
-  const lines = cart.flatMap((i) => {
-    const product = getProduct(i.productId);
-    return product ? [{ product, variantId: i.variantId, qty: i.qty }] : [];
-  });
-  const totals = cartTotals(cart, promoDiscountRate(promo));
-
-  const vLabel = (p: Product, id: string) =>
-    (m.products as Record<string, { variants?: Record<string, string> }>)[p.slug]?.variants?.[id] ??
-    variantLabel(p, id);
+  const lines = cart.lines;
+  const totals = cart;
 
   const side = isDesktop ? (isRTL ? "left" : "right") : "bottom";
   const fullScreen = expanded && !isDesktop;
   const collapse = () => setExpanded(false);
 
-  const lineRow = ({ product, variantId, qty }: { product: Product; variantId: string; qty: number }) => (
+  const lineRow = (line: CartLineDTO) => {
+    const product = { slug: line.slug, name: line.name, image: line.image };
+    const { variantId, qty } = line;
+    return (
     <div key={variantId} className="flex gap-3 border-b border-line py-4 last:border-0">
       <Link
         href={`/products/${product.slug}`}
@@ -107,23 +99,29 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
             {product.name}
           </Link>
           <button
-            onClick={() => removeItem(product.slug, variantId)}
+            onClick={() => removeItem(variantId)}
             aria-label={`${m.cart.remove} ${product.name}`}
             className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full text-faint transition-colors duration-150 hover:bg-sale-soft hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             <Trash2 size={15} />
           </button>
         </div>
-        <p className="mt-0.5 text-xs text-muted">{vLabel(product, variantId)}</p>
+        <p className="mt-0.5 text-xs text-muted">{tr(line.variantLabel, locale)}</p>
+        {!line.available && (
+          <p className="mt-0.5 text-xs font-medium text-danger">
+            {line.maxQty > 0 ? m.cart.limitedStock.replace("{n}", String(line.maxQty)) : m.common.soldOut}
+          </p>
+        )}
         <div className="mt-auto flex items-center justify-between pt-2">
-          <QtyStepper qty={qty} onChange={(n) => setQty(product.slug, variantId, n)} max={10} />
+          <QtyStepper qty={qty} onChange={(n) => setQty(variantId, n)} max={Math.max(1, line.maxQty)} />
           <span className="num text-sm font-bold tabular-nums">
-            {price(variantPrice(product, variantId) * qty)}
+            {price(line.lineTotal)}
           </span>
         </div>
       </div>
     </div>
-  );
+    );
+  };
 
   return (
     <Sheet
@@ -225,10 +223,6 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                       <dd className="num font-semibold tabular-nums">−{price(totals.discount)}</dd>
                     </div>
                   )}
-                  <div className="flex items-center justify-between">
-                    <dt className="text-muted">{m.cart.shipping}</dt>
-                    <dd className="num font-semibold tabular-nums">{price(totals.shipping)}</dd>
-                  </div>
                   <div className="flex items-baseline justify-between border-t border-line pt-2">
                     <dt className="font-medium">{m.cart.total}</dt>
                     <dd className="num font-display text-lg font-bold tabular-nums">{price(totals.total)}</dd>
@@ -256,7 +250,6 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
                   <span className="text-muted">{m.cart.subtotal}</span>
                   <span className="num font-display text-lg font-bold tabular-nums">{price(totals.subtotal)}</span>
                 </div>
-                <p className="text-xs text-faint">{m.shell.shippingNote}</p>
                 {isDesktop ? (
                   <Link
                     href="/cart"

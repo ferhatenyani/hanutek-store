@@ -4,7 +4,8 @@ import { useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Check, Heart, Plus, ShoppingBag, Star } from "lucide-react";
-import { variantPrice, type Product } from "@/lib/products";
+import type { ProductDTO } from "@/lib/api-types";
+import { tr, useCategoryLabel } from "@/lib/catalog-client";
 import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
@@ -37,27 +38,36 @@ export function ProductCard({
   product,
   priority = false,
 }: {
-  product: Product;
+  product: ProductDTO;
   priority?: boolean;
 }) {
   const { addToCart, toggleFavorite, isFavorite, cart } = useStore();
   const toast = useToast();
-  const { t, m, price: fmt } = useI18n();
+  const { t, m, price: fmt, locale } = useI18n();
+  const catLabel = useCategoryLabel(locale, m.categories);
   const [added, setAdded] = useState(false);
 
-  const price = variantPrice(product, product.variants[0].id);
+  const price = product.price;
   const onSale = product.compareAt != null && product.compareAt > price;
   const pct = onSale ? Math.round((1 - price / product.compareAt!) * 100) : 0;
   const fav = isFavorite(product.slug);
-  const inCart = cart.reduce((n, i) => (i.productId === product.slug ? n + i.qty : n), 0);
-  const short = (m.products as Record<string, { short?: string } | undefined>)[product.slug]?.short ?? product.short;
+  const inCart = cart.lines.reduce((n, l) => (l.slug === product.slug ? n + l.qty : n), 0);
+  const short = tr(product.short, locale);
+  // quick add takes the first purchasable option
+  const quickVariant = product.variants.find((v) => v.inStock);
   const options = product.variants.length;
 
   const quickAdd = () => {
-    addToCart(product.slug, product.variants[0].id);
-    toast(t("cart.added", { name: product.name }));
+    if (!quickVariant) return;
     setAdded(true);
     window.setTimeout(() => setAdded(false), 1400);
+    addToCart(quickVariant.id).then(
+      () => toast(t("cart.added", { name: product.name })),
+      () => {
+        setAdded(false);
+        toast(m.common.actionFailed);
+      },
+    );
   };
 
   const toggleFav = () => toggleFavorite(product.slug);
@@ -152,7 +162,7 @@ export function ProductCard({
         </div>
         <div className="px-3.5 pt-3 sm:px-4 max-lg:px-1! max-lg:pt-2.5">
           <p className="font-mono text-[10px] uppercase tracking-[0.14em] text-faint rtl:tracking-normal max-lg:hidden max-lg:@[14rem]:mb-1 max-lg:@[14rem]:block">
-            {m.categories[product.category].name}
+            {catLabel(product.category)}
           </p>
           <h3
             dir="ltr"
@@ -207,9 +217,10 @@ export function ProductCard({
       <button
         type="button"
         onClick={quickAdd}
-        aria-label={inCart > 0 ? `${addLabel} (${t("common.inCartCount", { n: inCart })})` : addLabel}
+        disabled={!quickVariant}
+        aria-label={!quickVariant ? `${t("common.soldOut")} — ${product.name}` : inCart > 0 ? `${addLabel} (${t("common.inCartCount", { n: inCart })})` : addLabel}
         className={cn(
-          "absolute end-2 top-[calc(100cqw-3rem)] z-10 grid size-10 cursor-pointer place-items-center rounded-full lg:hidden",
+          "absolute end-2 top-[calc(100cqw-3rem)] z-10 grid size-10 cursor-pointer place-items-center rounded-full lg:hidden disabled:cursor-not-allowed disabled:opacity-50",
           "shadow-[0_2px_6px_rgba(20,24,20,0.18),0_8px_20px_rgba(20,24,20,0.14)]",
           "transition-[transform,background-color,color] duration-200 ease-out-quint active:scale-90",
           "after:absolute after:-inset-1 after:content-['']",
@@ -239,15 +250,16 @@ export function ProductCard({
         <button
           type="button"
           onClick={quickAdd}
-          aria-label={addLabel}
+          disabled={!quickVariant}
+          aria-label={quickVariant ? addLabel : `${t("common.soldOut")} — ${product.name}`}
           className={cn(
-            "mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-full text-[13px] font-semibold",
+            "mt-2.5 flex h-10 w-full cursor-pointer items-center justify-center gap-2 rounded-full text-[13px] font-semibold disabled:cursor-not-allowed disabled:opacity-50",
             "transition-colors duration-150 active:scale-[0.98]",
             added ? "bg-volt text-foreground" : "bg-accent text-white hover:bg-accent-ink",
           )}
         >
           {added ? <Check size={15} /> : <Plus size={15} />}
-          {added ? t("common.added") : t("common.addToCart")}
+          {!quickVariant ? t("common.soldOut") : added ? t("common.added") : t("common.addToCart")}
         </button>
       </div>
     </div>
