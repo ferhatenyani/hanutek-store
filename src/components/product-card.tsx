@@ -9,7 +9,7 @@ import { cn } from "@/lib/utils";
 import { useStore } from "@/lib/store";
 import { useToast } from "@/components/ui/toast";
 import { useI18n } from "@/i18n";
-import { ProductMorph, setMorphTarget } from "@/components/product-morph";
+import { ProductMorph, rememberCardImage, setMorphTarget, warmHeroImage } from "@/components/product-morph";
 import { Badge } from "@/components/ui/primitives";
 import { Rating } from "@/components/ui/rating";
 
@@ -50,7 +50,13 @@ export function ProductCard({
       <Link
         href={`/products/${product.slug}`}
         transitionTypes={["nav-forward"]}
-        onClick={() => setMorphTarget(product.slug)}
+        onClick={(e) => {
+          rememberCardImage(product.slug, e.currentTarget);
+          setMorphTarget(product.slug);
+        }}
+        onPointerEnter={(e) => e.pointerType === "mouse" && warmHeroImage(product.image, true)}
+        onPointerDown={() => warmHeroImage(product.image)}
+        onFocus={() => warmHeroImage(product.image)}
         className="block focus-visible:outline-none"
         aria-label={product.name}
       >

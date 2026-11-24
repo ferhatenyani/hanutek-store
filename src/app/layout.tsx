@@ -33,6 +33,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       lang="fr"
       dir="ltr"
       data-scroll-behavior="smooth"
+      // the inline script below may add data-lite before hydration
+      suppressHydrationWarning
       className={`${inter.variable} ${grotesk.variable} ${spaceMono.variable} ${arabic.variable} h-full`}
     >
       <body className="min-h-full">
@@ -56,7 +58,9 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <script
           dangerouslySetInnerHTML={{
             __html: `(function(){
-if(!("startViewTransition" in document))return;
+var N=navigator,lite=(N.deviceMemory>0&&N.deviceMemory<=2)||(N.hardwareConcurrency>0&&N.hardwareConcurrency<=2);
+if(lite){document.documentElement.setAttribute("data-lite","");try{Object.defineProperty(document,"startViewTransition",{value:undefined,configurable:true})}catch(x){}}
+if(!lite&&!("startViewTransition" in document))return;
 var T=["/","/products","/favorites","/profile"];
 function ix(p){p=(p||"").split(/[?#]/)[0];if(p==="/")return 0;for(var i=1;i<4;i++){if(p===T[i]||p.indexOf(T[i]+"/")===0)return i}return 4}
 function dir(f,t){var a=ix(f),b=ix(t);if(a!==b)return b>a?"nav-forward":"nav-back";return t.split("/").length>=f.split("/").length?"nav-forward":"nav-back"}
@@ -84,8 +88,9 @@ if(e.__replay)return;
 var to=location.pathname,from=last;last=to;
 if(from===to)return;
 if(matchMedia("(prefers-reduced-motion: reduce)").matches)return;
-e.stopImmediatePropagation();
 stamp(dir(from,to));
+if(lite)return;
+e.stopImmediatePropagation();
 var st=e.state;
 setTimeout(function(){var r=new PopStateEvent("popstate",{state:st});r.__replay=1;window.dispatchEvent(r)},0);
 });

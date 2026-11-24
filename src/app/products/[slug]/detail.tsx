@@ -15,7 +15,7 @@ import { Button, Badge, QtyStepper, SectionHead } from "@/components/ui/primitiv
 import { ProductCard } from "@/components/product-card";
 import { useToast } from "@/components/ui/toast";
 import { NavTransition, stampNav } from "@/components/nav-transition";
-import { ProductMorph, backIfPrevious } from "@/components/product-morph";
+import { HERO_SIZES, ProductMorph, backIfPrevious } from "@/components/product-morph";
 
 type ProductMsg = {
   short: string;
@@ -125,7 +125,7 @@ export function ProductDetail({ product }: { product: Product }) {
                 alt={product.name}
                 fill
                 priority
-                sizes="(min-width: 768px) 50vw, 100vw"
+                sizes={HERO_SIZES}
                 className="object-cover"
               />
             </ProductMorph>

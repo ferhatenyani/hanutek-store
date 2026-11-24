@@ -2,7 +2,8 @@
 
 import { ViewTransition, useLayoutEffect, useState, useSyncExternalStore } from "react";
 import type { ReactNode } from "react";
-import { flushSync } from "react-dom";
+import { flushSync, preload } from "react-dom";
+import { getImageProps } from "next/image";
 import { usePathname } from "next/navigation";
 import { useMediaQuery } from "@/lib/use-media-query";
 import { cn } from "@/lib/utils";
@@ -49,6 +50,38 @@ function subscribe(l: () => void) {
 const getTarget = () => target;
 const getServerTarget = () => null;
 
+/* ---------------- slow networks: never morph into an empty box ----------------
+ * The detail hero is a different (larger) srcset candidate than the card, so
+ * it is only requested once the detail page renders. On a slow connection
+ * the morph used to land on a blank frame and the photo popped in later.
+ * Two layers of defence:
+ * 1. warmHeroImage: on intent (hover / press / focus) the hero's own srcset
+ *    is preloaded, so it is usually cached by the time the page commits.
+ * 2. rememberCardImage: on click, the card's already-decoded image URL is
+ *    kept; the hero paints it as a background under the <Image>, so the new
+ *    snapshot always has a picture (zero extra bytes), and the sharp image
+ *    simply covers it when it arrives. */
+
+export const HERO_SIZES = "(min-width: 768px) 50vw, 100vw";
+const warmed = new Set<string>();
+
+export function warmHeroImage(src: string, hover = false): void {
+  if (warmed.has(src)) return;
+  // A mouse hover isn't a commitment: respect Data Saver there. A press or
+  // keyboard focus on the link is (the image will be needed anyway).
+  const conn = (navigator as Navigator & { connection?: { saveData?: boolean } }).connection;
+  if (hover && conn?.saveData) return;
+  warmed.add(src);
+  const { props } = getImageProps({ src, alt: "", fill: true, sizes: HERO_SIZES });
+  preload(props.src, { as: "image", imageSrcSet: props.srcSet, imageSizes: props.sizes, fetchPriority: "high" });
+}
+
+let cardImage: { slug: string; src: string } | null = null;
+export function rememberCardImage(slug: string, link: HTMLElement): void {
+  const img = link.querySelector("img");
+  cardImage = img?.complete && img.currentSrc ? { slug, src: img.currentSrc } : null;
+}
+
 export function detailSlug(path: string): string | null {
   const m = path.split(/[?#]/)[0].match(/^\/products\/([^/]+)\/?$/);
   return m ? decodeURIComponent(m[1]) : null;
@@ -80,11 +113,19 @@ export function ProductMorph({
   if (active && !sticky) setSticky(true);
   const reduceMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const named = !reduceMotion && (variant === "hero" || active || sticky);
+  // Hero only: the card image the user just tapped (already in the HTTP
+  // cache), frozen at mount. Null on a direct load, so SSR markup matches.
+  const [standIn] = useState(() => (variant === "hero" && cardImage?.slug === slug ? cardImage.src : null));
   // The boundary stays mounted either way (only its name changes) so the
   // <Image> never remounts when a card becomes the target.
   return (
     <ViewTransition name={named ? `product-img-${slug}` : undefined} share="morph" default="none">
-      <div className={cn("absolute inset-0 overflow-hidden", className)}>{children}</div>
+      <div
+        className={cn("absolute inset-0 overflow-hidden", standIn && "bg-cover bg-center", className)}
+        style={standIn ? { backgroundImage: `url("${standIn}")` } : undefined}
+      >
+        {children}
+      </div>
     </ViewTransition>
   );
 }
@@ -279,7 +320,19 @@ export function NavigationTracker() {
     requestAnimationFrame(() => {
       if (!pendingRestore && entryKey() === key) scrollByEntry.set(key, window.scrollY);
     });
+    // Low-end mode (no view transitions): play the incoming page's slide-in
+    // on the live element for one beat (see html[data-lite] in globals.css).
+    const root = document.documentElement;
+    let enterTimer = 0;
+    if (root.hasAttribute("data-lite") && root.dataset.nav) {
+      root.setAttribute("data-enter", "");
+      enterTimer = window.setTimeout(() => root.removeAttribute("data-enter"), 300);
+    }
     releaseStampSoon();
+    return () => {
+      window.clearTimeout(enterTimer);
+      root.removeAttribute("data-enter");
+    };
   }, [pathname]);
 
   return null;
