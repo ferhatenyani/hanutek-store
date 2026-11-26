@@ -31,13 +31,13 @@ export function CategoriesPage() {
   const [editing, setEditing] = useState<{ original: string | null; form: CatForm } | null>(null);
 
   const remove = async (c: CategoryRow) => {
-    if (!(await confirm({ title: `Delete “${c.translations.fr?.name ?? c.slug}”?`, description: "Only empty categories can be deleted.", confirmLabel: "Delete", variant: "danger" }))) return;
+    if (!(await confirm({ title: `Supprimer « ${c.translations.fr?.name ?? c.slug} » ?`, description: "Seules les catégories vides peuvent être supprimées.", confirmLabel: "Supprimer", variant: "danger" }))) return;
     try {
       await adminApi(`/admin/categories/${c.slug}`, { method: "DELETE" });
       invalidate("/admin/categories");
-      toast.success("Category deleted");
+      toast.success("Catégorie supprimée");
     } catch (err) {
-      toast.error("Couldn't delete", errorMessage(err));
+      toast.error("Suppression impossible", errorMessage(err));
     }
   };
   const open = (c: CategoryRow) =>
@@ -57,40 +57,40 @@ export function CategoriesPage() {
   const columns: Column<CategoryRow>[] = [
     {
       id: "name",
-      header: "Category",
+      header: "Catégorie",
       primary: true,
       cell: (c) => (
         <span className="min-w-0">
           <span className="block truncate font-medium">{c.translations.fr?.name ?? c.slug}</span>
           <span className="block truncate text-xs text-ad-muted" dir="auto">
-            {c.translations.ar?.name ?? "No Arabic name"}
+            {c.translations.ar?.name ?? "Pas de nom en arabe"}
           </span>
         </span>
       ),
     },
-    { id: "slug", header: "Slug", cell: (c) => <Mono className="text-ad-muted">{c.slug}</Mono> },
-    { id: "status", header: "Status", mobile: true, width: "110px", cell: (c) => (c.isActive ? <Badge tone="green" dot>Active</Badge> : <Badge dot>Hidden</Badge>) },
-    { id: "products", header: "Products", align: "end", mobile: true, width: "120px", cell: (c) => <span>{c.activeProductCount} <span className="text-ad-faint">/ {c.productCount}</span></span> },
+    { id: "slug", header: "Identifiant", cell: (c) => <Mono className="text-ad-muted">{c.slug}</Mono> },
+    { id: "status", header: "Statut", mobile: true, width: "110px", cell: (c) => (c.isActive ? <Badge tone="green" dot>Visible</Badge> : <Badge dot>Masquée</Badge>) },
+    { id: "products", header: "Produits", align: "end", mobile: true, width: "120px", cell: (c) => <span>{c.activeProductCount} <span className="text-ad-faint">/ {c.productCount}</span></span> },
     { id: "position", header: "Position", align: "end", width: "90px", cell: (c) => c.position },
-    { id: "updated", header: "Updated", align: "end", width: "130px", cell: (c) => <span className="text-ad-muted">{ago(c.updatedAt)}</span> },
+    { id: "updated", header: "Modifiée", align: "end", width: "130px", cell: (c) => <span className="text-ad-muted">{ago(c.updatedAt)}</span> },
   ];
 
   return (
     <>
       <PageHeader
-        title="Categories"
-        description="How products are grouped on the store. Names are shown in French and Arabic."
+        title="Catégories"
+        description="Le classement des produits sur la boutique. Les noms s’affichent en français et en arabe."
         actions={
           writable && (
             <Button variant="primary" onClick={() => setEditing({ original: null, form: blank() })}>
-              <Plus size={15} /> New category
+              <Plus size={15} /> Nouvelle catégorie
             </Button>
           )
         }
       />
       <Card padded={false}>
         <DataTable
-          label="Categories"
+          label="Catégories"
           rows={q.data?.items}
           rowId={(c) => c.id}
           columns={columns}
@@ -101,13 +101,13 @@ export function CategoriesPage() {
           rowActions={
             writable
               ? (c) => [
-                  { label: "Edit", icon: <Pencil size={14} />, onSelect: () => open(c) },
+                  { label: "Modifier", icon: <Pencil size={14} />, onSelect: () => open(c) },
                   { type: "separator" },
-                  { label: "Delete", icon: <Trash2 size={14} />, danger: true, disabled: c.productCount > 0, hint: c.productCount > 0 ? "Move its products first" : undefined, onSelect: () => void remove(c) },
+                  { label: "Supprimer", icon: <Trash2 size={14} />, danger: true, disabled: c.productCount > 0, hint: c.productCount > 0 ? "Déplacez d’abord ses produits" : undefined, onSelect: () => void remove(c) },
                 ]
               : undefined
           }
-          empty={<EmptyState icon={<FolderTree size={18} />} title="No categories" />}
+          empty={<EmptyState icon={<FolderTree size={18} />} title="Aucune catégorie" />}
         />
       </Card>
       {editing && <CategoryDrawer key={editing.original ?? "new"} initial={editing} all={q.data?.items ?? []} onClose={() => setEditing(null)} />}
@@ -123,12 +123,12 @@ function CategoryDrawer({ initial, all, onClose }: { initial: { original: string
   const isNew = !initial.original;
   const save = async () => {
     const e: Record<string, string> = {};
-    if (!f.fr.name.trim()) e["translations.fr.name"] = "Required";
-    if (!f.fr.short.trim()) e["translations.fr.short"] = "Required";
-    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(f.slug)) e.slug = "Lowercase letters, numbers and dashes";
+    if (!f.fr.name.trim()) e["translations.fr.name"] = "Obligatoire";
+    if (!f.fr.short.trim()) e["translations.fr.short"] = "Obligatoire";
+    if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(f.slug)) e.slug = "Minuscules, chiffres et tirets uniquement";
     const arUsed = f.ar.name.trim() || f.ar.short.trim();
-    if (arUsed && !f.ar.name.trim()) e["translations.ar.name"] = "Required with Arabic copy";
-    if (arUsed && !f.ar.short.trim()) e["translations.ar.short"] = "Required with Arabic copy";
+    if (arUsed && !f.ar.name.trim()) e["translations.ar.name"] = "Obligatoire si un texte arabe est saisi";
+    if (arUsed && !f.ar.short.trim()) e["translations.ar.short"] = "Obligatoire si un texte arabe est saisi";
     setErrors(e);
     if (Object.keys(e).length) return;
     setPending(true);
@@ -143,11 +143,11 @@ function CategoryDrawer({ initial, all, onClose }: { initial: { original: string
     try {
       await adminApi(isNew ? "/admin/categories" : `/admin/categories/${initial.original}`, { method: isNew ? "POST" : "PUT", body });
       invalidate("/admin/categories", "/admin/products");
-      toast.success(isNew ? "Category created" : "Category saved");
+      toast.success(isNew ? "Catégorie créée" : "Catégorie enregistrée");
       onClose();
     } catch (err) {
       if (err instanceof ApiError && err.fields) setErrors(err.fields);
-      toast.error("Couldn't save", errorMessage(err));
+      toast.error("Enregistrement impossible", errorMessage(err));
     } finally {
       setPending(false);
     }
@@ -159,12 +159,12 @@ function CategoryDrawer({ initial, all, onClose }: { initial: { original: string
     <Drawer
       open
       onClose={onClose}
-      title={isNew ? "New category" : "Edit category"}
+      title={isNew ? "Nouvelle catégorie" : "Modifier la catégorie"}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>Annuler</Button>
           <Button variant="primary" loading={pending} onClick={save}>
-            {isNew ? "Create category" : "Save"}
+            {isNew ? "Créer la catégorie" : "Enregistrer"}
           </Button>
         </>
       }
@@ -178,34 +178,34 @@ function CategoryDrawer({ initial, all, onClose }: { initial: { original: string
       >
         <section className="space-y-3">
           <h3 className="text-xs font-medium uppercase tracking-wide text-ad-faint">Français</h3>
-          <Field label="Name" htmlFor="c-fr-name" error={errors["translations.fr.name"]}>
+          <Field label="Nom" htmlFor="c-fr-name" error={errors["translations.fr.name"]}>
             <Input id="c-fr-name" value={f.fr.name} maxLength={80} invalid={Boolean(errors["translations.fr.name"])} onChange={(e) => copy("fr", "name", e.target.value)} data-autofocus />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Short name" htmlFor="c-fr-short" hint="Used on chips" error={errors["translations.fr.short"]}>
+            <Field label="Nom court" htmlFor="c-fr-short" hint="Affiché sur les filtres" error={errors["translations.fr.short"]}>
               <Input id="c-fr-short" value={f.fr.short} maxLength={40} invalid={Boolean(errors["translations.fr.short"])} onChange={(e) => copy("fr", "short", e.target.value)} />
             </Field>
-            <Field label="Tagline" optional htmlFor="c-fr-tag">
+            <Field label="Accroche" optional htmlFor="c-fr-tag">
               <Input id="c-fr-tag" value={f.fr.tagline} maxLength={200} onChange={(e) => copy("fr", "tagline", e.target.value)} />
             </Field>
           </div>
         </section>
         <section className="space-y-3" dir="rtl" lang="ar">
-          <h3 className="text-xs font-medium tracking-wide text-ad-faint">العربية</h3>
-          <Field label="الاسم" htmlFor="c-ar-name" error={errors["translations.ar.name"]}>
+          <h3 className="text-xs font-medium uppercase tracking-wide text-ad-faint">Arabe</h3>
+          <Field label="Nom (arabe)" htmlFor="c-ar-name" error={errors["translations.ar.name"]}>
             <Input id="c-ar-name" value={f.ar.name} maxLength={80} invalid={Boolean(errors["translations.ar.name"])} onChange={(e) => copy("ar", "name", e.target.value)} />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="الاسم المختصر" htmlFor="c-ar-short" error={errors["translations.ar.short"]}>
+            <Field label="Nom court (arabe)" htmlFor="c-ar-short" error={errors["translations.ar.short"]}>
               <Input id="c-ar-short" value={f.ar.short} maxLength={40} invalid={Boolean(errors["translations.ar.short"])} onChange={(e) => copy("ar", "short", e.target.value)} />
             </Field>
-            <Field label="الشعار" htmlFor="c-ar-tag">
+            <Field label="Accroche (arabe)" htmlFor="c-ar-tag">
               <Input id="c-ar-tag" value={f.ar.tagline} maxLength={200} onChange={(e) => copy("ar", "tagline", e.target.value)} />
             </Field>
           </div>
         </section>
         <section className="space-y-3 border-t border-ad-border pt-5">
-          <Field label="Slug" htmlFor="c-slug" error={errors.slug} hint={`/products?category=${f.slug || "…"}`}>
+          <Field label="Identifiant d’URL" htmlFor="c-slug" error={errors.slug} hint={`/products?category=${f.slug || "…"}`}>
             <Input
               id="c-slug"
               value={f.slug}
@@ -218,22 +218,22 @@ function CategoryDrawer({ initial, all, onClose }: { initial: { original: string
             />
           </Field>
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Parent" htmlFor="c-parent" optional>
+            <Field label="Catégorie parente" htmlFor="c-parent" optional>
               <Select
                 id="c-parent"
                 value={f.parentSlug}
                 onChange={(v) => setF((x) => ({ ...x, parentSlug: v }))}
-                options={[{ value: "", label: "None (top level)", text: "None" }, ...all.filter((c) => c.slug !== initial.original).map((c) => ({ value: c.slug, label: c.translations.fr?.name ?? c.slug }))]}
+                options={[{ value: "", label: "Aucune (niveau principal)", text: "Aucune" }, ...all.filter((c) => c.slug !== initial.original).map((c) => ({ value: c.slug, label: c.translations.fr?.name ?? c.slug }))]}
               />
             </Field>
             <Field label="Position" htmlFor="c-pos">
               <Input id="c-pos" inputMode="numeric" value={f.position} onChange={(e) => setF((x) => ({ ...x, position: e.target.value.replace(/\D/g, "").slice(0, 4) }))} />
             </Field>
           </div>
-          <Field label="Image path" optional htmlFor="c-img" hint="e.g. /categories/vision.jpg">
+          <Field label="Chemin de l’image" optional htmlFor="c-img" hint="ex. /categories/vision.jpg">
             <Input id="c-img" value={f.image} maxLength={500} onChange={(e) => setF((x) => ({ ...x, image: e.target.value }))} />
           </Field>
-          <Switch checked={f.isActive} onChange={(v) => setF((x) => ({ ...x, isActive: v }))} label="Visible on the store" description="Hidden categories keep their products but disappear from navigation." />
+          <Switch checked={f.isActive} onChange={(v) => setF((x) => ({ ...x, isActive: v }))} label="Visible sur la boutique" description="Une catégorie masquée garde ses produits mais disparaît de la navigation." />
         </section>
         <button type="submit" hidden />
       </form>

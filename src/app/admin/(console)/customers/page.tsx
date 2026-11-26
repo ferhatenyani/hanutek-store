@@ -7,7 +7,7 @@ import { PageHeader } from "@/admin/ui/core";
 export default function Page() {
   return (
     <RequirePermission permission="customers:read">
-      <PageHeader title="Customers" description="Everyone with a store account, their orders and lifetime value." />
+      <PageHeader title="Clients" description="Tous les titulaires d’un compte boutique, leurs commandes et leur valeur client." />
       <CustomersPage />
     </RequirePermission>
   );

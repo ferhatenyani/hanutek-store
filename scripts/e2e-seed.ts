@@ -66,13 +66,13 @@ const PLACES: [string, string, number][] = [
 ];
 const STREETS = ["Rue Didouche Mourad", "Boulevard Mohamed V", "Rue Larbi Ben M'hidi", "Cité 1000 Logements", "Rue Hassiba Ben Bouali", "Avenue de l'ALN", "Cité des Orangers"];
 const REVIEW_TEXT: [number, string, string][] = [
-  [5, "Excellent", "Exactly as described and delivered quickly. Very happy with the quality."],
-  [5, "Top", "Works perfectly in my car, installation took five minutes."],
-  [4, "Very good", "Good product overall, the packaging could be better but it does the job."],
-  [4, "Satisfied", "Solid build, a little expensive but worth it for the reliability."],
-  [3, "Correct", "It works, but the instructions are only in English and Chinese."],
-  [2, "Disappointed", "The cable is shorter than expected and the mount feels a bit loose."],
-  [1, "Not recommended", "Stopped working after two weeks, waiting for the replacement."],
+  [5, "Excellent", "Conforme à la description et livré rapidement. Très satisfait de la qualité."],
+  [5, "Top", "Fonctionne parfaitement dans ma voiture, installé en cinq minutes."],
+  [4, "Très bien", "Bon produit dans l’ensemble, l’emballage pourrait être meilleur mais il fait le travail."],
+  [4, "Satisfait", "Bien construit, un peu cher mais ça vaut le coup pour la fiabilité."],
+  [3, "Correct", "Ça marche, mais la notice est seulement en anglais et en chinois."],
+  [2, "Déçu", "Le câble est plus court que prévu et le support tient un peu mal."],
+  [1, "Déconseillé", "Ne fonctionne plus après deux semaines, j’attends le remplacement."],
 ];
 
 const STATUS_MIX: [OrderStatus, number][] = [
@@ -170,7 +170,7 @@ async function main() {
       idempotencyKey: crypto.randomUUID(),
       contact: { name, phone: customer?.phone ?? `07${String(70000000 + i * 98765).slice(0, 8)}`, email: customer?.email ?? null },
       address: { line1: `${1 + Math.floor(rand() * 120)} ${pick(STREETS)}`, commune, wilaya, postalCode: `${wilaya}000` },
-      note: rand() < 0.1 ? "Please call before delivery." : null,
+      note: rand() < 0.1 ? "Merci d’appeler avant la livraison." : null,
       locale: rand() < 0.8 ? "fr" : "ar",
     }).catch((err) => {
       console.warn("order skipped:", (err as Error).message);
@@ -186,7 +186,7 @@ async function main() {
     const pathTo = daysAgo < 2 && ["delivered", "returned"].includes(status) ? PATH.confirmed : PATH[status];
     for (const st of pathTo) {
       const carrier = st === "shipped" ? pick(["Yalidine", "ZR Express", "Yalidine"]) : undefined;
-      await changeStatusByStaff(number, st, actorFor(), carrier ? { carrier, trackingNumber: `${carrier === "Yalidine" ? "YAL" : "ZR"}-${100000 + i * 37}` } : { note: st === "cancelled" ? pick(["Customer unreachable", "Duplicate order", "Customer changed their mind"]) : null });
+      await changeStatusByStaff(number, st, actorFor(), carrier ? { carrier, trackingNumber: `${carrier === "Yalidine" ? "YAL" : "ZR"}-${100000 + i * 37}` } : { note: st === "cancelled" ? pick(["Client injoignable", "Commande en double", "Le client a changé d’avis"]) : null });
     }
 
     // back-date the order and everything that hangs off it

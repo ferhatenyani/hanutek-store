@@ -36,17 +36,17 @@ export function StockDialog({ target, onClose, onDone }: { target: StockTarget |
     onClose();
   };
   const submit = async () => {
-    if (!valid) return setError(mode === "remove" && n > target.stock ? `Only ${target.stock} in stock` : "Enter a whole number");
+    if (!valid) return setError(mode === "remove" && n > target.stock ? `Seulement ${target.stock} en stock` : "Saisissez un nombre entier");
     setPending(true);
     try {
       const body = mode === "set" ? { set: n } : { delta: mode === "add" ? n : -n };
       const r = await adminApi<{ stock: number }>(`/admin/variants/${target.variantId}/stock`, { method: "POST", body: { ...body, reason, note: note.trim() || null } });
       invalidate("/admin/inventory", "/admin/products", "/admin/analytics");
-      toast.success(`Stock updated · ${target.sku}`, `Now ${num(r.stock)} units.`);
+      toast.success(`Stock mis à jour · ${target.sku}`, `Désormais ${num(r.stock)} unités.`);
       onDone?.(r.stock);
       close();
     } catch (err) {
-      toast.error("Couldn't update stock", errorMessage(err));
+      toast.error("Impossible de modifier le stock", errorMessage(err));
     } finally {
       setPending(false);
     }
@@ -56,7 +56,7 @@ export function StockDialog({ target, onClose, onDone }: { target: StockTarget |
       open
       onClose={close}
       size="sm"
-      title="Adjust stock"
+      title="Ajuster le stock"
       description={
         <>
           {target.label} · <Mono>{target.sku}</Mono>
@@ -64,9 +64,9 @@ export function StockDialog({ target, onClose, onDone }: { target: StockTarget |
       }
       footer={
         <>
-          <Button onClick={close}>Cancel</Button>
+          <Button onClick={close}>Annuler</Button>
           <Button variant="primary" loading={pending} disabled={!valid} onClick={submit}>
-            Save
+            Enregistrer
           </Button>
         </>
       }
@@ -79,23 +79,23 @@ export function StockDialog({ target, onClose, onDone }: { target: StockTarget |
         }}
       >
         <Segmented
-          ariaLabel="Adjustment type"
+          ariaLabel="Type d’ajustement"
           value={mode}
           onChange={(m) => {
             setMode(m);
             setReason(m === "add" ? "restock" : "adjustment");
           }}
           options={[
-            { value: "add", label: "Add" },
-            { value: "remove", label: "Remove" },
-            { value: "set", label: "Set to" },
+            { value: "add", label: "Ajouter" },
+            { value: "remove", label: "Retirer" },
+            { value: "set", label: "Définir à" },
           ]}
         />
-        <Field label={mode === "set" ? "New quantity" : "Quantity"} htmlFor="stock-amount" error={error}>
-          <Input id="stock-amount" inputMode="numeric" value={amount} onChange={(e) => (setError(null), setAmount(e.target.value.replace(/[^\d]/g, "").slice(0, 7)))} data-autofocus suffix="units" invalid={Boolean(error)} />
+        <Field label={mode === "set" ? "Nouvelle quantité" : "Quantité"} htmlFor="stock-amount" error={error}>
+          <Input id="stock-amount" inputMode="numeric" value={amount} onChange={(e) => (setError(null), setAmount(e.target.value.replace(/[^\d]/g, "").slice(0, 7)))} data-autofocus suffix="unités" invalid={Boolean(error)} />
         </Field>
         <p className="tnum text-[13px] text-ad-muted">
-          On hand: <span className="font-medium text-ad-fg">{num(target.stock)}</span>
+          Disponible : <span className="font-medium text-ad-fg">{num(target.stock)}</span>
           {result !== null && (
             <>
               {" "}
@@ -103,20 +103,20 @@ export function StockDialog({ target, onClose, onDone }: { target: StockTarget |
             </>
           )}
         </p>
-        <Field label="Reason" htmlFor="stock-reason">
+        <Field label="Motif" htmlFor="stock-reason">
           <Select
             id="stock-reason"
             value={reason}
             onChange={setReason}
             options={[
-              { value: "restock", label: "Restock (received goods)" },
-              { value: "adjustment", label: "Adjustment (count, damage, loss)" },
-              { value: "return", label: "Customer return" },
+              { value: "restock", label: "Réassort (marchandise reçue)" },
+              { value: "adjustment", label: "Ajustement (inventaire, casse, perte)" },
+              { value: "return", label: "Retour client" },
             ]}
           />
         </Field>
         <Field label="Note" optional>
-          <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={300} placeholder="e.g. Supplier delivery #412" />
+          <Textarea value={note} onChange={(e) => setNote(e.target.value)} rows={2} maxLength={300} placeholder="ex. Livraison fournisseur n° 412" />
         </Field>
       </form>
     </Dialog>

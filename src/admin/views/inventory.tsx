@@ -20,14 +20,14 @@ export function InventoryPage() {
   const { state } = useUrlState({ tab: "stock" });
   return (
     <>
-      <PageHeader title="Inventory" description="Stock on hand per variant. Every change is recorded in the stock ledger." />
+      <PageHeader title="Stock" description="Stock disponible par variante. Chaque modification est inscrite dans le registre des mouvements." />
       <div className="mb-4">
         <Tabs
           value={state.tab}
           onChange={(v) => window.history.replaceState(null, "", v === "stock" ? window.location.pathname : `?tab=${v}`)}
           tabs={[
-            { value: "stock", label: "Stock levels" },
-            { value: "ledger", label: "Movements" },
+            { value: "stock", label: "Niveaux de stock" },
+            { value: "ledger", label: "Mouvements" },
           ]}
         />
       </div>
@@ -55,7 +55,7 @@ function StockLevels() {
     () => [
       {
         id: "variant",
-        header: "Product",
+        header: "Produit",
         primary: true,
         hideable: false,
         sortKey: "name",
@@ -76,11 +76,11 @@ function StockLevels() {
         ),
       },
       { id: "sku", header: "SKU", sortKey: "sku", mobile: true, width: "190px", cell: (r) => <Mono className="text-ad-muted">{r.sku}</Mono> },
-      { id: "price", header: "Price", sortKey: "price", align: "end", width: "110px", cell: (r) => dzd(r.price) },
-      { id: "sold", header: "Sold (30d)", align: "end", width: "100px", cell: (r) => <span className="text-ad-muted">{num(r.sold30)}</span> },
+      { id: "price", header: "Prix", sortKey: "price", align: "end", width: "110px", cell: (r) => dzd(r.price) },
+      { id: "sold", header: "Vendus (30 j)", align: "end", width: "100px", cell: (r) => <span className="text-ad-muted">{num(r.sold30)}</span> },
       {
         id: "cover",
-        header: "Cover",
+        header: "Couverture",
         align: "end",
         width: "100px",
         defaultHidden: true,
@@ -88,13 +88,13 @@ function StockLevels() {
           const perDay = r.sold30 / 30;
           if (!perDay) return <span className="text-ad-faint">—</span>;
           const days = Math.floor(r.stock / perDay);
-          return <span className={days < 7 ? "text-ad-amber" : "text-ad-muted"}>{days}d</span>;
+          return <span className={days < 7 ? "text-ad-amber" : "text-ad-muted"}>{days} j</span>;
         },
       },
-      { id: "moved", header: "Last movement", width: "140px", cell: (r) => <span className="whitespace-nowrap text-ad-muted">{ago(r.lastMovementAt)}</span> },
+      { id: "moved", header: "Dernier mouvement", width: "140px", cell: (r) => <span className="whitespace-nowrap text-ad-muted">{ago(r.lastMovementAt)}</span> },
       {
         id: "stock",
-        header: "On hand",
+        header: "Disponible",
         sortKey: "stock",
         align: "end",
         mobile: true,
@@ -102,10 +102,10 @@ function StockLevels() {
         cell: (r) =>
           writable ? (
             <span className="inline-flex items-center justify-end gap-2" data-no-row-click>
-              {r.stock === 0 && edits[r.variantId] === undefined && <Badge tone="red">Out</Badge>}
-              {r.stock > 0 && r.stock <= (s?.lowThreshold ?? 5) && edits[r.variantId] === undefined && <Badge tone="amber">Low</Badge>}
+              {r.stock === 0 && edits[r.variantId] === undefined && <Badge tone="red">Épuisé</Badge>}
+              {r.stock > 0 && r.stock <= (s?.lowThreshold ?? 5) && edits[r.variantId] === undefined && <Badge tone="amber">Faible</Badge>}
               <Input
-                aria-label={`On hand for ${r.sku}`}
+                aria-label={`Disponible pour ${r.sku}`}
                 inputSize="sm"
                 inputMode="numeric"
                 className={cn("w-20 text-end tnum", edits[r.variantId] !== undefined && Number(edits[r.variantId]) !== r.stock && "border-ad-fg/50")}
@@ -132,10 +132,10 @@ function StockLevels() {
     <>
       <div className="mb-4 grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-ad-border bg-ad-border shadow-ad lg:grid-cols-4">
         {[
-          { label: "Units on hand", value: s ? num(s.units) : null },
-          { label: "Stock value (retail)", value: s ? dzdCompact(s.value) : null },
-          { label: `Low stock (≤ ${s?.lowThreshold ?? 5})`, value: s ? num(s.low) : null, href: "?stock=low", tone: s && s.low > 0 ? "text-ad-amber" : "" },
-          { label: "Out of stock", value: s ? num(s.out) : null, href: "?stock=out", tone: s && s.out > 0 ? "text-ad-red" : "" },
+          { label: "Unités disponibles", value: s ? num(s.units) : null },
+          { label: "Valeur du stock (prix de vente)", value: s ? dzdCompact(s.value) : null },
+          { label: `Stock faible (≤ ${s?.lowThreshold ?? 5})`, value: s ? num(s.low) : null, href: "?stock=low", tone: s && s.low > 0 ? "text-ad-amber" : "" },
+          { label: "Épuisés", value: s ? num(s.out) : null, href: "?stock=out", tone: s && s.out > 0 ? "text-ad-red" : "" },
         ].map((k) => (
           <div key={k.label} className="bg-ad-panel p-4">
             <p className="text-[13px] text-ad-muted">{k.label}</p>
@@ -153,33 +153,33 @@ function StockLevels() {
       </div>
       <Card padded={false}>
         {changed.length > 0 ? (
-          <div role="region" aria-label="Unsaved stock changes" className="ad-anim-fade flex flex-wrap items-center gap-2 border-b border-ad-border bg-ad-subtle px-4 py-2.5">
+          <div role="region" aria-label="Modifications de stock non enregistrées" className="ad-anim-fade flex flex-wrap items-center gap-2 border-b border-ad-border bg-ad-subtle px-4 py-2.5">
             <span className="text-[13px] font-medium">
               {changed.length} unsaved change{changed.length === 1 ? "" : "s"}
             </span>
             <div className="ms-auto flex gap-2">
               <Button size="sm" variant="ghost" onClick={() => setEdits({})}>
-                Discard
+                Abandonner
               </Button>
               <Button size="sm" variant="primary" onClick={() => setReviewing(true)}>
-                Review & save
+                Vérifier et enregistrer
               </Button>
             </div>
           </div>
         ) : (
           <Toolbar>
-            <SearchBox value={state.search} onChange={setSearch} placeholder="Product, SKU or code…" label="Search inventory" />
+            <SearchBox value={state.search} onChange={setSearch} placeholder="Produit, SKU ou code…" label="Rechercher dans le stock" />
             <FilterSelect
               label="Stock"
               value={state.stock as "" | "low"}
               onChange={(v) => set({ stock: v })}
               options={[
-                { value: "low", label: "Low", text: "Low" },
-                { value: "out" as "low", label: "Out of stock", text: "Out of stock" },
-                { value: "in" as "low", label: "Healthy", text: "Healthy" },
+                { value: "low", label: "Faible", text: "Faible" },
+                { value: "out" as "low", label: "Épuisé", text: "Épuisé" },
+                { value: "in" as "low", label: "Suffisant", text: "Suffisant" },
               ]}
             />
-            <FilterSelect label="Category" width="w-[200px]" value={state.category} onChange={(v) => set({ category: v })} options={(cats.data?.items ?? []).map((c) => ({ value: c.slug, label: c.translations.fr?.name ?? c.slug, text: c.translations.fr?.name ?? c.slug }))} />
+            <FilterSelect label="Catégorie" width="w-[200px]" value={state.category} onChange={(v) => set({ category: v })} options={(cats.data?.items ?? []).map((c) => ({ value: c.slug, label: c.translations.fr?.name ?? c.slug, text: c.translations.fr?.name ?? c.slug }))} />
             <ResetFilters count={activeCount - (state.tab ? 1 : 0) + (state.search ? 1 : 0)} onReset={reset} />
             <div className="ms-auto flex items-center gap-2">
               <SavedViews tableId="inventory" current={search} onApply={(qs) => window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname)} />
@@ -188,7 +188,7 @@ function StockLevels() {
           </Toolbar>
         )}
         <DataTable
-          label="Inventory"
+          label="Stock"
           rows={q.data?.items}
           rowId={(r) => r.variantId}
           columns={cols.visible}
@@ -204,12 +204,12 @@ function StockLevels() {
           rowActions={
             writable
               ? (r) => [
-                  { label: "Adjust stock…", icon: <SlidersHorizontal size={14} />, onSelect: () => setTarget({ variantId: r.variantId, sku: r.sku, label: `${r.productName} · ${r.label ?? r.code}`, stock: r.stock }) },
-                  { label: "View movements", icon: <History size={14} />, onSelect: () => window.history.pushState(null, "", `?tab=ledger&variant=${r.variantId}`) },
+                  { label: "Ajuster le stock…", icon: <SlidersHorizontal size={14} />, onSelect: () => setTarget({ variantId: r.variantId, sku: r.sku, label: `${r.productName} · ${r.label ?? r.code}`, stock: r.stock }) },
+                  { label: "Voir les mouvements", icon: <History size={14} />, onSelect: () => window.history.pushState(null, "", `?tab=ledger&variant=${r.variantId}`) },
                 ]
               : undefined
           }
-          empty={<EmptyState icon={<Boxes size={18} />} title="No variants match" description="Try another search or filter." />}
+          empty={<EmptyState icon={<Boxes size={18} />} title="Aucune variante ne correspond" description="Essayez une autre recherche ou un autre filtre." />}
         />
         <Pagination page={Number(state.page)} pageSize={Number(state.pageSize)} total={q.data?.total} onPage={(p) => set({ page: String(p) }, { keepPage: true })} onPageSize={(n) => set({ pageSize: String(n) })} />
       </Card>
@@ -224,7 +224,7 @@ function StockLevels() {
         onSaved={() => {
           setEdits({});
           setReviewing(false);
-          toast.success("Stock updated");
+          toast.success("Stock mis à jour");
         }}
       />
     </>
@@ -245,7 +245,7 @@ function BulkReview({ open, onClose, items, onSaved }: { open: boolean; onClose:
       setNote("");
       onSaved();
     } catch (err) {
-      toast.error("Nothing was saved", errorMessage(err));
+      toast.error("Rien n’a été enregistré", errorMessage(err));
     } finally {
       setPending(false);
     }
@@ -254,13 +254,13 @@ function BulkReview({ open, onClose, items, onSaved }: { open: boolean; onClose:
     <Dialog
       open
       onClose={onClose}
-      title={`Update ${items.length} variant${items.length === 1 ? "" : "s"}`}
-      description="All changes are applied together, or none are."
+      title={`Modifier ${items.length} variante${items.length === 1 ? "" : "s"}`}
+      description="Toutes les modifications sont appliquées ensemble, ou aucune."
       footer={
         <>
-          <Button onClick={onClose}>Keep editing</Button>
+          <Button onClick={onClose}>Continuer à modifier</Button>
           <Button variant="primary" loading={pending} onClick={save}>
-            Save {items.length} change{items.length === 1 ? "" : "s"}
+            Enregistrer {items.length} modification{items.length === 1 ? "" : "s"}
           </Button>
         </>
       }
@@ -282,20 +282,20 @@ function BulkReview({ open, onClose, items, onSaved }: { open: boolean; onClose:
         })}
       </ul>
       <div className="grid gap-3 sm:grid-cols-2">
-        <Field label="Reason" htmlFor="bulk-reason">
+        <Field label="Motif" htmlFor="bulk-reason">
           <Select
             id="bulk-reason"
             value={reason}
             onChange={setReason}
             options={[
-              { value: "adjustment", label: "Adjustment / stock count" },
-              { value: "restock", label: "Restock" },
-              { value: "return", label: "Customer return" },
+              { value: "adjustment", label: "Ajustement / inventaire" },
+              { value: "restock", label: "Réassort" },
+              { value: "return", label: "Retour client" },
             ]}
           />
         </Field>
         <Field label="Note" optional className="sm:col-span-2">
-          <Textarea rows={2} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} placeholder="e.g. Monthly stock count" />
+          <Textarea rows={2} value={note} maxLength={300} onChange={(e) => setNote(e.target.value)} placeholder="ex. Inventaire mensuel" />
         </Field>
       </div>
     </Dialog>
@@ -309,7 +309,7 @@ function Ledger() {
     { id: "date", header: "Date", primary: true, width: "160px", cell: (m) => <span className="whitespace-nowrap">{fmtDateTime(m.createdAt)}</span> },
     {
       id: "item",
-      header: "Item",
+      header: "Article",
       mobile: true,
       cell: (m) => (
         <span className="min-w-0">
@@ -320,10 +320,10 @@ function Ledger() {
         </span>
       ),
     },
-    { id: "reason", header: "Reason", mobile: true, width: "130px", cell: (m) => <Badge tone={MOVEMENT_REASON[m.reason].tone}>{MOVEMENT_REASON[m.reason].label}</Badge> },
+    { id: "reason", header: "Motif", mobile: true, width: "130px", cell: (m) => <Badge tone={MOVEMENT_REASON[m.reason].tone}>{MOVEMENT_REASON[m.reason].label}</Badge> },
     {
       id: "ref",
-      header: "Reference",
+      header: "Référence",
       cell: (m) =>
         m.orderNumber ? (
           <Link href={`/admin/orders/${m.orderNumber}`} className="hover:underline">
@@ -333,21 +333,21 @@ function Ledger() {
           <span className="text-ad-muted">{m.note ?? "—"}</span>
         ),
     },
-    { id: "by", header: "By", cell: (m) => <span className="text-ad-muted">{m.actorName ?? (m.orderNumber ? "Customer" : "System")}</span> },
-    { id: "delta", header: "Change", align: "end", mobile: true, width: "90px", cell: (m) => <span className={cn("font-medium", m.delta > 0 ? "text-ad-green" : "text-ad-red")}>{m.delta > 0 ? `+${m.delta}` : m.delta}</span> },
-    { id: "after", header: "Balance", align: "end", width: "90px", cell: (m) => m.stockAfter },
+    { id: "by", header: "Par", cell: (m) => <span className="text-ad-muted">{m.actorName ?? (m.orderNumber ? "Client" : "Système")}</span> },
+    { id: "delta", header: "Variation", align: "end", mobile: true, width: "90px", cell: (m) => <span className={cn("font-medium", m.delta > 0 ? "text-ad-green" : "text-ad-red")}>{m.delta > 0 ? `+${m.delta}` : m.delta}</span> },
+    { id: "after", header: "Solde", align: "end", width: "90px", cell: (m) => m.stockAfter },
   ];
   return (
     <Card padded={false}>
       <Toolbar>
-        <FilterSelect label="Reason" value={state.reason as "" | "order"} onChange={(v) => set({ reason: v })} options={Object.entries(MOVEMENT_REASON).map(([value, m]) => ({ value: value as "order", label: m.label, text: m.label }))} />
+        <FilterSelect label="Motif" value={state.reason as "" | "order"} onChange={(v) => set({ reason: v })} options={Object.entries(MOVEMENT_REASON).map(([value, m]) => ({ value: value as "order", label: m.label, text: m.label }))} />
         {state.variant && (
           <Button size="sm" variant="ghost" onClick={() => set({ variant: "" })}>
-            Showing one variant · show all
+            Une seule variante affichée · tout afficher
           </Button>
         )}
       </Toolbar>
-      <DataTable label="Stock movements" rows={q.data?.items} rowId={(m) => m.id} columns={columns} loading={q.loading} stale={q.stale} error={q.error} onRetry={q.reload} empty={<EmptyState icon={<History size={18} />} title="No movements" />} />
+      <DataTable label="Mouvements de stock" rows={q.data?.items} rowId={(m) => m.id} columns={columns} loading={q.loading} stale={q.stale} error={q.error} onRetry={q.reload} empty={<EmptyState icon={<History size={18} />} title="Aucun mouvement" />} />
       <Pagination page={Number(state.page)} pageSize={50} total={q.data?.total} onPage={(p) => set({ page: String(p) }, { keepPage: true })} />
     </Card>
   );

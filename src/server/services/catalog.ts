@@ -131,10 +131,18 @@ function baseSelect(d: DbOrTx) {
     .innerJoin(categories, eq(categories.id, products.categoryId));
 }
 
+/**
+ * The price shown on a product card: its default (first active, by position)
+ * variant — the same one hydrateProducts() exposes as `price` and quick-add
+ * puts in the cart. Price sorting must follow it, not the cheapest option,
+ * or "price ascending" lists visibly out of order.
+ */
+const displayPrice = sql`(select v.price from product_variants v where v.product_id = ${products.id} and v.is_active order by v.position, v.price limit 1)`;
+
 const ORDER_BY: Record<SortKey, SQL[]> = {
   featured: [desc(products.isBestSeller), desc(products.isNew), asc(products.position), asc(products.name)],
-  "price-asc": [asc(products.minPrice), asc(products.name)],
-  "price-desc": [desc(products.minPrice), asc(products.name)],
+  "price-asc": [sql`${displayPrice} asc nulls last`, asc(products.name)],
+  "price-desc": [sql`${displayPrice} desc nulls last`, asc(products.name)],
   newest: [desc(products.isNew), desc(products.createdAt), desc(products.ratingAvg)],
   name: [asc(products.name)],
 };

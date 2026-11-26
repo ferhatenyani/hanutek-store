@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, useEffect, useState, type ReactNode } from "react";
 import { ShieldAlert } from "lucide-react";
-import { adminApi, ApiError } from "../lib/client";
+import { adminApi, ApiError, errorMessage } from "../lib/client";
 import { Button, Spinner } from "../ui/core";
 
 export type Permission =
@@ -72,7 +72,7 @@ export function AdminSessionGate({ children }: { children: ReactNode }) {
         return;
       }
       if (err instanceof ApiError && err.code === "FORBIDDEN") return setState({ status: "forbidden" });
-      setState({ status: "error", message: err instanceof Error ? err.message : "Could not reach the server" });
+      setState({ status: "error", message: errorMessage(err, "Impossible de joindre le serveur.") });
     }
   }, []);
 
@@ -85,7 +85,7 @@ export function AdminSessionGate({ children }: { children: ReactNode }) {
     return (
       <div className="grid min-h-dvh place-items-center" aria-busy>
         <div className="flex items-center gap-2.5 text-[13px] text-ad-muted">
-          <Spinner /> Loading console…
+          <Spinner /> Chargement de la console…
         </div>
       </div>
     );
@@ -97,12 +97,12 @@ export function AdminSessionGate({ children }: { children: ReactNode }) {
           <div className="mx-auto mb-4 grid size-11 place-items-center rounded-lg border border-ad-border bg-ad-panel text-ad-muted">
             <ShieldAlert size={20} />
           </div>
-          <h1 className="text-base font-semibold">This account can&apos;t use the admin console</h1>
-          <p className="mt-1.5 text-[13px] text-ad-muted">You&apos;re signed in with a customer account. Sign in with a staff account to continue.</p>
+          <h1 className="text-base font-semibold">Ce compte ne peut pas utiliser la console d’administration</h1>
+          <p className="mt-1.5 text-[13px] text-ad-muted">Vous êtes connecté avec un compte client. Connectez-vous avec un compte équipe pour continuer.</p>
           <div className="mt-5 flex justify-center gap-2">
-            <Button onClick={() => window.location.assign("/")}>Go to store</Button>
+            <Button onClick={() => window.location.assign("/")}>Aller à la boutique</Button>
             <Button variant="primary" onClick={() => void signOutAdmin()}>
-              Switch account
+              Changer de compte
             </Button>
           </div>
         </div>
@@ -113,10 +113,10 @@ export function AdminSessionGate({ children }: { children: ReactNode }) {
     return (
       <div className="grid min-h-dvh place-items-center px-6">
         <div className="max-w-sm text-center">
-          <h1 className="text-base font-semibold">Can&apos;t reach the server</h1>
+          <h1 className="text-base font-semibold">Impossible de joindre le serveur</h1>
           <p className="mt-1.5 text-[13px] text-ad-muted">{state.message}</p>
           <Button className="mt-5" onClick={() => void load()}>
-            Try again
+            Réessayer
           </Button>
         </div>
       </div>
@@ -147,8 +147,8 @@ export function RequirePermission({ permission, children, inline }: { permission
         <div className="mx-auto mb-4 grid size-11 place-items-center rounded-lg border border-ad-border bg-ad-panel text-ad-muted">
           <ShieldAlert size={20} />
         </div>
-        <h1 className="text-base font-semibold">You don&apos;t have access to this page</h1>
-        <p className="mt-1.5 text-[13px] text-ad-muted">Your role doesn&apos;t include this permission. Ask an admin if you need it.</p>
+        <h1 className="text-base font-semibold">Vous n’avez pas accès à cette page</h1>
+        <p className="mt-1.5 text-[13px] text-ad-muted">Votre rôle n’inclut pas cette autorisation. Demandez-la à un administrateur si besoin.</p>
       </div>
     </div>
   );

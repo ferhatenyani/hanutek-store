@@ -7,14 +7,14 @@ const geist = Geist({ variable: "--font-geist", subsets: ["latin"], weight: ["40
 const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"], weight: ["400", "500"] });
 
 export const metadata: Metadata = {
-  title: { default: "Admin · hanutek", template: "%s · hanutek admin" },
+  title: { default: "Administration · hanutek", template: "%s · administration hanutek" },
   robots: { index: false, follow: false },
 };
 
 /** Admin console root: its own fonts, theme and providers; no storefront chrome. */
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div lang="en" dir="ltr" className={`adm ${geist.variable} ${geistMono.variable} min-h-dvh text-[14px] antialiased`}>
+    <div lang="fr" dir="ltr" className={`adm ${geist.variable} ${geistMono.variable} min-h-dvh text-[14px] antialiased`}>
       <script dangerouslySetInnerHTML={{ __html: THEME_SCRIPT }} />
       <AdminProviders>{children}</AdminProviders>
     </div>

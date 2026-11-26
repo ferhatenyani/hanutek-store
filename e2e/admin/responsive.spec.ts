@@ -53,10 +53,10 @@ for (const vp of VIEWPORTS) {
       await noHorizontalOverflow(page, `${path} @${vp.w}`);
       // navigation: sidebar from lg (1024), hamburger below
       if (vp.w >= 1024) {
-        await expect(page.getByRole("navigation", { name: "Admin" })).toBeVisible();
-        await expect(page.getByRole("button", { name: "Open navigation" })).toBeHidden();
+        await expect(page.getByRole("navigation", { name: "Administration" })).toBeVisible();
+        await expect(page.getByRole("button", { name: "Ouvrir la navigation" })).toBeHidden();
       } else {
-        await expect(page.getByRole("button", { name: "Open navigation" })).toBeVisible();
+        await expect(page.getByRole("button", { name: "Ouvrir la navigation" })).toBeVisible();
       }
       // tables become card lists below md (768)
       const table = page.locator("main table").first();
@@ -79,10 +79,10 @@ test("mobile navigation drawer opens, navigates and closes", async ({ page }) =>
   await page.setViewportSize({ width: 375, height: 667 });
   await page.goto("/admin");
   await ready(page);
-  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("button", { name: "Ouvrir la navigation" }).click();
   const nav = page.getByRole("dialog", { name: "Navigation" });
   await expect(nav).toBeVisible();
-  await nav.getByRole("link", { name: "Orders" }).click();
+  await nav.getByRole("link", { name: "Commandes" }).click();
   await expect(page).toHaveURL(/\/admin\/orders/);
   await expect(nav).toHaveCount(0);
 });
@@ -90,12 +90,12 @@ test("mobile navigation drawer opens, navigates and closes", async ({ page }) =>
 test("phone: order cards are tappable and the action menu stays inside the screen", async ({ page }) => {
   await page.setViewportSize({ width: 360, height: 740 });
   await page.goto("/admin/orders");
-  const list = page.getByRole("list", { name: "Orders" });
+  const list = page.getByRole("list", { name: "Commandes" });
   await expect(list).toBeVisible();
   const card = list.locator("li").first();
   const box = await card.boundingBox();
   expect(box!.height).toBeGreaterThanOrEqual(44);
-  await card.getByRole("button", { name: "Row actions" }).click();
+  await card.getByRole("button", { name: "Actions de la ligne" }).click();
   const menu = page.getByRole("menu");
   const mb = await menu.boundingBox();
   expect(mb!.x).toBeGreaterThanOrEqual(0);
@@ -108,8 +108,8 @@ test("phone: order cards are tappable and the action menu stays inside the scree
 test("phone: dialogs become bottom sheets that fit the viewport", async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 667 });
   await page.goto("/admin/promotions");
-  await page.getByRole("button", { name: "New code" }).click();
-  const sheet = page.getByRole("dialog", { name: "New discount code" });
+  await page.getByRole("button", { name: "Nouveau code" }).click();
+  const sheet = page.getByRole("dialog", { name: "Nouveau code promo" });
   await expect(sheet).toBeVisible();
   await page.waitForTimeout(400); // let the slide-in finish before measuring
   const b = (await sheet.boundingBox())!;
@@ -117,16 +117,16 @@ test("phone: dialogs become bottom sheets that fit the viewport", async ({ page 
   expect(b.width).toBeLessThanOrEqual(375);
   expect(b.y + b.height).toBeLessThanOrEqual(667 + 1);
   // footer actions remain reachable
-  await expect(sheet.getByRole("button", { name: "Create code" })).toBeInViewport();
+  await expect(sheet.getByRole("button", { name: "Créer le code" })).toBeInViewport();
 });
 
 test("tablet: wide tables scroll inside their card, not the page", async ({ page }) => {
   await page.setViewportSize({ width: 800, height: 1100 });
   await page.goto("/admin/orders");
-  await page.getByRole("button", { name: "Choose columns" }).click();
-  for (const c of ["Carrier", "Promo"]) await page.getByRole("dialog").getByText(c, { exact: true }).click();
+  await page.getByRole("button", { name: "Choisir les colonnes" }).click();
+  for (const c of ["Transporteur", "Code promo"]) await page.getByRole("dialog").getByText(c, { exact: true }).click();
   await page.keyboard.press("Escape");
   await noHorizontalOverflow(page, "orders with all columns @800");
-  await page.getByRole("button", { name: "Choose columns" }).click();
-  await page.getByRole("button", { name: "Reset to default" }).click();
+  await page.getByRole("button", { name: "Choisir les colonnes" }).click();
+  await page.getByRole("button", { name: "Rétablir par défaut" }).click();
 });

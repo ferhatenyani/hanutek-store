@@ -29,33 +29,33 @@ export interface NavItem {
 export const NAV: { section: string; items: NavItem[] }[] = [
   {
     section: "",
-    items: [{ href: "/admin", label: "Overview", icon: BarChart3, permission: "orders:read", key: "h", keywords: "dashboard analytics home stats" }],
+    items: [{ href: "/admin", label: "Vue d’ensemble", icon: BarChart3, permission: "orders:read", key: "h", keywords: "tableau de bord statistiques accueil dashboard" }],
   },
   {
-    section: "Sales",
+    section: "Ventes",
     items: [
-      { href: "/admin/orders", label: "Orders", icon: ReceiptText, permission: "orders:read", key: "o", keywords: "payments refunds cod" },
-      { href: "/admin/shipping", label: "Shipping", icon: Truck, permission: "orders:read", key: "s", keywords: "fulfillment carriers delivery shipments" },
-      { href: "/admin/customers", label: "Customers", icon: Users, permission: "customers:read", key: "c", keywords: "clients users accounts" },
-      { href: "/admin/promotions", label: "Promotions", icon: TicketPercent, permission: "promotions:write", key: "m", keywords: "discount codes coupons campaigns" },
+      { href: "/admin/orders", label: "Commandes", icon: ReceiptText, permission: "orders:read", key: "o", keywords: "paiements remboursements livraison commandes" },
+      { href: "/admin/shipping", label: "Expéditions", icon: Truck, permission: "orders:read", key: "s", keywords: "transporteurs livraison expéditions colis" },
+      { href: "/admin/customers", label: "Clients", icon: Users, permission: "customers:read", key: "c", keywords: "clients utilisateurs comptes" },
+      { href: "/admin/promotions", label: "Promotions", icon: TicketPercent, permission: "promotions:write", key: "m", keywords: "codes promo réductions coupons campagnes" },
     ],
   },
   {
     section: "Catalogue",
     items: [
-      { href: "/admin/products", label: "Products", icon: Package, permission: "catalog:read", key: "p", keywords: "catalog items variants" },
-      { href: "/admin/inventory", label: "Inventory", icon: Boxes, permission: "catalog:read", key: "i", keywords: "stock sku warehouse" },
-      { href: "/admin/categories", label: "Categories", icon: FolderTree, permission: "catalog:read", keywords: "collections" },
-      { href: "/admin/reviews", label: "Reviews", icon: MessageSquareText, permission: "reviews:moderate", key: "r", keywords: "ratings moderation" },
+      { href: "/admin/products", label: "Produits", icon: Package, permission: "catalog:read", key: "p", keywords: "catalogue articles variantes" },
+      { href: "/admin/inventory", label: "Stock", icon: Boxes, permission: "catalog:read", key: "i", keywords: "stock sku entrepôt inventaire" },
+      { href: "/admin/categories", label: "Catégories", icon: FolderTree, permission: "catalog:read", keywords: "collections rayons" },
+      { href: "/admin/reviews", label: "Avis", icon: MessageSquareText, permission: "reviews:moderate", key: "r", keywords: "notes modération" },
     ],
   },
   {
-    section: "Workspace",
+    section: "Espace de travail",
     items: [
-      { href: "/admin/subscribers", label: "Subscribers", icon: Mail, permission: "customers:read", keywords: "newsletter emails marketing" },
-      { href: "/admin/team", label: "Team & roles", icon: ShieldCheck, permission: "customers:read", key: "t", keywords: "staff admins permissions access" },
-      { href: "/admin/audit", label: "Audit log", icon: ScrollText, permission: "audit:read", key: "a", keywords: "activity history security" },
-      { href: "/admin/settings", label: "Settings", icon: Settings, key: ",", keywords: "account password theme system tools" },
+      { href: "/admin/subscribers", label: "Abonnés", icon: Mail, permission: "customers:read", keywords: "newsletter e-mails marketing" },
+      { href: "/admin/team", label: "Équipe et rôles", icon: ShieldCheck, permission: "customers:read", key: "t", keywords: "équipe administrateurs permissions accès" },
+      { href: "/admin/audit", label: "Journal d’audit", icon: ScrollText, permission: "audit:read", key: "a", keywords: "activité historique sécurité" },
+      { href: "/admin/settings", label: "Paramètres", icon: Settings, key: ",", keywords: "compte mot de passe thème système outils" },
     ],
   },
 ];

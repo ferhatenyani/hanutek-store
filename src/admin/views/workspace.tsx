@@ -26,12 +26,12 @@ export function TeamPage() {
   return (
     <>
       <PageHeader
-        title="Team & roles"
-        description="Who can use the console, and what each role is allowed to do."
+        title="Équipe et rôles"
+        description="Qui peut utiliser la console, et ce que chaque rôle est autorisé à faire."
         actions={
           can("users:manage_roles") && (
             <Button variant="primary" onClick={() => setAdding(true)}>
-              <UserPlus size={15} /> Add team member
+              <UserPlus size={15} /> Ajouter un membre
             </Button>
           )
         }
@@ -41,8 +41,8 @@ export function TeamPage() {
           value={state.tab}
           onChange={(v) => window.history.replaceState(null, "", v ? `?tab=${v}` : window.location.pathname)}
           tabs={[
-            { value: "", label: "Members" },
-            { value: "roles", label: "Roles & permissions" },
+            { value: "", label: "Membres" },
+            { value: "roles", label: "Rôles et autorisations" },
           ]}
         />
       </div>
@@ -60,11 +60,11 @@ function RoleMatrix() {
     <Card padded={false}>
       <div className="ad-scroll overflow-x-auto">
         <table className="w-full min-w-[520px] text-[13px]">
-          <caption className="sr-only">Permissions per role</caption>
+          <caption className="sr-only">Autorisations par rôle</caption>
           <thead>
             <tr className="border-b border-ad-border">
               <th scope="col" className="h-10 px-4 text-start text-xs font-medium text-ad-muted sm:px-5">
-                Permission
+                Autorisation
               </th>
               {roles.map((r) => (
                 <th key={r.role} scope="col" className="w-28 px-3 text-center">
@@ -82,7 +82,7 @@ function RoleMatrix() {
                 </th>
                 {roles.map((r) => (
                   <td key={r.role} className="text-center">
-                    {r.permissions.includes(p) ? <Check size={15} className="mx-auto text-ad-green" aria-label="Allowed" /> : <Minus size={15} className="mx-auto text-ad-faint" aria-label="Not allowed" />}
+                    {r.permissions.includes(p) ? <Check size={15} className="mx-auto text-ad-green" aria-label="Autorisé" /> : <Minus size={15} className="mx-auto text-ad-faint" aria-label="Non autorisé" />}
                   </td>
                 ))}
               </tr>
@@ -90,7 +90,7 @@ function RoleMatrix() {
           </tbody>
         </table>
       </div>
-      <p className="border-t border-ad-border px-4 py-3 text-xs text-ad-muted sm:px-5">Permissions are defined in code and enforced by the API on every request. Changing someone&apos;s role signs them out everywhere.</p>
+      <p className="border-t border-ad-border px-4 py-3 text-xs text-ad-muted sm:px-5">Les autorisations sont définies dans le code et vérifiées par l’API à chaque requête. Changer le rôle d’une personne la déconnecte de tous ses appareils.</p>
     </Card>
   );
 }
@@ -108,22 +108,22 @@ function AddMember({ onClose }: { onClose: () => void }) {
       const r = await adminApi<Paged<CustomerRow>>(withQuery("/admin/customers", { search: email.trim(), pageSize: 5 }));
       setFound(r.items.find((u) => u.email.toLowerCase() === email.trim().toLowerCase()) ?? null);
     } catch (err) {
-      toast.error("Search failed", errorMessage(err));
+      toast.error("Échec de la recherche", errorMessage(err));
     } finally {
       setPending(false);
     }
   };
   const grant = async () => {
     if (!found) return;
-    if (!(await confirm({ title: `Give ${found.name} ${ROLE[role].label.toLowerCase()} access?`, description: "They'll be signed out and can then sign in to the console.", confirmLabel: "Grant access", typeToConfirm: role === "admin" ? found.email : undefined }))) return;
+    if (!(await confirm({ title: `Donner l’accès « ${ROLE[role].label.toLowerCase()} » à ${found.name} ?`, description: "Cette personne sera déconnectée, puis pourra se connecter à la console.", confirmLabel: "Donner l’accès", typeToConfirm: role === "admin" ? found.email : undefined }))) return;
     setPending(true);
     try {
       await adminApi(`/admin/customers/${found.id}`, { method: "PATCH", body: { role } });
       invalidate("/admin/customers");
-      toast.success(`${found.name} is now ${ROLE[role].label.toLowerCase()}`);
+      toast.success(`${found.name} a désormais le rôle « ${ROLE[role].label.toLowerCase()} »`);
       onClose();
     } catch (err) {
-      toast.error("Couldn't change the role", errorMessage(err));
+      toast.error("Impossible de changer le rôle", errorMessage(err));
     } finally {
       setPending(false);
     }
@@ -132,18 +132,18 @@ function AddMember({ onClose }: { onClose: () => void }) {
     <Dialog
       open
       onClose={onClose}
-      title="Add team member"
-      description="Team members sign in with their own store account. Ask them to create one first, then grant access here."
+      title="Ajouter un membre de l’équipe"
+      description="Les membres se connectent avec leur propre compte boutique. Demandez-leur d’en créer un, puis donnez-leur l’accès ici."
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>Annuler</Button>
           {found ? (
             <Button variant="primary" loading={pending} onClick={grant}>
-              Grant access
+              Donner l’accès
             </Button>
           ) : (
             <Button variant="primary" loading={pending} disabled={!email.includes("@")} onClick={lookup}>
-              Find account
+              Trouver le compte
             </Button>
           )}
         </>
@@ -156,7 +156,7 @@ function AddMember({ onClose }: { onClose: () => void }) {
           void (found ? grant() : lookup());
         }}
       >
-        <Field label="Account email" htmlFor="tm-email">
+        <Field label="E-mail du compte" htmlFor="tm-email">
           <Input
             id="tm-email"
             type="email"
@@ -165,22 +165,22 @@ function AddMember({ onClose }: { onClose: () => void }) {
               setEmail(e.target.value);
               setFound(undefined);
             }}
-            placeholder="name@example.com"
+            placeholder="nom@exemple.com"
             data-autofocus
           />
         </Field>
-        {found === null && <p className="rounded-md bg-ad-amber-soft px-3 py-2 text-[13px] text-ad-amber">No account uses this email. Ask the person to register on the store first.</p>}
+        {found === null && <p className="rounded-md bg-ad-amber-soft px-3 py-2 text-[13px] text-ad-amber">Aucun compte n’utilise cet e-mail. Demandez à la personne de s’inscrire d’abord sur la boutique.</p>}
         {found && (
           <div className="flex items-center gap-3 rounded-md border border-ad-border p-3">
             <Avatar name={found.name} />
             <div className="min-w-0 flex-1 text-[13px]">
               <p className="font-medium">{found.name}</p>
               <p className="truncate text-ad-muted">
-                {found.email} · currently {ROLE[found.role].label.toLowerCase()}
+                {found.email} · actuellement {ROLE[found.role].label.toLowerCase()}
               </p>
             </div>
             <div className="w-28">
-              <Select ariaLabel="New role" size="sm" value={role} onChange={setRole} options={[{ value: "staff", label: "Staff" }, { value: "admin", label: "Admin" }]} />
+              <Select ariaLabel="Nouveau rôle" size="sm" value={role} onChange={setRole} options={[{ value: "staff", label: "Équipe" }, { value: "admin", label: "Administrateur" }]} />
             </div>
           </div>
         )}
@@ -223,27 +223,27 @@ export function AuditPage() {
   const [open, setOpen] = useState<AuditRow | null>(null);
   const setQ = useCallback((v: string) => set({ q: v }), [set]);
   const columns: Column<AuditRow>[] = [
-    { id: "when", header: "When", width: "170px", mobile: true, cell: (a) => <span className="whitespace-nowrap text-ad-muted">{fmtFull(a.createdAt)}</span> },
+    { id: "when", header: "Quand", width: "170px", mobile: true, cell: (a) => <span className="whitespace-nowrap text-ad-muted">{fmtFull(a.createdAt)}</span> },
     {
       id: "actor",
-      header: "Who",
+      header: "Qui",
       mobile: true,
       cell: (a) => (
         <span className="flex items-center gap-2">
-          <Avatar name={a.actorName ?? "System"} size={22} />
-          <span className="truncate">{a.actorName ?? "System"}</span>
+          <Avatar name={a.actorName ?? "Système"} size={22} />
+          <span className="truncate">{a.actorName ?? "Système"}</span>
         </span>
       ),
     },
     { id: "action", header: "Action", primary: true, cell: (a) => <span className="font-medium">{actionLabel(a.action)}</span> },
     {
       id: "entity",
-      header: "Target",
+      header: "Cible",
       cell: (a) => {
         const href = entityHref(a);
         const label = (
           <span className="flex items-center gap-1.5">
-            <Badge>{a.entityType}</Badge>
+            <Badge>{ENTITY_LABEL[a.entityType] ?? a.entityType}</Badge>
             {a.entityId && <Mono className="truncate text-ad-muted">{a.entityId.length > 14 ? `${a.entityId.slice(0, 8)}…` : a.entityId}</Mono>}
           </span>
         );
@@ -260,42 +260,42 @@ export function AuditPage() {
   ];
   return (
     <>
-      <PageHeader title="Audit log" description="Every administrative change, who made it and from where. Entries can't be edited or deleted." />
+      <PageHeader title="Journal d’audit" description="Chaque modification administrative, son auteur et sa provenance. Les entrées ne peuvent être ni modifiées ni supprimées." />
       <Card padded={false}>
         <Toolbar>
-          <SearchBox value={state.q} onChange={setQ} placeholder="Action, target, person…" label="Search audit log" />
-          <FilterSelect label="Target" value={state.entity} onChange={(v) => set({ entity: v })} options={(q.data?.entityTypes ?? []).map((t) => ({ value: t, label: t, text: t }))} />
+          <SearchBox value={state.q} onChange={setQ} placeholder="Action, cible, personne…" label="Rechercher dans le journal" />
+          <FilterSelect label="Cible" value={state.entity} onChange={(v) => set({ entity: v })} options={(q.data?.entityTypes ?? []).map((t) => ({ value: t, label: ENTITY_LABEL[t] ?? t, text: ENTITY_LABEL[t] ?? t }))} />
           <FilterSelect
-            label="Period"
-            allLabel="All time"
+            label="Période"
+            allLabel="Depuis le début"
             width="w-[170px]"
             value={state.range as "" | "1"}
             onChange={(v) => set({ range: v })}
             options={[
-              { value: "1", label: "Last 24 hours", text: "Last 24 hours" },
-              { value: "7" as "1", label: "Last 7 days", text: "Last 7 days" },
-              { value: "30" as "1", label: "Last 30 days", text: "Last 30 days" },
+              { value: "1", label: "Dernières 24 heures", text: "Dernières 24 heures" },
+              { value: "7" as "1", label: "7 derniers jours", text: "7 derniers jours" },
+              { value: "30" as "1", label: "30 derniers jours", text: "30 derniers jours" },
             ]}
           />
           <ResetFilters count={activeCount + (state.q ? 1 : 0)} onReset={reset} />
         </Toolbar>
-        <DataTable label="Audit log" rows={q.data?.items} rowId={(a) => a.id} columns={columns} loading={q.loading} stale={q.stale} error={q.error} onRetry={q.reload} onRowClick={setOpen} empty={<EmptyState icon={<ScrollText size={18} />} title="No entries" />} />
+        <DataTable label="Journal d’audit" rows={q.data?.items} rowId={(a) => a.id} columns={columns} loading={q.loading} stale={q.stale} error={q.error} onRetry={q.reload} onRowClick={setOpen} empty={<EmptyState icon={<ScrollText size={18} />} title="Aucune entrée" />} />
         <Pagination page={Number(state.page)} pageSize={50} total={q.data?.total} onPage={(p) => set({ page: String(p) }, { keepPage: true })} />
       </Card>
       {open && (
-        <Drawer open onClose={() => setOpen(null)} width={560} title={actionLabel(open.action)} description={`${open.actorName ?? "System"} · ${fmtFull(open.createdAt)}`}>
+        <Drawer open onClose={() => setOpen(null)} width={560} title={actionLabel(open.action)} description={`${open.actorName ?? "Système"} · ${fmtFull(open.createdAt)}`}>
           <dl className="mb-5 grid grid-cols-[100px_1fr] gap-y-2 text-[13px]">
-            <dt className="text-ad-muted">Actor</dt>
+            <dt className="text-ad-muted">Auteur</dt>
             <dd>{open.actorEmail ?? "—"}</dd>
-            <dt className="text-ad-muted">Target</dt>
+            <dt className="text-ad-muted">Cible</dt>
             <dd>
-              {open.entityType} <Mono className="text-ad-muted">{open.entityId}</Mono>
+              {ENTITY_LABEL[open.entityType] ?? open.entityType} <Mono className="text-ad-muted">{open.entityId}</Mono>
             </dd>
             <dt className="text-ad-muted">IP</dt>
             <dd>
               <Mono>{open.ip ?? "—"}</Mono>
             </dd>
-            <dt className="text-ad-muted">Device</dt>
+            <dt className="text-ad-muted">Appareil</dt>
             <dd className="break-words text-ad-muted">{open.userAgent ?? "—"}</dd>
           </dl>
           <div className="grid gap-3">
@@ -321,36 +321,36 @@ export function SubscribersPage() {
   const q = useApi<Paged<Subscriber>>(withQuery("/admin/newsletter", { q: state.q, status: state.status, page: state.page, pageSize: 50 }));
   const setQ = useCallback((v: string) => set({ q: v }), [set]);
   const columns: Column<Subscriber>[] = [
-    { id: "email", header: "Email", primary: true, cell: (s) => <span className="font-medium">{s.email}</span> },
-    { id: "locale", header: "Language", mobile: true, width: "110px", cell: (s) => <Badge>{s.locale === "ar" ? "Arabic" : "French"}</Badge> },
-    { id: "status", header: "Status", mobile: true, width: "140px", cell: (s) => (s.unsubscribedAt ? <Badge>Unsubscribed</Badge> : <Badge tone="green" dot>Subscribed</Badge>) },
-    { id: "date", header: "Since", align: "end", width: "140px", cell: (s) => <span className="text-ad-muted">{fmtDate(s.createdAt)}</span> },
+    { id: "email", header: "E-mail", primary: true, cell: (s) => <span className="font-medium">{s.email}</span> },
+    { id: "locale", header: "Langue", mobile: true, width: "110px", cell: (s) => <Badge>{s.locale === "ar" ? "Arabe" : "Français"}</Badge> },
+    { id: "status", header: "Statut", mobile: true, width: "140px", cell: (s) => (s.unsubscribedAt ? <Badge>Désinscrit</Badge> : <Badge tone="green" dot>Inscrit</Badge>) },
+    { id: "date", header: "Depuis le", align: "end", width: "140px", cell: (s) => <span className="text-ad-muted">{fmtDate(s.createdAt)}</span> },
   ];
   return (
     <>
       <PageHeader
-        title="Subscribers"
-        description="Newsletter sign-ups from the store footer."
+        title="Abonnés"
+        description="Les inscriptions à la newsletter depuis le pied de page de la boutique."
         actions={
           <Button onClick={() => downloadUrl("/api/v1/admin/newsletter/export")}>
-            <Download size={14} /> Export subscribed
+            <Download size={14} /> Exporter les inscrits
           </Button>
         }
       />
       <Card padded={false}>
         <Toolbar>
-          <SearchBox value={state.q} onChange={setQ} placeholder="Search emails…" label="Search subscribers" />
+          <SearchBox value={state.q} onChange={setQ} placeholder="Rechercher un e-mail…" label="Rechercher des abonnés" />
           <FilterSelect
-            label="Status"
+            label="Statut"
             value={state.status as "" | "subscribed"}
             onChange={(v) => set({ status: v })}
             options={[
-              { value: "subscribed", label: "Subscribed", text: "Subscribed" },
-              { value: "unsubscribed" as "subscribed", label: "Unsubscribed", text: "Unsubscribed" },
+              { value: "subscribed", label: "Inscrits", text: "Inscrits" },
+              { value: "unsubscribed" as "subscribed", label: "Désinscrits", text: "Désinscrits" },
             ]}
           />
         </Toolbar>
-        <DataTable label="Subscribers" rows={q.data?.items} rowId={(s) => s.id} columns={columns} loading={q.loading} stale={q.stale} error={q.error} onRetry={q.reload} empty={<EmptyState icon={<Mail size={18} />} title="No subscribers" />} />
+        <DataTable label="Abonnés" rows={q.data?.items} rowId={(s) => s.id} columns={columns} loading={q.loading} stale={q.stale} error={q.error} onRetry={q.reload} empty={<EmptyState icon={<Mail size={18} />} title="Aucun abonné" />} />
         <Pagination page={Number(state.page)} pageSize={50} total={q.data?.total} onPage={(p) => set({ page: String(p) }, { keepPage: true })} />
       </Card>
     </>
@@ -369,12 +369,12 @@ export function SettingsPage() {
   const { can } = useSession();
   const { state } = useUrlState({ tab: "" });
   const tabs = [
-    { value: "", label: "Account" },
-    ...(can("settings:manage") ? [{ value: "system", label: "System" }] : []),
+    { value: "", label: "Compte" },
+    ...(can("settings:manage") ? [{ value: "system", label: "Système" }] : []),
   ];
   return (
     <>
-      <PageHeader title="Settings" description="Your account and, for admins, store operations." />
+      <PageHeader title="Paramètres" description="Votre compte et, pour les administrateurs, l’exploitation de la boutique." />
       <div className="mb-4">
         <Tabs value={state.tab} onChange={(v) => window.history.replaceState(null, "", v ? `?tab=${v}` : window.location.pathname)} tabs={tabs} />
       </div>
@@ -394,33 +394,33 @@ function AccountSettings() {
   const { pref, setPref } = useThemePref();
 
   const saveName = async () => {
-    if (name.trim().length < 2) return toast.error("Name must be at least 2 characters");
+    if (name.trim().length < 2) return toast.error("Le nom doit contenir au moins 2 caractères");
     setSavingName(true);
     try {
       await adminApi("/me", { method: "PATCH", body: { name: name.trim() } });
       await refresh();
-      toast.success("Name updated");
+      toast.success("Nom mis à jour");
     } catch (err) {
-      toast.error("Couldn't save", errorMessage(err));
+      toast.error("Enregistrement impossible", errorMessage(err));
     } finally {
       setSavingName(false);
     }
   };
   const savePw = async () => {
     const e: Record<string, string> = {};
-    if (!pw.current) e.current = "Enter your current password";
-    if (pw.next.length < 8) e.next = "At least 8 characters";
-    if (pw.next !== pw.confirm) e.confirm = "Passwords don't match";
+    if (!pw.current) e.current = "Saisissez votre mot de passe actuel";
+    if (pw.next.length < 8) e.next = "Au moins 8 caractères";
+    if (pw.next !== pw.confirm) e.confirm = "Les mots de passe ne correspondent pas";
     setPwErr(e);
     if (Object.keys(e).length) return;
     setSavingPw(true);
     try {
       await adminApi("/auth/password/change", { method: "POST", body: { currentPassword: pw.current, newPassword: pw.next } });
       setPw({ current: "", next: "", confirm: "" });
-      toast.success("Password changed", "Your other sessions were signed out.");
+      toast.success("Mot de passe modifié", "Vos autres sessions ont été déconnectées.");
     } catch (err) {
-      if (err instanceof ApiError && err.code === "INVALID_CREDENTIALS") setPwErr({ current: "Incorrect password" });
-      else toast.error("Couldn't change password", errorMessage(err));
+      if (err instanceof ApiError && err.code === "INVALID_CREDENTIALS") setPwErr({ current: "Mot de passe incorrect" });
+      else toast.error("Impossible de changer le mot de passe", errorMessage(err));
     } finally {
       setSavingPw(false);
     }
@@ -429,7 +429,7 @@ function AccountSettings() {
   return (
     <div className="grid max-w-3xl gap-4">
       <Card>
-        <CardHeader title="Profile" description={`Signed in as ${user.email} · ${ROLE[user.role].label}`} />
+        <CardHeader title="Profil" description={`Connecté en tant que ${user.email} · ${ROLE[user.role].label}`} />
         <form
           className="flex flex-col gap-3 sm:flex-row sm:items-end"
           onSubmit={(e) => {
@@ -437,16 +437,16 @@ function AccountSettings() {
             void saveName();
           }}
         >
-          <Field label="Display name" htmlFor="me-name" className="flex-1">
+          <Field label="Nom affiché" htmlFor="me-name" className="flex-1">
             <Input id="me-name" value={name} maxLength={80} onChange={(e) => setName(e.target.value)} />
           </Field>
           <Button type="submit" loading={savingName} disabled={name.trim() === user.name}>
-            Save
+            Enregistrer
           </Button>
         </form>
       </Card>
       <Card>
-        <CardHeader title="Password" description="Changing it signs you out on your other devices." />
+        <CardHeader title="Mot de passe" description="Le modifier vous déconnecte de vos autres appareils." />
         <form
           className="grid gap-3 sm:grid-cols-3"
           onSubmit={(e) => {
@@ -454,24 +454,24 @@ function AccountSettings() {
             void savePw();
           }}
         >
-          <Field label="Current" htmlFor="pw-cur" error={pwErr.current}>
+          <Field label="Mot de passe actuel" htmlFor="pw-cur" error={pwErr.current}>
             <Input id="pw-cur" type="password" autoComplete="current-password" value={pw.current} invalid={Boolean(pwErr.current)} onChange={(e) => setPw({ ...pw, current: e.target.value })} />
           </Field>
-          <Field label="New" htmlFor="pw-new" error={pwErr.next}>
+          <Field label="Nouveau mot de passe" htmlFor="pw-new" error={pwErr.next}>
             <Input id="pw-new" type="password" autoComplete="new-password" value={pw.next} invalid={Boolean(pwErr.next)} onChange={(e) => setPw({ ...pw, next: e.target.value })} />
           </Field>
-          <Field label="Confirm new" htmlFor="pw-conf" error={pwErr.confirm}>
+          <Field label="Confirmer le nouveau mot de passe" htmlFor="pw-conf" error={pwErr.confirm}>
             <Input id="pw-conf" type="password" autoComplete="new-password" value={pw.confirm} invalid={Boolean(pwErr.confirm)} onChange={(e) => setPw({ ...pw, confirm: e.target.value })} />
           </Field>
           <div className="sm:col-span-3">
             <Button type="submit" loading={savingPw}>
-              Change password
+              Changer le mot de passe
             </Button>
           </div>
         </form>
       </Card>
       <Card>
-        <CardHeader title="Appearance" description="Stored on this device." />
+        <CardHeader title="Apparence" description="Mémorisée sur cet appareil." />
         <div className="grid grid-cols-3 gap-2 sm:max-w-md">
           {(["light", "dark", "system"] as const).map((t) => (
             <button
@@ -481,7 +481,7 @@ function AccountSettings() {
               onClick={() => setPref(t)}
               className={cn("cursor-pointer rounded-lg border px-3 py-2.5 text-[13px] capitalize transition-colors", pref === t ? "border-ad-fg bg-ad-subtle font-medium" : "border-ad-border hover:border-ad-border-strong")}
             >
-              {t}
+              {{ light: "Clair", dark: "Sombre", system: "Système" }[t]}
             </button>
           ))}
         </div>
@@ -490,6 +490,41 @@ function AccountSettings() {
   );
 }
 
+
+const ENTITY_LABEL: Record<string, string> = {
+  order: "Commande",
+  product: "Produit",
+  category: "Catégorie",
+  promotion: "Code promo",
+  review: "Avis",
+  user: "Utilisateur",
+  customer: "Client",
+  carrier: "Transporteur",
+  variant: "Variante",
+  inventory: "Stock",
+  system: "Système",
+  newsletter: "Newsletter",
+};
+const COUNT_LABEL: Record<string, string> = {
+  users: "Utilisateurs",
+  products: "Produits",
+  orders: "Commandes",
+  guestCarts: "Paniers invités",
+  staleGuestCarts: "Paniers invités abandonnés",
+  activeSessions: "Sessions actives",
+  auditEntries: "Entrées du journal d’audit",
+  expiredRateLimits: "Compteurs de limitation expirés",
+};
+const CONFIG_LABEL: Record<string, string> = {
+  environment: "Environnement",
+  appUrl: "URL de la boutique",
+  mailDriver: "Envoi des e-mails",
+  storageDriver: "Stockage des fichiers",
+  googleSignIn: "Connexion Google",
+  accessTokenTtlSec: "Durée du jeton d’accès (s)",
+  refreshTokenTtlDays: "Durée de session (jours)",
+  trustProxyHops: "Proxys de confiance",
+};
 
 function SystemSettings() {
   const toast = useToast();
@@ -503,15 +538,15 @@ function SystemSettings() {
     try {
       const dry = await adminApi<{ matched: number }>("/admin/system/purge-carts", { method: "POST", body: { days: Number(days), dryRun: true } });
       if (dry.matched === 0) {
-        toast(`No guest carts older than ${days} days`);
+        toast(`Aucun panier invité de plus de ${days} jours`);
         return;
       }
-      if (!(await confirm({ title: `Delete ${dry.matched} abandoned guest cart${dry.matched === 1 ? "" : "s"}?`, description: `Guest carts untouched for ${days} days. They hold no stock; signed-in customers' carts are never touched.`, confirmLabel: "Delete carts", variant: "danger" }))) return;
+      if (!(await confirm({ title: `Supprimer ${dry.matched} panier${dry.matched === 1 ? "" : "s"} invité${dry.matched === 1 ? "" : "s"} abandonné${dry.matched === 1 ? "" : "s"} ?`, description: `Paniers invités inactifs depuis ${days} jours. Ils ne réservent aucun stock ; les paniers des clients connectés ne sont jamais touchés.`, confirmLabel: "Supprimer les paniers", variant: "danger" }))) return;
       const r = await adminApi<{ deleted: number }>("/admin/system/purge-carts", { method: "POST", body: { days: Number(days) } });
       invalidate("/admin/system");
-      toast.success(`${r.deleted} cart${r.deleted === 1 ? "" : "s"} deleted`);
+      toast.success(`${r.deleted} panier${r.deleted === 1 ? "" : "s"} supprimé${r.deleted === 1 ? "" : "s"}`);
     } catch (err) {
-      toast.error("Cleanup failed", errorMessage(err));
+      toast.error("Échec du nettoyage", errorMessage(err));
     } finally {
       setBusy(null);
     }
@@ -521,9 +556,9 @@ function SystemSettings() {
     try {
       const r = await adminApi<{ deleted: number }>("/admin/system/rate-limits", { method: "POST" });
       invalidate("/admin/system");
-      toast.success(`${r.deleted} expired counters removed`);
+      toast.success(`${r.deleted} compteur${r.deleted === 1 ? "" : "s"} expiré${r.deleted === 1 ? "" : "s"} supprimé${r.deleted === 1 ? "" : "s"}`);
     } catch (err) {
-      toast.error("Cleanup failed", errorMessage(err));
+      toast.error("Échec du nettoyage", errorMessage(err));
     } finally {
       setBusy(null);
     }
@@ -532,53 +567,53 @@ function SystemSettings() {
   return (
     <div className="grid max-w-3xl gap-4">
       <Card>
-        <CardHeader title="Status" description={`Database ${s.database.engine} · ${s.database.latencyMs} ms`} actions={<Badge tone={s.database.ok ? "green" : "red"} dot>{s.database.ok ? "Healthy" : "Unavailable"}</Badge>} />
+        <CardHeader title="État" description={`Base de données ${s.database.engine} · ${s.database.latencyMs} ms`} actions={<Badge tone={s.database.ok ? "green" : "red"} dot>{s.database.ok ? "Opérationnelle" : "Indisponible"}</Badge>} />
         <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-md border border-ad-border bg-ad-border text-[13px] sm:grid-cols-4">
           {Object.entries(s.counts).map(([k, v]) => (
             <div key={k} className="bg-ad-panel p-3">
-              <dt className="text-xs capitalize text-ad-muted">{k.replace(/([A-Z])/g, " $1").toLowerCase()}</dt>
+              <dt className="text-xs capitalize text-ad-muted">{COUNT_LABEL[k] ?? k}</dt>
               <dd className="tnum mt-0.5 font-semibold">{num(v)}</dd>
             </div>
           ))}
         </dl>
       </Card>
       <Card>
-        <CardHeader title="Configuration" description="Read-only; set through environment variables on the server." />
+        <CardHeader title="Configuration" description="Lecture seule ; définie par les variables d’environnement du serveur." />
         <dl className="grid grid-cols-[minmax(140px,auto)_1fr] gap-x-4 gap-y-2 text-[13px]">
           {Object.entries(s.config).map(([k, v]) => (
             <div key={k} className="contents">
-              <dt className="text-ad-muted">{k.replace(/([A-Z])/g, " $1").replace(/^./, (c) => c.toUpperCase())}</dt>
+              <dt className="text-ad-muted">{CONFIG_LABEL[k] ?? k}</dt>
               <dd>
-                <Mono>{String(v)}</Mono>
+                <Mono>{typeof v === "boolean" ? (v ? "oui" : "non") : String(v)}</Mono>
               </dd>
             </div>
           ))}
         </dl>
       </Card>
       <Card>
-        <CardHeader title="Housekeeping" />
+        <CardHeader title="Maintenance" />
         <div className="space-y-5">
           <div className="flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
             <div className="text-[13px]">
-              <p className="font-medium">Abandoned guest carts</p>
-              <p className="text-ad-muted">{num(s.counts.staleGuestCarts)} older than 60 days.</p>
+              <p className="font-medium">Paniers invités abandonnés</p>
+              <p className="text-ad-muted">{num(s.counts.staleGuestCarts)} de plus de 60 jours.</p>
             </div>
             <div className="flex items-end gap-2">
               <div className="w-36">
-                <Select size="sm" ariaLabel="Older than" value={days} onChange={setDays} options={["30", "60", "90", "180"].map((d) => ({ value: d, label: `Older than ${d} days` }))} />
+                <Select size="sm" ariaLabel="Plus anciens que" value={days} onChange={setDays} options={["30", "60", "90", "180"].map((d) => ({ value: d, label: `Plus de ${d} jours` }))} />
               </div>
               <Button size="sm" loading={busy === "purge"} onClick={purge}>
-                Clean up
+                Nettoyer
               </Button>
             </div>
           </div>
           <div className="flex flex-col gap-3 border-t border-ad-border pt-5 sm:flex-row sm:items-center sm:justify-between">
             <div className="text-[13px]">
-              <p className="font-medium">Expired rate-limit counters</p>
-              <p className="text-ad-muted">{num(s.counts.expiredRateLimits)} expired entries.</p>
+              <p className="font-medium">Compteurs de limitation expirés</p>
+              <p className="text-ad-muted">{num(s.counts.expiredRateLimits)} entrées expirées.</p>
             </div>
             <Button size="sm" loading={busy === "limits"} onClick={clearLimits}>
-              Clear
+              Effacer
             </Button>
           </div>
         </div>

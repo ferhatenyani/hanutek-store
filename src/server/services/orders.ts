@@ -588,9 +588,12 @@ const csvCell = (v: unknown) => {
 export async function exportOrdersCsv(query: AdminOrderQuery): Promise<string> {
   const db = await getDb();
   const rows = await db.select().from(orders).where(orderWhere(query)).orderBy(desc(orders.placedAt)).limit(5000);
-  const header = ["number", "placed_at", "status", "payment_status", "customer", "phone", "email", "wilaya", "commune", "subtotal", "discount", "shipping_fee", "total", "promo_code", "carrier", "tracking_number"];
+  // French headers and statuses: the export is for the (French-only) back office
+  const header = ["numero", "date", "statut", "paiement", "client", "telephone", "email", "wilaya", "commune", "sous_total", "reduction", "frais_livraison", "total", "code_promo", "transporteur", "numero_suivi"];
+  const STATUS_FR: Record<string, string> = { pending: "En attente", confirmed: "Confirmée", packed: "Préparée", shipped: "Expédiée", out_for_delivery: "En livraison", delivered: "Livrée", cancelled: "Annulée", returned: "Retournée" };
+  const PAY_FR: Record<string, string> = { unpaid: "Non payée", paid: "Payée", refunded: "Remboursée" };
   const lines = rows.map((o) =>
-    [o.number, o.placedAt.toISOString(), o.status, o.paymentStatus, o.contactName, o.contactPhone, o.contactEmail, o.shipWilaya, o.shipCommune, o.subtotal, o.discount, o.shippingFee, o.total, o.promotionCode, o.carrier, o.trackingNumber]
+    [o.number, o.placedAt.toISOString(), STATUS_FR[o.status] ?? o.status, PAY_FR[o.paymentStatus] ?? o.paymentStatus, o.contactName, o.contactPhone, o.contactEmail, o.shipWilaya, o.shipCommune, o.subtotal, o.discount, o.shippingFee, o.total, o.promotionCode, o.carrier, o.trackingNumber]
       .map(csvCell)
       .join(","),
   );

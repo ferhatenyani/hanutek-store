@@ -41,7 +41,8 @@ export function actorOf(ctx: Ctx<Record<string, string>>): AuditActor & { role: 
 /** Drop cached catalogue pages/data after admin writes (no-op outside a Next request, e.g. tests). */
 export function invalidateCatalog(slug?: string) {
   try {
-    revalidateTag(CATALOG_TAG, "max");
+    // { expire: 0 }: prices, stock and availability must never be served stale after a write
+    revalidateTag(CATALOG_TAG, { expire: 0 });
     revalidatePath("/");
     revalidatePath("/products");
     if (slug) revalidatePath(`/products/${slug}`);

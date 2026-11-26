@@ -9,7 +9,7 @@ export const USERS = {
 export type Who = keyof typeof USERS;
 
 /** Console noise that is expected and not an application error. */
-const IGNORED = [/Failed to load resource/i, /status of 40[13]/i, /status of 409/i, /status of 422/i, /Download the React DevTools/i];
+const IGNORED = [/Failed to load resource/i, /status sur 40[13]/i, /status sur 409/i, /status sur 422/i, /Download the React DevTools/i];
 
 /**
  * Every test fails if the page throws or logs a console error — catches
@@ -33,9 +33,9 @@ export { expect };
 
 export async function login(page: Page, who: Who, next?: string) {
   await page.goto(`/admin/login${next ? `?next=${encodeURIComponent(next)}` : ""}`);
-  await page.getByLabel("Email").fill(USERS[who].email);
-  await page.getByLabel("Password", { exact: true }).fill(USERS[who].password);
-  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.getByLabel("E-mail").fill(USERS[who].email);
+  await page.getByLabel("Mot de passe", { exact: true }).fill(USERS[who].password);
+  await page.getByRole("button", { name: "Se connecter" }).click();
 }
 
 /** A fresh, signed-in context for another user (e.g. a second admin tab or a staff member). */

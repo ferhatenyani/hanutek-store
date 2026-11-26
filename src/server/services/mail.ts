@@ -17,6 +17,16 @@ const esc = (s: string) =>
 
 export async function sendMail(mail: Mail): Promise<void> {
   const e = env();
+  if (e.MAIL_DRIVER === "file") {
+    // Local/E2E inspection: one JSON file per message, newest sorts last.
+    const { mkdir, writeFile } = await import("node:fs/promises");
+    const path = await import("node:path");
+    const dir = path.resolve(e.MAIL_OUTBOX_DIR ?? ".data/outbox");
+    await mkdir(dir, { recursive: true });
+    const name = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}.json`;
+    await writeFile(path.join(dir, name), JSON.stringify({ ...mail, sentAt: new Date().toISOString() }));
+    return;
+  }
   if (e.MAIL_DRIVER === "console") {
     outbox.push(mail);
     if (outbox.length > 50) outbox.shift();

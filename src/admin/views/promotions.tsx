@@ -16,11 +16,11 @@ import { DatePicker } from "../ui/date-picker";
 
 type PromoState = "active" | "scheduled" | "expired" | "paused" | "exhausted";
 const STATE: Record<PromoState, { label: string; tone: Tone }> = {
-  active: { label: "Active", tone: "green" },
-  scheduled: { label: "Scheduled", tone: "blue" },
-  expired: { label: "Expired", tone: "neutral" },
-  paused: { label: "Paused", tone: "amber" },
-  exhausted: { label: "Used up", tone: "neutral" },
+  active: { label: "Actif", tone: "green" },
+  scheduled: { label: "Programmé", tone: "blue" },
+  expired: { label: "Expiré", tone: "neutral" },
+  paused: { label: "En pause", tone: "amber" },
+  exhausted: { label: "Épuisé", tone: "neutral" },
 };
 
 export function promoState(p: Promotion, now = Date.now()): PromoState {
@@ -32,7 +32,7 @@ export function promoState(p: Promotion, now = Date.now()): PromoState {
 }
 
 const describe = (p: Pick<Promotion, "type" | "value" | "maxDiscount" | "minSubtotal">) =>
-  `${p.type === "percent" ? `${p.value}% off` : `${dzd(p.value)} off`}${p.maxDiscount ? ` (max ${dzd(p.maxDiscount)})` : ""}${p.minSubtotal ? ` · orders over ${dzd(p.minSubtotal)}` : ""}`;
+  `${p.type === "percent" ? `−${p.value} %` : `−${dzd(p.value)}`}${p.maxDiscount ? ` (max. ${dzd(p.maxDiscount)})` : ""}${p.minSubtotal ? ` · dès ${dzd(p.minSubtotal)} d’achat` : ""}`;
 
 export function PromotionsPage() {
   const toast = useToast();
@@ -62,19 +62,19 @@ export function PromotionsPage() {
     try {
       await adminApi(`/admin/promotions/${p.id}`, { method: "PATCH", body: { isActive } });
       invalidate("/admin/promotions");
-      toast.success(isActive ? `${p.code} activated` : `${p.code} paused`);
+      toast.success(isActive ? `${p.code} activé` : `${p.code} mis en pause`);
     } catch (err) {
-      toast.error("Couldn't update", errorMessage(err));
+      toast.error("Mise à jour impossible", errorMessage(err));
     }
   };
   const remove = async (p: Promotion) => {
-    if (!(await confirm({ title: `Delete ${p.code}?`, description: "Unused codes can be deleted. Codes used on orders can only be paused.", confirmLabel: "Delete", variant: "danger" }))) return;
+    if (!(await confirm({ title: `Supprimer ${p.code} ?`, description: "Un code jamais utilisé peut être supprimé. Un code déjà utilisé sur des commandes peut seulement être mis en pause.", confirmLabel: "Supprimer", variant: "danger" }))) return;
     try {
       await adminApi(`/admin/promotions/${p.id}`, { method: "DELETE" });
       invalidate("/admin/promotions");
-      toast.success("Code deleted");
+      toast.success("Code supprimé");
     } catch (err) {
-      toast.error("Couldn't delete", errorMessage(err));
+      toast.error("Suppression impossible", errorMessage(err));
     }
   };
 
@@ -90,20 +90,20 @@ export function PromotionsPage() {
         </span>
       ),
     },
-    { id: "state", header: "Status", mobile: true, width: "120px", cell: (p) => <Badge tone={STATE[promoState(p)].tone} dot>{STATE[promoState(p)].label}</Badge> },
-    { id: "rule", header: "Discount", cell: (p) => <span className="text-ad-muted">{describe(p)}</span> },
-    { id: "window", header: "Schedule", cell: (p) => <span className="whitespace-nowrap text-ad-muted">{p.startsAt || p.endsAt ? `${p.startsAt ? fmtDate(p.startsAt) : "Now"} → ${p.endsAt ? fmtDate(p.endsAt) : "No end"}` : "Always"}</span> },
-    { id: "uses", header: "Uses", align: "end", mobile: true, width: "90px", cell: (p) => <span>{num(p.usedCount)}{p.usageLimit ? <span className="text-ad-faint"> / {p.usageLimit}</span> : null}</span> },
-    { id: "revenue", header: "Sales", align: "end", width: "120px", cell: (p) => dzd(p.revenue) },
-    { id: "given", header: "Discount given", align: "end", width: "130px", cell: (p) => <span className="text-ad-muted">{dzd(p.discountGiven)}</span> },
+    { id: "state", header: "Statut", mobile: true, width: "120px", cell: (p) => <Badge tone={STATE[promoState(p)].tone} dot>{STATE[promoState(p)].label}</Badge> },
+    { id: "rule", header: "Réduction", cell: (p) => <span className="text-ad-muted">{describe(p)}</span> },
+    { id: "window", header: "Période", cell: (p) => <span className="whitespace-nowrap text-ad-muted">{p.startsAt || p.endsAt ? `${p.startsAt ? fmtDate(p.startsAt) : "Maintenant"} → ${p.endsAt ? fmtDate(p.endsAt) : "Sans fin"}` : "Toujours"}</span> },
+    { id: "uses", header: "Utilisations", align: "end", mobile: true, width: "90px", cell: (p) => <span>{num(p.usedCount)}{p.usageLimit ? <span className="text-ad-faint"> / {p.usageLimit}</span> : null}</span> },
+    { id: "revenue", header: "Ventes", align: "end", width: "120px", cell: (p) => dzd(p.revenue) },
+    { id: "given", header: "Réductions accordées", align: "end", width: "130px", cell: (p) => <span className="text-ad-muted">{dzd(p.discountGiven)}</span> },
     {
       id: "on",
-      header: "On",
+      header: "Actif",
       align: "end",
       width: "60px",
       cell: (p) => (
         <span data-no-row-click className="inline-flex">
-          <Switch checked={p.isActive} onChange={(v) => void toggle(p, v)} id={`promo-on-${p.id}`} ariaLabel={`Active: ${p.code}`} />
+          <Switch checked={p.isActive} onChange={(v) => void toggle(p, v)} id={`promo-on-${p.id}`} ariaLabel={`Actif : ${p.code}`} />
         </span>
       ),
     },
@@ -112,11 +112,11 @@ export function PromotionsPage() {
   return (
     <>
       <PageHeader
-        title="Promotions"
-        description="Discount codes customers enter at checkout. Limits and dates are enforced at checkout."
+        title="Codes promo"
+        description="Les codes saisis par les clients lors de la commande. Limites et dates sont vérifiées au moment de commander."
         actions={
           <Button variant="primary" onClick={() => setEditing("new")}>
-            <Plus size={15} /> New code
+            <Plus size={15} /> Nouveau code
           </Button>
         }
       />
@@ -126,19 +126,19 @@ export function PromotionsPage() {
             value={state.tab}
             onChange={(v) => set({ tab: v })}
             tabs={[
-              { value: "", label: "All", count: q.data?.items.length },
-              { value: "active", label: "Active", count: counts.active ?? 0 },
-              { value: "scheduled", label: "Scheduled", count: counts.scheduled ?? 0 },
-              { value: "paused", label: "Paused", count: counts.paused ?? 0 },
-              { value: "expired", label: "Expired", count: (counts.expired ?? 0) + (counts.exhausted ?? 0) },
+              { value: "", label: "Tous", count: q.data?.items.length },
+              { value: "active", label: "Actifs", count: counts.active ?? 0 },
+              { value: "scheduled", label: "Programmés", count: counts.scheduled ?? 0 },
+              { value: "paused", label: "En pause", count: counts.paused ?? 0 },
+              { value: "expired", label: "Expirés", count: (counts.expired ?? 0) + (counts.exhausted ?? 0) },
             ]}
           />
         </div>
         <Toolbar>
-          <SearchBox value={state.q} onChange={(v) => set({ q: v })} placeholder="Search codes…" label="Search promotions" />
+          <SearchBox value={state.q} onChange={(v) => set({ q: v })} placeholder="Rechercher un code…" label="Rechercher des codes promo" />
         </Toolbar>
         <DataTable
-          label="Discount codes"
+          label="Codes promo"
           rows={state.tab === "expired" ? (q.data?.items ?? []).filter((p) => ["expired", "exhausted"].includes(promoState(p))) : q.data ? items : undefined}
           rowId={(p) => p.id}
           columns={columns}
@@ -147,12 +147,12 @@ export function PromotionsPage() {
           onRetry={q.reload}
           onRowClick={(p) => set({ id: p.id })}
           rowActions={(p) => [
-            { label: "Edit", icon: <Pencil size={14} />, onSelect: () => setEditing(p) },
-            { label: "Copy code", icon: <Copy size={14} />, onSelect: () => void navigator.clipboard?.writeText(p.code).then(() => toast("Code copied")) },
+            { label: "Modifier", icon: <Pencil size={14} />, onSelect: () => setEditing(p) },
+            { label: "Copier le code", icon: <Copy size={14} />, onSelect: () => void navigator.clipboard?.writeText(p.code).then(() => toast("Code copié")) },
             { type: "separator" },
-            { label: "Delete", icon: <Trash2 size={14} />, danger: true, disabled: p.usedCount > 0, hint: p.usedCount > 0 ? "Used codes can only be paused" : undefined, onSelect: () => void remove(p) },
+            { label: "Supprimer", icon: <Trash2 size={14} />, danger: true, disabled: p.usedCount > 0, hint: p.usedCount > 0 ? "Un code utilisé peut seulement être mis en pause" : undefined, onSelect: () => void remove(p) },
           ]}
-          empty={<EmptyState icon={<TicketPercent size={18} />} title="No codes here" description="Create a code to run a campaign." action={<Button size="sm" variant="primary" onClick={() => setEditing("new")}>New code</Button>} />}
+          empty={<EmptyState icon={<TicketPercent size={18} />} title="Aucun code ici" description="Créez un code pour lancer une campagne." action={<Button size="sm" variant="primary" onClick={() => setEditing("new")}>Nouveau code</Button>} />}
         />
       </Card>
       {editing && (
@@ -198,11 +198,11 @@ function PromoDrawer({ promo, onClose }: { promo: Promotion | null; onClose: () 
   const set = (p: Partial<typeof f>) => setF((x) => ({ ...x, ...p }));
   const save = async () => {
     const e: Record<string, string> = {};
-    if (!/^[A-Za-z0-9_-]{2,40}$/.test(f.code)) e.code = "2–40 letters, numbers, - or _";
+    if (!/^[A-Za-z0-9_-]{2,40}$/.test(f.code)) e.code = "2 à 40 lettres, chiffres, - ou _";
     const v = Number(f.value);
-    if (!v) e.value = "Enter a value";
-    else if (f.type === "percent" && (v < 1 || v > 100)) e.value = "Between 1 and 100";
-    if (f.startsAt && f.endsAt && f.endsAt <= f.startsAt) e.endsAt = "Must be after the start";
+    if (!v) e.value = "Saisissez une valeur";
+    else if (f.type === "percent" && (v < 1 || v > 100)) e.value = "Entre 1 et 100";
+    if (f.startsAt && f.endsAt && f.endsAt <= f.startsAt) e.endsAt = "Doit être après le début";
     setErrors(e);
     if (Object.keys(e).length) return;
     setPending(true);
@@ -222,11 +222,11 @@ function PromoDrawer({ promo, onClose }: { promo: Promotion | null; onClose: () 
     try {
       await adminApi(promo ? `/admin/promotions/${promo.id}` : "/admin/promotions", { method: promo ? "PATCH" : "POST", body });
       invalidate("/admin/promotions");
-      toast.success(promo ? "Code saved" : `${body.code.toUpperCase()} created`);
+      toast.success(promo ? "Code enregistré" : `${body.code.toUpperCase()} créé`);
       onClose();
     } catch (err) {
       if (err instanceof ApiError && err.fields) setErrors(err.fields);
-      toast.error("Couldn't save", errorMessage(err));
+      toast.error("Enregistrement impossible", errorMessage(err));
     } finally {
       setPending(false);
     }
@@ -235,12 +235,12 @@ function PromoDrawer({ promo, onClose }: { promo: Promotion | null; onClose: () 
     <Drawer
       open
       onClose={onClose}
-      title={promo ? `Edit ${promo.code}` : "New discount code"}
+      title={promo ? `Modifier ${promo.code}` : "Nouveau code promo"}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>Annuler</Button>
           <Button variant="primary" loading={pending} onClick={save}>
-            {promo ? "Save" : "Create code"}
+            {promo ? "Enregistrer" : "Créer le code"}
           </Button>
         </>
       }
@@ -252,48 +252,48 @@ function PromoDrawer({ promo, onClose }: { promo: Promotion | null; onClose: () 
           void save();
         }}
       >
-        <Field label="Code" htmlFor="pr-code" error={errors.code} hint="Customers type this at checkout. Not case-sensitive.">
+        <Field label="Code" htmlFor="pr-code" error={errors.code} hint="Saisi par le client lors de la commande. Majuscules et minuscules indifférentes.">
           <Input id="pr-code" value={f.code} invalid={Boolean(errors.code)} maxLength={40} className="font-[family-name:var(--font-admin-mono)] uppercase" onChange={(e) => set({ code: e.target.value.toUpperCase().replace(/\s/g, "") })} data-autofocus />
         </Field>
-        <Field label="Internal description" optional htmlFor="pr-desc">
+        <Field label="Description interne" optional htmlFor="pr-desc">
           <Textarea id="pr-desc" rows={2} value={f.description} maxLength={300} onChange={(e) => set({ description: e.target.value })} />
         </Field>
         <div className="grid gap-3 sm:grid-cols-2">
           <Field label="Type">
-            <Segmented ariaLabel="Discount type" size="md" value={f.type} onChange={(type) => set({ type })} options={[{ value: "percent", label: "Percentage" }, { value: "fixed", label: "Fixed amount" }]} />
+            <Segmented ariaLabel="Type de réduction" size="md" value={f.type} onChange={(type) => set({ type })} options={[{ value: "percent", label: "Pourcentage" }, { value: "fixed", label: "Montant fixe" }]} />
           </Field>
-          <Field label="Value" htmlFor="pr-value" error={errors.value}>
+          <Field label="Valeur" htmlFor="pr-value" error={errors.value}>
             <Input id="pr-value" inputMode="numeric" suffix={f.type === "percent" ? "%" : "DA"} value={f.value} invalid={Boolean(errors.value)} onChange={(e) => set({ value: digits(e.target.value) })} />
           </Field>
-          <Field label="Minimum order" optional htmlFor="pr-min">
+          <Field label="Commande minimum" optional htmlFor="pr-min">
             <Input id="pr-min" inputMode="numeric" suffix="DA" value={f.minSubtotal} onChange={(e) => set({ minSubtotal: digits(e.target.value) })} />
           </Field>
           {f.type === "percent" && (
-            <Field label="Maximum discount" optional htmlFor="pr-max">
+            <Field label="Réduction maximum" optional htmlFor="pr-max">
               <Input id="pr-max" inputMode="numeric" suffix="DA" value={f.maxDiscount} onChange={(e) => set({ maxDiscount: digits(e.target.value) })} />
             </Field>
           )}
         </div>
         <div className="grid gap-3 border-t border-ad-border pt-4 sm:grid-cols-2">
-          <Field label="Starts" optional htmlFor="pr-start">
-            <DatePicker id="pr-start" value={f.startsAt} onChange={(v) => set({ startsAt: v })} placeholder="Immediately" />
+          <Field label="Début" optional htmlFor="pr-start">
+            <DatePicker id="pr-start" value={f.startsAt} onChange={(v) => set({ startsAt: v })} placeholder="Immédiatement" />
           </Field>
-          <Field label="Ends" optional htmlFor="pr-end" error={errors.endsAt}>
-            <DatePicker id="pr-end" value={f.endsAt} invalid={Boolean(errors.endsAt)} onChange={(v) => set({ endsAt: v })} placeholder="No end date" min={f.startsAt || undefined} />
+          <Field label="Fin" optional htmlFor="pr-end" error={errors.endsAt}>
+            <DatePicker id="pr-end" value={f.endsAt} invalid={Boolean(errors.endsAt)} onChange={(v) => set({ endsAt: v })} placeholder="Sans date de fin" min={f.startsAt || undefined} />
           </Field>
-          <Field label="Total uses" optional htmlFor="pr-limit" hint="Across all customers">
+          <Field label="Utilisations totales" optional htmlFor="pr-limit" hint="Tous clients confondus">
             <Input id="pr-limit" inputMode="numeric" value={f.usageLimit} onChange={(e) => set({ usageLimit: digits(e.target.value) })} />
           </Field>
-          <Field label="Uses per customer" optional htmlFor="pr-per" hint="Counted by account or phone">
+          <Field label="Utilisations par client" optional htmlFor="pr-per" hint="Comptées par compte ou par téléphone">
             <Input id="pr-per" inputMode="numeric" value={f.perUserLimit} onChange={(e) => set({ perUserLimit: digits(e.target.value) })} />
           </Field>
         </div>
         <div className="border-t border-ad-border pt-4">
-          <Switch checked={f.isActive} onChange={(isActive) => set({ isActive })} label="Active" description="Paused codes are refused at checkout." />
+          <Switch checked={f.isActive} onChange={(isActive) => set({ isActive })} label="Actif" description="Un code en pause est refusé au moment de commander." />
         </div>
         {f.value && (
           <p className="rounded-md bg-ad-subtle px-3 py-2 text-[13px] text-ad-muted">
-            Preview: <span className="text-ad-fg">{describe({ type: f.type, value: Number(f.value), maxDiscount: f.maxDiscount ? Number(f.maxDiscount) : null, minSubtotal: Number(f.minSubtotal) || 0 })}</span>
+            Aperçu : <span className="text-ad-fg">{describe({ type: f.type, value: Number(f.value), maxDiscount: f.maxDiscount ? Number(f.maxDiscount) : null, minSubtotal: Number(f.minSubtotal) || 0 })}</span>
           </p>
         )}
         <button type="submit" hidden />
@@ -315,9 +315,9 @@ function PromoDetails({ promo, onClose, onEdit }: { promo: Promotion; onClose: (
       description={describe(promo)}
       footer={
         <>
-          <Button onClick={onClose}>Close</Button>
+          <Button onClick={onClose}>Fermer</Button>
           <Button variant="primary" onClick={onEdit}>
-            <Pencil size={14} /> Edit
+            <Pencil size={14} /> Modifier
           </Button>
         </>
       }
@@ -330,9 +330,9 @@ function PromoDetails({ promo, onClose, onEdit }: { promo: Promotion; onClose: (
       </div>
       <dl className="mb-6 grid grid-cols-3 gap-px overflow-hidden rounded-lg border border-ad-border bg-ad-border text-[13px]">
         {[
-          ["Orders", num(promo.orderCount)],
-          ["Sales", dzd(promo.revenue)],
-          ["Discount given", dzd(promo.discountGiven)],
+          ["Commandes", num(promo.orderCount)],
+          ["Ventes", dzd(promo.revenue)],
+          ["Réductions accordées", dzd(promo.discountGiven)],
         ].map(([k, v]) => (
           <div key={k} className="bg-ad-panel p-3">
             <dt className="text-ad-muted">{k}</dt>
@@ -340,11 +340,11 @@ function PromoDetails({ promo, onClose, onEdit }: { promo: Promotion; onClose: (
           </div>
         ))}
       </dl>
-      <h3 className="mb-2 text-sm font-semibold">Redemptions</h3>
+      <h3 className="mb-2 text-sm font-semibold">Utilisations</h3>
       {!d ? (
-        <p className="text-[13px] text-ad-muted">Loading…</p>
+        <p className="text-[13px] text-ad-muted">Chargement…</p>
       ) : d.redemptions.length === 0 ? (
-        <p className="text-[13px] text-ad-muted">Not used yet.</p>
+        <p className="text-[13px] text-ad-muted">Pas encore utilisé.</p>
       ) : (
         <ul className="divide-y divide-ad-border rounded-md border border-ad-border">
           {d.redemptions.map((r) => (
@@ -360,7 +360,7 @@ function PromoDetails({ promo, onClose, onEdit }: { promo: Promotion; onClose: (
         </ul>
       )}
       <p className="mt-6 text-xs text-ad-faint">
-        Created {fmtDateTime(promo.createdAt)} · updated {fmtDateTime(promo.updatedAt)}
+        Créé le {fmtDateTime(promo.createdAt)} · modifié le {fmtDateTime(promo.updatedAt)}
       </p>
     </Drawer>
   );

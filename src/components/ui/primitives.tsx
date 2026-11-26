@@ -2,8 +2,8 @@
 
 import { cn } from "@/lib/utils";
 import { useI18n } from "@/i18n";
-import { Minus, Plus } from "lucide-react";
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode } from "react";
+import { Eye, EyeOff, Minus, Plus } from "lucide-react";
+import { useId, useState, type ButtonHTMLAttributes, type InputHTMLAttributes, type ReactNode } from "react";
 
 /* ---------- Button ---------- */
 
@@ -43,12 +43,15 @@ interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
   error?: string;
   hint?: string;
+  /** Classes for the wrapper (grid placement such as `sm:col-span-2`); `className` styles the input. */
+  containerClassName?: string;
 }
 
-export function Input({ label, error, hint, className, id, ...props }: InputProps) {
-  const inputId = id ?? props.name ?? label?.toLowerCase().replace(/\s+/g, "-");
+export function Input({ label, error, hint, className, containerClassName, id, ...props }: InputProps) {
+  const autoId = useId();
+  const inputId = id ?? (props.name ? `${props.name}-${autoId}` : autoId);
   return (
-    <div className="flex flex-col gap-1.5">
+    <div className={cn("flex flex-col gap-1.5", containerClassName)}>
       {label && (
         <label htmlFor={inputId} className="text-[13px] font-medium text-foreground">
           {label}
@@ -63,13 +66,63 @@ export function Input({ label, error, hint, className, id, ...props }: InputProp
           className,
         )}
         aria-invalid={error ? true : undefined}
+        aria-describedby={error || hint ? `${inputId}-msg` : undefined}
         {...props}
       />
       {error ? (
-        <p className="text-xs text-danger">{error}</p>
+        <p id={`${inputId}-msg`} className="text-xs text-danger">{error}</p>
       ) : hint ? (
-        <p className="text-xs text-faint">{hint}</p>
+        <p id={`${inputId}-msg`} className="text-xs text-faint">{hint}</p>
       ) : null}
+    </div>
+  );
+}
+
+/**
+ * Password input with a show/hide toggle. The label is a real <label for>,
+ * and `aside` (e.g. a "forgot password?" link) sits next to it — never inside
+ * it, so the field's accessible name stays just the label.
+ */
+export function PasswordField({
+  label,
+  aside,
+  showLabel,
+  hideLabel,
+  className,
+  ...props
+}: Omit<InputHTMLAttributes<HTMLInputElement>, "type"> & { label: string; aside?: ReactNode; showLabel: string; hideLabel: string }) {
+  const id = useId();
+  const [show, setShow] = useState(false);
+  return (
+    // grid: the aside sits beside the label visually but after the input in the
+    // DOM, so Tab goes e-mail → password → "forgot password?".
+    <div className="grid grid-cols-[1fr_auto] items-center gap-x-3 gap-y-1.5">
+      <label htmlFor={id} className="col-start-1 row-start-1 text-[13px] font-medium text-foreground">
+        {label}
+      </label>
+      <div className="relative col-span-2 row-start-2">
+        <input
+          id={id}
+          type={show ? "text" : "password"}
+          dir="ltr"
+          className={cn(
+            "h-11 w-full rounded-control border border-line bg-surface ps-3.5 pe-12 text-sm text-foreground transition-colors",
+            "placeholder:text-faint hover:border-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15",
+            className,
+          )}
+          {...props}
+        />
+        <button
+          type="button"
+          onClick={() => setShow((s) => !s)}
+          aria-label={show ? hideLabel : showLabel}
+          aria-pressed={show}
+          className="absolute end-0.5 top-1/2 grid h-10 w-10 -translate-y-1/2 cursor-pointer place-items-center rounded-control text-faint transition-colors hover:text-foreground"
+        >
+          {show ? <EyeOff size={16} /> : <Eye size={16} />}
+        </button>
+      </div>
+      {aside && <div className="col-start-2 row-start-1 justify-self-end">{aside}</div>}
     </div>
   );
 }

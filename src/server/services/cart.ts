@@ -113,9 +113,10 @@ export async function buildCartDTO(d: DbOrTx, cartId: string | undefined): Promi
   if (cart.promotionId) {
     const [p] = await d.select().from(promotions).where(eq(promotions.id, cart.promotionId));
     if (p) {
-      promo = { code: p.code, type: p.type, value: p.value };
       // Only discount while still eligible (e.g. min subtotal); checkout re-validates.
-      if (!(await ineligibility(d, p, { subtotal, userId: cart.userId }))) discount = computeDiscount(p, subtotal);
+      const reason = await ineligibility(d, p, { subtotal, userId: cart.userId });
+      promo = { code: p.code, type: p.type, value: p.value, maxDiscount: p.maxDiscount, minSubtotal: p.minSubtotal, ineligible: reason };
+      if (!reason) discount = computeDiscount(p, subtotal);
     }
   }
   return {

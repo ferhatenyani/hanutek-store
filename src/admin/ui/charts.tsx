@@ -153,7 +153,7 @@ export function TrendChart({
 }
 
 /** Ranked horizontal bars (top products, regions). */
-export function BarList({ items, format, empty = "No data for this period" }: { items: { key: string; label: ReactNode; value: number; href?: string; sub?: ReactNode }[]; format: (v: number) => string; empty?: string }) {
+export function BarList({ items, format, empty = "Aucune donnée sur cette période" }: { items: { key: string; label: ReactNode; value: number; href?: string; sub?: ReactNode }[]; format: (v: number) => string; empty?: string }) {
   const max = Math.max(1, ...items.map((i) => i.value));
   if (!items.length) return <p className="py-8 text-center text-[13px] text-ad-muted">{empty}</p>;
   return (

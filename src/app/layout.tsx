@@ -53,6 +53,13 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
             and runs the view transition. Scroll is restored inside that
             transition by NavigationTracker (components/product-morph.tsx).
             Same-pathname pops and reduced motion keep the native path.
+          - Aborted transitions: the browser rejects a running transition's
+            promises when it is skipped — e.g. Chrome on Android when the
+            keyboard closes during a navigation ("Viewport size changed").
+            React doesn't handle that rejection, so every such navigation
+            raised an uncaught error. The wrapper marks those promises
+            handled; the DOM update itself still runs (only the animation
+            is skipped).
         */}
         <script
           dangerouslySetInnerHTML={{
@@ -60,6 +67,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
 var N=navigator,lite=(N.deviceMemory>0&&N.deviceMemory<=2)||(N.hardwareConcurrency>0&&N.hardwareConcurrency<=2);
 if(lite){document.documentElement.setAttribute("data-lite","");try{Object.defineProperty(document,"startViewTransition",{value:undefined,configurable:true})}catch(x){}}
 if(!lite&&!("startViewTransition" in document))return;
+var svt=document.startViewTransition;
+if(svt){document.startViewTransition=function(){var t=svt.apply(document,arguments);try{var n=function(){};t.ready.catch(n);t.finished.catch(n);t.updateCallbackDone.catch(n)}catch(x){}return t}}
 var T=["/","/products","/favorites","/profile"];
 function ix(p){p=(p||"").split(/[?#]/)[0];if(p==="/")return 0;for(var i=1;i<4;i++){if(p===T[i]||p.indexOf(T[i]+"/")===0)return i}return 4}
 function dir(f,t){var a=ix(f),b=ix(t);if(a!==b)return b>a?"nav-forward":"nav-back";return t.split("/").length>=f.split("/").length?"nav-forward":"nav-back"}

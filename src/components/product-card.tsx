@@ -167,7 +167,7 @@ export function ProductCard({
           <h3
             dir="ltr"
             className={cn(
-              "mt-1 line-clamp-1 text-sm font-semibold leading-snug text-foreground rtl:text-right",
+              "mt-1 line-clamp-1 text-sm font-semibold leading-snug text-foreground [overflow-wrap:anywhere] rtl:text-right",
               "max-lg:mt-0 max-lg:line-clamp-2 max-lg:min-h-[2.6em] max-lg:text-[13.5px] max-lg:leading-[1.3] max-lg:tracking-[-0.005em]",
               "max-lg:@[14rem]:min-h-0 max-lg:@[14rem]:line-clamp-1 max-lg:@[14rem]:text-[15px] max-lg:@[16rem]:text-[16px]",
             )}

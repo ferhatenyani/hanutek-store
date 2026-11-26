@@ -6,7 +6,7 @@ import { CornerDownLeft, LogOut, Moon, Package, Plus, ReceiptText, Search, Sun, 
 import { cn } from "@/lib/utils";
 import { adminApi, withQuery } from "../lib/client";
 import { dzd } from "../lib/format";
-import { ORDER_STATUS } from "../lib/meta";
+import { ORDER_STATUS, PRODUCT_STATUS } from "../lib/meta";
 import { Portal, useLayer } from "../ui/floating";
 import { Kbd, Spinner } from "../ui/core";
 import { ALL_NAV } from "./nav";
@@ -49,7 +49,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
   const base: Cmd[] = useMemo(() => {
     const nav = ALL_NAV.filter((n) => !n.permission || can(n.permission)).map<Cmd>((n) => ({
       id: `nav:${n.href}`,
-      group: "Go to",
+      group: "Aller à",
       label: n.label,
       text: `${n.label} ${n.keywords ?? ""}`,
       icon: <n.icon size={15} />,
@@ -62,20 +62,20 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       run: () => go(n.href),
     }));
     const actions: Cmd[] = [];
-    if (can("catalog:write")) actions.push({ id: "new-product", group: "Actions", label: "New product", text: "new product create add", icon: <Plus size={15} />, run: () => go("/admin/products/new") });
-    if (can("promotions:write")) actions.push({ id: "new-promo", group: "Actions", label: "New discount code", text: "new promotion discount code coupon", icon: <TicketPercent size={15} />, run: () => go("/admin/promotions?new=1") });
+    if (can("catalog:write")) actions.push({ id: "new-product", group: "Actions", label: "Nouveau produit", text: "nouveau produit créer ajouter", icon: <Plus size={15} />, run: () => go("/admin/products/new") });
+    if (can("promotions:write")) actions.push({ id: "new-promo", group: "Actions", label: "Nouveau code promo", text: "nouveau code promo réduction coupon", icon: <TicketPercent size={15} />, run: () => go("/admin/promotions?new=1") });
     actions.push({
       id: "theme",
       group: "Actions",
-      label: pref === "dark" ? "Switch to light theme" : "Switch to dark theme",
-      text: "theme dark light mode appearance",
+      label: pref === "dark" ? "Passer au thème clair" : "Passer au thème sombre",
+      text: "thème sombre clair mode apparence",
       icon: pref === "dark" ? <Sun size={15} /> : <Moon size={15} />,
       run: () => {
         setPref(pref === "dark" ? "light" : "dark");
         onClose();
       },
     });
-    actions.push({ id: "signout", group: "Actions", label: "Sign out", text: "sign out logout", icon: <LogOut size={15} />, run: () => void signOut() });
+    actions.push({ id: "signout", group: "Actions", label: "Se déconnecter", text: "se déconnecter déconnexion", icon: <LogOut size={15} />, run: () => void signOut() });
     return [...nav, ...actions];
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [can, pref]);
@@ -97,7 +97,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
           adminApi<{ items: { number: string; status: keyof typeof ORDER_STATUS; total: number; customer: { name: string } }[] }>(withQuery("/admin/orders", { q: term, pageSize: 5 }), { signal: ctrl.signal }).then((r) =>
             r.items.map((o) => ({
               id: `o:${o.number}`,
-              group: "Orders",
+              group: "Commandes",
               label: (
                 <span>
                   <span className="font-[family-name:var(--font-admin-mono)]">{o.number}</span> <span className="text-ad-muted">· {o.customer.name}</span>
@@ -113,13 +113,13 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
       if (can("catalog:read"))
         tasks.push(
           adminApi<{ items: { id: string; name: string; status: string }[] }>(withQuery("/admin/products", { search: term, pageSize: 5 }), { signal: ctrl.signal }).then((r) =>
-            r.items.map((p) => ({ id: `p:${p.id}`, group: "Products", label: p.name, text: p.name, icon: <Package size={15} />, hint: p.status, run: () => go(`/admin/products/${p.id}`) })),
+            r.items.map((p) => ({ id: `p:${p.id}`, group: "Produits", label: p.name, text: p.name, icon: <Package size={15} />, hint: PRODUCT_STATUS[p.status]?.label ?? p.status, run: () => go(`/admin/products/${p.id}`) })),
           ),
         );
       if (can("customers:read"))
         tasks.push(
           adminApi<{ items: { id: string; name: string; email: string }[] }>(withQuery("/admin/customers", { search: term, pageSize: 5 }), { signal: ctrl.signal }).then((r) =>
-            r.items.map((c) => ({ id: `c:${c.id}`, group: "Customers", label: c.name, text: c.name, icon: <User size={15} />, hint: c.email, run: () => go(`/admin/customers/${c.id}`) })),
+            r.items.map((c) => ({ id: `c:${c.id}`, group: "Clients", label: c.name, text: c.name, icon: <User size={15} />, hint: c.email, run: () => go(`/admin/customers/${c.id}`) })),
           ),
         );
       const settled = await Promise.allSettled(tasks);
@@ -174,7 +174,7 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
     <Portal>
       <div className="fixed inset-0 z-[75] flex items-start justify-center px-3 pt-[12vh]">
         <div className="ad-anim-fade absolute inset-0 bg-[var(--ad-overlay)]" onClick={onClose} aria-hidden />
-        <div role="dialog" aria-modal="true" aria-label="Command menu" className="ad-anim-dialog relative w-full max-w-xl overflow-hidden rounded-xl border border-ad-border bg-ad-panel shadow-ad-pop">
+        <div role="dialog" aria-modal="true" aria-label="Palette de commandes" className="ad-anim-dialog relative w-full max-w-xl overflow-hidden rounded-xl border border-ad-border bg-ad-panel shadow-ad-pop">
           <div className="flex items-center gap-2.5 border-b border-ad-border px-4">
             <Search size={16} className="shrink-0 text-ad-faint" aria-hidden />
             <input
@@ -190,14 +190,14 @@ export function CommandPalette({ open, onClose }: { open: boolean; onClose: () =
                 if (e.key === "ArrowUp") (e.preventDefault(), setActive((a) => Math.max(0, a - 1)));
                 if (e.key === "Enter" && filtered[active]) (e.preventDefault(), filtered[active].run());
               }}
-              placeholder="Search orders, products, customers or jump to…"
-              aria-label="Command"
+              placeholder="Chercher une commande, un produit, un client ou aller à…"
+              aria-label="Commande"
               className="h-12 min-w-0 flex-1 bg-transparent text-sm text-ad-fg outline-none placeholder:text-ad-faint"
             />
-            {searching ? <Spinner className="text-ad-faint" /> : <Kbd>Esc</Kbd>}
+            {searching ? <Spinner className="text-ad-faint" /> : <Kbd>Échap</Kbd>}
           </div>
           <div ref={list} id="cmdk-list" role="listbox" className="ad-scroll max-h-[min(60vh,420px)] overflow-y-auto p-1.5">
-            {filtered.length === 0 && <p className="px-3 py-8 text-center text-[13px] text-ad-muted">{searching ? "Searching…" : "No results"}</p>}
+            {filtered.length === 0 && <p className="px-3 py-8 text-center text-[13px] text-ad-muted">{searching ? "Recherche…" : "Aucun résultat"}</p>}
             {groups.map((g) => (
               <div key={g} role="group" aria-label={g} className="mb-1">
                 <p className="px-2.5 pt-2 pb-1 text-[11px] font-medium uppercase tracking-wide text-ad-faint">{g}</p>

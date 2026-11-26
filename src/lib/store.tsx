@@ -131,9 +131,13 @@ function withQty(cart: CartDTO, variantId: string, qty: number): CartDTO {
     .map((l) => (l.variantId === variantId ? { ...l, qty, lineTotal: l.unitPrice * qty, available: l.available && qty <= l.maxQty } : l))
     .filter((l) => l.qty > 0);
   const subtotal = lines.filter((l) => l.available).reduce((s, l) => s + l.lineTotal, 0);
+  // Mirrors the server's computeDiscount; the server response reconciles anyway.
   let discount = 0;
-  if (cart.promo && cart.discount > 0) {
-    discount = cart.promo.type === "percent" ? Math.round((subtotal * cart.promo.value) / 100) : Math.min(cart.promo.value, subtotal);
+  const p = cart.promo;
+  if (p && (!p.ineligible || p.ineligible === "min_subtotal") && subtotal >= p.minSubtotal && subtotal > 0) {
+    discount = p.type === "percent" ? Math.round((subtotal * Math.min(100, p.value)) / 100) : p.value;
+    if (p.maxDiscount != null) discount = Math.min(discount, p.maxDiscount);
+    discount = Math.max(0, Math.min(discount, subtotal));
   }
   return { ...cart, lines, subtotal, discount, total: Math.max(0, subtotal - discount), count: lines.reduce((n, l) => n + l.qty, 0) };
 }
@@ -263,7 +267,8 @@ export function StoreProvider({ children }: { children: ReactNode }) {
         await cartWrite(() => api("/cart/promo", { method: "POST", body: { code } }));
         return { ok: true };
       } catch (err) {
-        return { ok: false, reason: err instanceof ApiError ? (err.reason ?? err.code) : "network" };
+        if (!(err instanceof ApiError) || err.code === "NETWORK" || err.status >= 500) return { ok: false, reason: "network" };
+        return { ok: false, reason: err.reason ?? err.code };
       }
     },
     [cartWrite],

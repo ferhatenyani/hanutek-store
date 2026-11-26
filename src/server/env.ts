@@ -22,8 +22,12 @@ const schema = z.object({
 
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
+  /** Test seam: base URL of a stand-in OpenID provider (E2E mock). Refused on a real production server. */
+  GOOGLE_OIDC_BASE: z.string().url().optional(),
 
-  MAIL_DRIVER: z.enum(["console", "resend"]).default("console"),
+  /** "file" writes each message as JSON into MAIL_OUTBOX_DIR (E2E / local inspection only). */
+  MAIL_DRIVER: z.enum(["console", "resend", "file"]).default("console"),
+  MAIL_OUTBOX_DIR: z.string().optional(),
   MAIL_FROM: z.string().default("hanutek <no-reply@hanutek.dz>"),
   RESEND_API_KEY: z.string().optional(),
 
@@ -68,6 +72,8 @@ export function env(): Env {
     if (!preview && e.DATABASE_URL.startsWith("pglite:")) throw new Error("DATABASE_URL must point to PostgreSQL in production");
     if (!preview && !e.APP_URL.startsWith("https://")) throw new Error("APP_URL must be https in production");
     if (e.MAIL_DRIVER === "resend" && !e.RESEND_API_KEY) throw new Error("RESEND_API_KEY is required");
+    if (!preview && e.MAIL_DRIVER === "file") throw new Error("MAIL_DRIVER=file is for local testing only");
+    if (!preview && e.GOOGLE_OIDC_BASE) throw new Error("GOOGLE_OIDC_BASE is for local testing only");
     if (e.STORAGE_DRIVER === "s3" && !(e.S3_ENDPOINT && e.S3_BUCKET && e.S3_ACCESS_KEY_ID && e.S3_SECRET_ACCESS_KEY && e.MEDIA_PUBLIC_URL)) {
       throw new Error("S3 storage requires S3_ENDPOINT, S3_BUCKET, S3_ACCESS_KEY_ID, S3_SECRET_ACCESS_KEY, MEDIA_PUBLIC_URL");
     }

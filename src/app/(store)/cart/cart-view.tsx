@@ -112,7 +112,7 @@ export function CartView() {
                           type="button"
                           aria-label={`${m.cart.remove} ${p.name}`}
                           onClick={() => removeItem(item.variantId)}
-                          className="cursor-pointer text-faint transition-colors duration-150 hover:text-danger"
+                          className="-me-2.5 -mt-2.5 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-faint transition-colors duration-150 hover:bg-sale-soft hover:text-danger"
                         >
                           <Trash2 size={16} />
                         </button>

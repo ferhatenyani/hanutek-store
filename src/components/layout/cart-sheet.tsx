@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { ArrowRight, Banknote, ChevronDown, ChevronLeft, ChevronUp, ShoppingBag, Trash2, X } from "lucide-react";
@@ -65,6 +65,10 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
   // down to it. No navigation, no reload, nothing entering from the top.
   const sheetFormRef = useRef<HTMLElement>(null);
   const scrollToSheetCheckout = () => sheetFormRef.current?.scrollIntoView({ block: "start" });
+  // Once the checkout form is on screen the pinned CTA bar steps aside: the
+  // form has its own submit button, and on a phone (worse: with the keyboard
+  // up) every pinned pixel is taken from the fields being filled in.
+  const [formInView, setFormInView] = useState(false);
 
   const lines = cart.lines;
   const totals = cart;
@@ -72,6 +76,18 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
   const side = isDesktop ? (isRTL ? "left" : "right") : "bottom";
   const fullScreen = expanded && !isDesktop;
   const collapse = () => setExpanded(false);
+  const hasLines = cart.lines.length > 0;
+
+  useEffect(() => {
+    const el = sheetFormRef.current;
+    if (!fullScreen || !el) return;
+    const io = new IntersectionObserver(([e]) => setFormInView(e.isIntersecting), { threshold: 0, rootMargin: "0px 0px -50% 0px" });
+    io.observe(el);
+    return () => {
+      io.disconnect();
+      setFormInView(false);
+    };
+  }, [fullScreen, hasLines]);
 
   const lineRow = (line: CartLineDTO) => {
     const product = { slug: line.slug, name: line.name, image: line.image };
@@ -94,19 +110,19 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
             href={`/products/${product.slug}`}
             transitionTypes={["nav-forward"]}
             onClick={closeForNav}
-            className="cursor-pointer text-sm font-semibold leading-snug hover:text-accent"
+            className="min-w-0 cursor-pointer text-sm font-semibold leading-snug [overflow-wrap:anywhere] hover:text-accent"
           >
             {product.name}
           </Link>
           <button
             onClick={() => removeItem(variantId)}
             aria-label={`${m.cart.remove} ${product.name}`}
-            className="grid h-7 w-7 shrink-0 cursor-pointer place-items-center rounded-full text-faint transition-colors duration-150 hover:bg-sale-soft hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+            className="-me-2 -mt-2 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-faint transition-colors duration-150 hover:bg-sale-soft hover:text-danger focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             <Trash2 size={15} />
           </button>
         </div>
-        <p className="mt-0.5 text-xs text-muted">{tr(line.variantLabel, locale)}</p>
+        <p className="mt-0.5 text-xs text-muted [overflow-wrap:anywhere]">{tr(line.variantLabel, locale)}</p>
         {!line.available && (
           <p className="mt-0.5 text-xs font-medium text-danger">
             {line.maxQty > 0 ? m.cart.limitedStock.replace("{n}", String(line.maxQty)) : m.common.soldOut}
@@ -161,7 +177,7 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
           <button
             onClick={onClose}
             aria-label={m.common.close}
-            className="grid h-9 w-9 cursor-pointer place-items-center justify-self-end rounded-full transition-colors duration-150 hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
+            className="grid h-10 w-10 cursor-pointer place-items-center justify-self-end rounded-full transition-colors duration-150 hover:bg-accent-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30"
           >
             <X size={18} />
           </button>
@@ -193,6 +209,36 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
             <div className="flex-1 overflow-y-auto px-5">
               {lines.map(lineRow)}
 
+              {fullScreen && (
+                <div className="space-y-3 border-t border-line pt-5">
+                  <CartPromo />
+                  <dl className="space-y-2 text-sm">
+                    <div className="flex items-center justify-between">
+                      <dt className="text-muted">{m.cart.subtotal}</dt>
+                      <dd className="num font-semibold tabular-nums">{price(totals.subtotal)}</dd>
+                    </div>
+                    {totals.discount > 0 && (
+                      <div className="flex items-center justify-between text-accent-ink">
+                        <dt>{m.cart.discount} ({promo})</dt>
+                        <dd className="num font-semibold tabular-nums">−{price(totals.discount)}</dd>
+                      </div>
+                    )}
+                    <div className="flex items-baseline justify-between border-t border-line pt-2">
+                      <dt className="font-medium">{m.cart.total}</dt>
+                      <dd className="num font-display text-lg font-bold tabular-nums">{price(totals.total)}</dd>
+                    </div>
+                  </dl>
+                  <Link
+                    href="/products"
+                    transitionTypes={["nav-back"]}
+                    onClick={closeForNav}
+                    className={cn(buttonClasses("ghost", "md"), "w-full")}
+                  >
+                    {m.cart.continueShopping}
+                  </Link>
+                </div>
+              )}
+
               {/* A3 — the checkout form lives RIGHT HERE, below the cart
                   lines, inside this same scroll container, mounted always.
                   The footer "Checkout" CTA only scrolls down to it. */}
@@ -210,40 +256,21 @@ export function CartSheet({ open, onClose }: { open: boolean; onClose: () => voi
             </div>
 
             {fullScreen ? (
-              <div className="space-y-3 border-t border-line p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
-                <CartPromo />
-                <dl className="space-y-2 text-sm">
-                  <div className="flex items-center justify-between">
-                    <dt className="text-muted">{m.cart.subtotal}</dt>
-                    <dd className="num font-semibold tabular-nums">{price(totals.subtotal)}</dd>
+              !formInView && (
+                <div className="flex items-center gap-3 border-t border-line bg-background px-5 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+                  <div className="min-w-0">
+                    <p className="text-[11px] text-muted">{m.cart.total}</p>
+                    <p className="num font-display text-base font-bold tabular-nums">{price(totals.total)}</p>
                   </div>
-                  {totals.discount > 0 && (
-                    <div className="flex items-center justify-between text-accent-ink">
-                      <dt>{m.cart.discount} ({promo})</dt>
-                      <dd className="num font-semibold tabular-nums">−{price(totals.discount)}</dd>
-                    </div>
-                  )}
-                  <div className="flex items-baseline justify-between border-t border-line pt-2">
-                    <dt className="font-medium">{m.cart.total}</dt>
-                    <dd className="num font-display text-lg font-bold tabular-nums">{price(totals.total)}</dd>
-                  </div>
-                </dl>
-                <button
-                  type="button"
-                  onClick={scrollToSheetCheckout}
-                  className={cn(buttonClasses("primary", "lg"), "w-full")}
-                >
-                  {m.cart.checkout} <ChevronDown size={17} aria-hidden />
-                </button>
-                <Link
-                  href="/products"
-                  transitionTypes={["nav-back"]}
-                  onClick={closeForNav}
-                  className={cn(buttonClasses("ghost", "md"), "w-full")}
-                >
-                  {m.cart.continueShopping}
-                </Link>
-              </div>
+                  <button
+                    type="button"
+                    onClick={scrollToSheetCheckout}
+                    className={cn(buttonClasses("primary", "lg"), "ms-auto flex-1")}
+                  >
+                    {m.cart.checkout} <ChevronDown size={17} aria-hidden />
+                  </button>
+                </div>
+              )
             ) : (
               <div className="space-y-3 border-t border-line p-5 pb-[max(1.25rem,env(safe-area-inset-bottom))]">
                 <div className="flex items-center justify-between text-sm">

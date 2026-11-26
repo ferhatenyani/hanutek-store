@@ -32,17 +32,17 @@ test.describe("UX & accessibility", () => {
 
   test("dialogs trap focus, close on Escape and restore focus", async ({ page }) => {
     await page.goto("/admin/categories");
-    const trigger = page.getByRole("button", { name: "New category" });
+    const trigger = page.getByRole("button", { name: "Nouvelle catégorie" });
     await trigger.click();
-    const drawer = page.getByRole("dialog", { name: "New category" });
+    const drawer = page.getByRole("dialog", { name: "Nouvelle catégorie" });
     await expect(drawer).toBeVisible();
-    await expect(drawer.getByLabel("Name", { exact: true })).toBeFocused();
+    await expect(drawer.getByLabel("Nom", { exact: true })).toBeFocused();
     for (let i = 0; i < 25; i++) {
       await page.keyboard.press("Tab");
       expect(await drawer.evaluate((d) => d.contains(document.activeElement))).toBe(true);
     }
     // a select inside the drawer closes on its own Escape without closing the drawer
-    await drawer.getByRole("combobox", { name: "Parent" }).click();
+    await drawer.getByRole("combobox", { name: "Catégorie parente" }).click();
     await expect(page.getByRole("listbox")).toBeVisible();
     await page.keyboard.press("Escape");
     await expect(page.getByRole("listbox")).toHaveCount(0);
@@ -55,13 +55,13 @@ test.describe("UX & accessibility", () => {
   test("the page behind a dialog doesn't scroll, and scrolling is restored", async ({ page }) => {
     await page.goto("/admin/categories");
     await ready(page);
-    await page.getByRole("button", { name: "New category" }).click();
-    await expect(page.getByRole("dialog", { name: "New category" })).toBeVisible();
+    await page.getByRole("button", { name: "Nouvelle catégorie" }).click();
+    await expect(page.getByRole("dialog", { name: "Nouvelle catégorie" })).toBeVisible();
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).toBe("hidden");
     await page.keyboard.press("Escape");
     expect(await page.evaluate(() => getComputedStyle(document.documentElement).overflow)).not.toBe("hidden");
     await page.goto("/admin/orders");
-    await expect(page.getByRole("table", { name: "Orders" })).toBeVisible();
+    await expect(page.getByRole("table", { name: "Commandes" })).toBeVisible();
     await page.mouse.move(900, 500); // over the content, not the fixed sidebar
     await page.mouse.wheel(0, 800);
     await expect.poll(() => page.evaluate(() => window.scrollY)).toBeGreaterThan(0);
@@ -69,7 +69,7 @@ test.describe("UX & accessibility", () => {
 
   test("custom select is keyboard operable", async ({ page }) => {
     await page.goto("/admin/orders");
-    const payment = page.getByRole("combobox", { name: "Payment" });
+    const payment = page.getByRole("combobox", { name: "Paiement" });
     await payment.focus();
     await page.keyboard.press("Enter");
     await page.keyboard.press("ArrowDown");
@@ -82,9 +82,9 @@ test.describe("UX & accessibility", () => {
     await page.goto("/admin");
     await ready(page);
     await page.keyboard.press("Control+k");
-    const palette = page.getByRole("dialog", { name: "Command menu" });
+    const palette = page.getByRole("dialog", { name: "Palette de commandes" });
     await expect(palette).toBeVisible();
-    await page.keyboard.type("inventory");
+    await page.keyboard.type("inventaire");
     await page.keyboard.press("Enter");
     await expect(page).toHaveURL(/\/admin\/inventory/);
 
@@ -104,19 +104,19 @@ test.describe("UX & accessibility", () => {
     await page.keyboard.press("p");
     await expect(page).toHaveURL(/\/admin\/products$/);
     await page.keyboard.press("?");
-    await expect(page.getByRole("dialog", { name: "Keyboard shortcuts" })).toBeVisible();
+    await expect(page.getByRole("dialog", { name: "Raccourcis clavier" })).toBeVisible();
   });
 
   test("dark theme persists across reloads without a flash", async ({ page }) => {
     await page.goto("/admin/settings");
-    await page.getByRole("button", { name: "dark", exact: true }).click();
+    await page.getByRole("button", { name: "Sombre", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-admin-theme", "dark");
     await page.reload();
     // set by the inline script before hydration
     await expect(page.locator("html")).toHaveAttribute("data-admin-theme", "dark");
     const bg = await page.locator(".adm").evaluate((el) => getComputedStyle(el).backgroundColor);
     expect(bg).toBe("rgb(11, 11, 12)");
-    await page.getByRole("button", { name: "light", exact: true }).click();
+    await page.getByRole("button", { name: "Clair", exact: true }).click();
     await expect(page.locator("html")).toHaveAttribute("data-admin-theme", "light");
   });
 
@@ -137,8 +137,8 @@ test.describe("UX & accessibility", () => {
 
   test("unknown console paths show the admin 404 inside the shell", async ({ page }) => {
     await page.goto("/admin/does-not-exist");
-    await expect(page.getByRole("heading", { name: "This page doesn't exist" })).toBeVisible();
-    await expect(page.getByRole("navigation", { name: "Admin" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Cette page n’existe pas" })).toBeVisible();
+    await expect(page.getByRole("navigation", { name: "Administration" })).toBeVisible();
   });
 
   test("the storefront is unaffected by the admin app", async ({ page }) => {

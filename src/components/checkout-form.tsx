@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Banknote, ShieldCheck } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { ApiError } from "@/lib/api";
@@ -54,6 +54,8 @@ export function CheckoutForm({ onNavigatedAway }: { onNavigatedAway?: () => void
   const { m, price: fmt, locale } = useI18n();
   const { cart, user, placeOrder, ready, reloadSession } = useStore();
   const [placing, setPlacing] = useState(false);
+  // Synchronous guard: a double click / Enter-repeat fires before `placing` re-renders.
+  const inFlight = useRef(false);
   const [errors, setErrors] = useState<Values>({});
   const [formError, setFormError] = useState("");
   // One key per checkout attempt: a retried/double submit can never create two orders.
@@ -115,7 +117,8 @@ export function CheckoutForm({ onNavigatedAway }: { onNavigatedAway?: () => void
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (placing || blocked || !validate()) return;
+    if (inFlight.current || placing || blocked || !validate()) return;
+    inFlight.current = true;
     setPlacing(true);
     setFormError("");
     try {
@@ -132,6 +135,7 @@ export function CheckoutForm({ onNavigatedAway }: { onNavigatedAway?: () => void
       stampNav(window.location.pathname, `/order/${order.number}`, "nav-forward");
       router.push(href, { transitionTypes: ["nav-forward"] });
     } catch (err) {
+      inFlight.current = false;
       setPlacing(false);
       if (!(err instanceof ApiError)) return setFormError(m.common.actionFailed);
       if (err.code === "VALIDATION" && err.fields) {

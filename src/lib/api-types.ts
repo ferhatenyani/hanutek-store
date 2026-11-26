@@ -90,6 +90,10 @@ export interface CartPromoDTO {
   code: string;
   type: "percent" | "fixed";
   value: number;
+  maxDiscount: number | null;
+  minSubtotal: number;
+  /** Why the code currently gives no discount (e.g. "min_subtotal"); null while it applies. */
+  ineligible: string | null;
 }
 
 export interface CartDTO {

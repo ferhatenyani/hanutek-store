@@ -85,15 +85,15 @@ function ProfileInner() {
     <NavTransition>
     <div className="mx-auto max-w-5xl px-4 py-10 md:px-6 md:py-14">
       <div className="flex flex-wrap items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-          <span className="grid h-14 w-14 place-items-center rounded-full bg-foreground font-display text-xl font-semibold text-background">
+        <div className="flex min-w-0 items-center gap-4">
+          <span className="grid h-14 w-14 shrink-0 place-items-center rounded-full bg-foreground font-display text-xl font-semibold text-background">
             {user.name.charAt(0).toUpperCase()}
           </span>
-          <div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight md:text-3xl">
+          <div className="min-w-0">
+            <h1 className="font-display text-2xl font-semibold tracking-tight [overflow-wrap:anywhere] md:text-3xl">
               {m.profile.welcome}, {user.name.split(" ")[0]}
             </h1>
-            <p className="mt-0.5 text-sm text-muted" dir="ltr">{user.email}</p>
+            <p className="mt-0.5 truncate text-sm text-muted rtl:text-right" dir="ltr" title={user.email}>{user.email}</p>
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -381,8 +381,8 @@ function SettingsForm({ user, m }: { user: UserDTO; m: Msgs }) {
           <MapPin size={16} className="text-accent-ink" aria-hidden /> {m.profile.defaultAddress}
         </h2>
         <div className="mt-4 grid gap-4 sm:grid-cols-2">
-          <Input label={m.profile.fullName} error={errors.fullName} value={addr.fullName} onChange={(e) => setAddr((a) => ({ ...a, fullName: e.target.value }))} className="sm:col-span-2" maxLength={120} />
-          <Input label={m.profile.address} error={errors.line1} value={addr.line1} onChange={(e) => setAddr((a) => ({ ...a, line1: e.target.value }))} placeholder={m.profile.addressPlaceholder} className="sm:col-span-2" maxLength={200} />
+          <Input label={m.profile.fullName} error={errors.fullName} value={addr.fullName} onChange={(e) => setAddr((a) => ({ ...a, fullName: e.target.value }))} containerClassName="sm:col-span-2" maxLength={120} />
+          <Input label={m.profile.address} error={errors.line1} value={addr.line1} onChange={(e) => setAddr((a) => ({ ...a, line1: e.target.value }))} placeholder={m.profile.addressPlaceholder} containerClassName="sm:col-span-2" maxLength={200} />
           <Input label={m.profile.city} error={errors.commune} value={addr.commune} onChange={(e) => setAddr((a) => ({ ...a, commune: e.target.value }))} maxLength={80} />
           <Input label={m.profile.postcode} error={errors.postalCode} value={addr.postalCode ?? ""} onChange={(e) => setAddr((a) => ({ ...a, postalCode: e.target.value }))} dir="ltr" inputMode="numeric" maxLength={5} />
           <div className="sm:col-span-2">

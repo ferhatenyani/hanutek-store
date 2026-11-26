@@ -35,7 +35,7 @@ export function LocaleToggle({ className }: { className?: string }) {
           onClick={() => setLocale(o.id)}
           aria-pressed={locale === o.id}
           className={cn(
-            "cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-semibold transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
+            "relative min-w-10 cursor-pointer rounded-full px-2.5 py-1 text-[11px] font-semibold after:absolute after:inset-x-0 after:-inset-y-2.5 after:content-[''] max-lg:min-h-10 max-lg:after:hidden transition-colors duration-150 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/30",
             locale === o.id ? "bg-accent text-white" : "text-muted hover:text-foreground",
           )}
         >

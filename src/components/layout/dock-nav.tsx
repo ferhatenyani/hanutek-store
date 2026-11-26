@@ -1,5 +1,6 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { Heart, House, LayoutGrid, ShoppingBag, User } from "lucide-react";
 import { useStore } from "@/lib/store";
@@ -7,6 +8,34 @@ import { useI18n } from "@/i18n";
 import { FloatingDock, type DockItem } from "@/components/ui/floating-dock";
 import { navTypes } from "@/components/nav-transition";
 import { useSheetUI } from "./app-shell";
+
+const TEXT_ENTRY = 'input:not([type=checkbox]):not([type=radio]):not([type=button]):not([type=submit]), textarea, [contenteditable="true"]';
+
+/**
+ * True while a text field has focus — i.e. while the on-screen keyboard is
+ * (almost certainly) up. Android shrinks the viewport and iOS keeps fixed
+ * elements on the layout viewport, so a bottom-fixed dock otherwise floats
+ * over the very field being filled in.
+ */
+function useTyping() {
+  const [typing, setTyping] = useState(false);
+  useEffect(() => {
+    let t: ReturnType<typeof setTimeout> | undefined;
+    const sync = () => {
+      clearTimeout(t);
+      // defer: moving focus between two fields must not flash the dock
+      t = setTimeout(() => setTyping(Boolean((document.activeElement as Element | null)?.matches?.(TEXT_ENTRY))), 60);
+    };
+    document.addEventListener("focusin", sync);
+    document.addEventListener("focusout", sync);
+    return () => {
+      clearTimeout(t);
+      document.removeEventListener("focusin", sync);
+      document.removeEventListener("focusout", sync);
+    };
+  }, []);
+  return typing;
+}
 
 /**
  * Bottom navigation for phones AND tablets (hidden on lg+).
@@ -17,6 +46,7 @@ export function DockNav() {
   const { cartCount, favorites, ready } = useStore();
   const { openCart } = useSheetUI();
   const { m } = useI18n();
+  const typing = useTyping();
 
   const items: DockItem[] = [
     { title: m.nav.home, icon: <House size={20} strokeWidth={1.9} />, href: "/", active: pathname === "/" },
@@ -51,7 +81,9 @@ export function DockNav() {
 
   return (
     <div
-      className="fixed inset-x-0 bottom-3 z-40 flex justify-center px-4 pb-[env(safe-area-inset-bottom)] lg:hidden"
+      data-typing={typing || undefined}
+      inert={typing}
+      className="fixed inset-x-0 bottom-3 z-40 flex justify-center px-2 pb-[env(safe-area-inset-bottom)] min-[360px]:px-4 transition-[translate,opacity] duration-200 ease-out data-[typing]:pointer-events-none data-[typing]:translate-y-[calc(100%+1.5rem)] data-[typing]:opacity-0 lg:hidden"
       style={{ viewTransitionName: "site-dock" }}
     >
       <FloatingDock items={items} />

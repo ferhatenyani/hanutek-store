@@ -52,6 +52,24 @@ export function savingsPercent(price: number, compareAt?: number): number | null
 }
 /** Same-site relative path only (prevents open redirects via ?next=). */
 export function safeNextPath(next: string | null | undefined, fallback = "/profile"): string {
-  if (!next || !next.startsWith("/") || next.startsWith("//") || next.startsWith("/\\")) return fallback;
-  return next;
+  return sameSitePath(next) ?? fallback;
+}
+
+/**
+ * Returns `next` as a same-origin path, or null. Resolved the way the browser
+ * will resolve it — tabs/newlines are stripped and a backslash counts as a
+ * slash, so "/<TAB>/evil.com" or "/<BACKSLASH>evil.com" (both → "//evil.com")
+ * can't escape the site.
+ */
+export function sameSitePath(next: string | null | undefined): string | null {
+  if (!next || next.length > 300 || !next.startsWith("/")) return null;
+  const probe = "https://same-site.invalid";
+  let url: URL;
+  try {
+    url = new URL(next, probe);
+  } catch {
+    return null;
+  }
+  if (url.origin !== probe) return null;
+  return url.pathname + url.search + url.hash;
 }

@@ -155,6 +155,13 @@ export const ar: Messages = {
     codBadge: "الدفع عند الاستلام",
     limitedStock: "متبقٍ {n} فقط في المخزون — عدّل الكمية",
     promoMinSubtotal: "لم يتم بلوغ الحد الأدنى لهذا الرمز",
+    promoMinSubtotalAmount: "يُطبَّق هذا الرمز ابتداءً من {amount}",
+    promoExpired: "انتهت صلاحية هذا الرمز",
+    promoInactive: "هذا الرمز لم يعد فعّالًا",
+    promoNotStarted: "هذا الرمز غير فعّال بعد",
+    promoExhausted: "بلغ هذا الرمز حدّ الاستخدام",
+    promoPerUser: "لقد استخدمت هذا الرمز من قبل",
+    promoNotEligibleNow: "الرمز محفوظ لكنه غير مطبَّق: {reason}",
   },
   checkout: {
     title: "الطلب",

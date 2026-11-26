@@ -3,12 +3,12 @@
 import Link from "next/link";
 import { useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Eye, EyeOff, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useStore } from "@/lib/store";
 import { ApiError } from "@/lib/api";
 import { safeNextPath } from "@/lib/utils";
 import { useI18n } from "@/i18n/provider";
-import { Button, Input } from "@/components/ui/primitives";
+import { Button, Input, PasswordField } from "@/components/ui/primitives";
 import { AuthShell } from "@/components/auth-shell";
 import { useToast } from "@/components/ui/toast";
 
@@ -40,7 +40,6 @@ export function LoginForm() {
 
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [show, setShow] = useState(false);
   const [error, setError] = useState(oauthError ? (oauthError === "google_cancelled" ? "" : m.auth.errGoogle) : "");
   const [busy, setBusy] = useState(false);
 
@@ -96,34 +95,21 @@ export function LoginForm() {
 
       <form onSubmit={submit} className="space-y-4" noValidate>
         <Input label={m.auth.email} type="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" dir="ltr" maxLength={254} />
-        <label className="block">
-          <span className="mb-1.5 flex items-center justify-between text-xs font-medium text-muted">
-            {m.auth.password}
-            <Link href="/forgot-password" transitionTypes={["nav-forward"]} className="font-normal text-accent-ink hover:underline">
+        <PasswordField
+          label={m.auth.password}
+          showLabel={m.auth.showPassword}
+          hideLabel={m.auth.hidePassword}
+          aside={
+            <Link href="/forgot-password" transitionTypes={["nav-forward"]} className="text-xs text-accent-ink hover:underline">
               {m.auth.forgotPassword}
             </Link>
-          </span>
-          <span className="relative block">
-            <Input
-              type={show ? "text" : "password"}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              autoComplete="current-password"
-              dir="ltr"
-              className="pe-11"
-              maxLength={128}
-            />
-            <button
-              type="button"
-              onClick={() => setShow((s) => !s)}
-              aria-label={show ? m.auth.hidePassword : m.auth.showPassword}
-              className="absolute top-1/2 end-3 -translate-y-1/2 cursor-pointer text-faint transition-colors hover:text-foreground"
-            >
-              {show ? <EyeOff size={16} /> : <Eye size={16} />}
-            </button>
-          </span>
-        </label>
+          }
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          placeholder="••••••••"
+          autoComplete="current-password"
+          maxLength={128}
+        />
         {error && <p role="alert" className="text-xs text-danger">{error}</p>}
         <Button type="submit" size="lg" className="w-full gap-2" disabled={busy}>
           {busy ? <Loader2 size={16} className="animate-spin" /> : null}

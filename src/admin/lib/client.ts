@@ -43,7 +43,7 @@ export async function adminApi<T>(path: string, opts: Opts = {}, retried = false
     res = await fetch(`/api/v1${path}`, { method: opts.method ?? "GET", headers, body, credentials: "same-origin", signal: opts.signal, cache: "no-store" });
   } catch (err) {
     if ((err as Error)?.name === "AbortError") throw err;
-    throw new ApiError(0, "NETWORK", "Network error. Check your connection and try again.");
+    throw new ApiError(0, "NETWORK", "Erreur réseau. Vérifiez votre connexion et réessayez.");
   }
   if (res.ok) {
     if (res.status === 204) return undefined as T;
@@ -66,16 +66,108 @@ export async function adminApi<T>(path: string, opts: Opts = {}, retried = false
   throw new ApiError(res.status, code, payload.error?.message ?? res.statusText, payload.error?.fields, payload.error?.reason);
 }
 
-/** Human message for any thrown error. */
-export function errorMessage(err: unknown, fallback = "Something went wrong"): string {
+/**
+ * French message for any thrown error. The API speaks English (machine
+ * messages for logs and integrations); the console is French-only, so every
+ * error is mapped from its code — server text is never shown as-is.
+ */
+const CODE_MESSAGE: Record<string, string> = {
+  NETWORK: "Erreur réseau. Vérifiez votre connexion et réessayez.",
+  FORBIDDEN: "Vous n’avez pas l’autorisation d’effectuer cette action.",
+  UNAUTHENTICATED: "Votre session a expiré. Reconnectez-vous.",
+  AUTH_EXPIRED: "Votre session a expiré. Reconnectez-vous.",
+  RATE_LIMITED: "Trop de requêtes. Patientez un instant puis réessayez.",
+  NOT_FOUND: "Élément introuvable : il a peut-être été supprimé.",
+  CONFLICT: "Conflit : les données ont changé entre-temps. Rechargez la page.",
+  INVALID_TRANSITION: "Ce changement de statut n’est pas autorisé pour cette commande.",
+  ORDER_NOT_CANCELLABLE: "Cette commande ne peut plus être annulée.",
+  OUT_OF_STOCK: "Stock insuffisant.",
+  PAYLOAD_TOO_LARGE: "Fichier ou contenu trop volumineux.",
+  UNSUPPORTED_MEDIA: "Format de fichier non pris en charge.",
+  BAD_REQUEST: "Requête invalide.",
+  CSRF: "Requête refusée pour des raisons de sécurité. Rechargez la page.",
+  INVALID_CREDENTIALS: "Mot de passe incorrect.",
+  ACCOUNT_LOCKED: "Compte temporairement verrouillé après trop de tentatives.",
+  ACCOUNT_DISABLED: "Ce compte est désactivé.",
+  EMAIL_TAKEN: "Un compte existe déjà avec cet e-mail.",
+  PROMO_INVALID: "Ce code promo n’est pas valable.",
+  INTERNAL: "Erreur du serveur. Réessayez dans un instant.",
+};
+
+/** The server's CONFLICT messages (src/server) → French. */
+const CONFLICT_MESSAGE: Record<string, string> = {
+  "A carrier with this name already exists": "Un transporteur porte déjà ce nom.",
+  "Code already in use": "Ce code est déjà utilisé.",
+  "Order is closed": "Cette commande est clôturée : elle ne peut plus être modifiée.",
+  "SKU already in use": "Ce SKU est déjà utilisé.",
+  "Slug already in use": "Cet identifiant d’URL est déjà utilisé.",
+  "This category has sub-categories.": "Cette catégorie contient des sous-catégories.",
+  "This code has been used on orders. Deactivate it instead.": "Ce code a déjà servi sur des commandes : désactivez-le plutôt que de le supprimer.",
+  "This product was changed by someone else. Reload to see the latest version.": "Ce produit a été modifié par quelqu’un d’autre. Rechargez pour voir la dernière version.",
+  "Variant code already used on this product": "Ce code de variante existe déjà sur ce produit.",
+  "You cannot disable or demote your own account": "Vous ne pouvez pas désactiver ni rétrograder votre propre compte.",
+};
+
+/** Zod/field codes → French. */
+const FIELD_ERROR: Record<string, string> = {
+  required: "obligatoire",
+  too_short: "trop court",
+  too_long: "trop long",
+  invalid_email: "e-mail invalide",
+  invalid_phone: "numéro invalide",
+  invalid_code: "code invalide (lettres, chiffres, - et _)",
+  invalid_sku: "SKU invalide",
+  invalid_slug: "identifiant d’URL invalide (minuscules, chiffres et tirets)",
+  reserved_slug: "identifiant d’URL réservé",
+  invalid_url: "URL invalide",
+  invalid_postcode: "code postal à 5 chiffres",
+  invalid_wilaya: "wilaya invalide",
+  invalid_id: "identifiant invalide",
+  invalid_number: "numéro de commande invalide",
+  incorrect: "incorrect",
+};
+
+const FIELD_NAME: Record<string, string> = {
+  code: "Code",
+  sku: "SKU",
+  slug: "Identifiant d’URL",
+  name: "Nom",
+  price: "Prix",
+  stock: "Stock",
+  value: "Valeur",
+  email: "E-mail",
+  phone: "Téléphone",
+  categorySlug: "Catégorie",
+  trackingUrl: "URL de suivi",
+  newPassword: "Nouveau mot de passe",
+  currentPassword: "Mot de passe actuel",
+};
+
+function fieldLabel(path: string) {
+  const parts = path.split(".");
+  const last = parts.filter((p) => !/^\d+$/.test(p)).at(-1) ?? path;
+  return FIELD_NAME[last] ?? last;
+}
+
+/** Server field errors (codes such as "invalid_sku") → French, keyed by the same field paths. */
+export function frenchFields(fields: Record<string, string>): Record<string, string> {
+  const out: Record<string, string> = {};
+  for (const [k, v] of Object.entries(fields)) {
+    const msg = FIELD_ERROR[v] ?? (v.startsWith("Too big") ? "trop long" : v.startsWith("Too small") ? "trop court" : "valeur invalide");
+    out[k] = msg.charAt(0).toUpperCase() + msg.slice(1);
+  }
+  return out;
+}
+
+export function errorMessage(err: unknown, fallback = "Une erreur est survenue."): string {
   if (err instanceof ApiError) {
-    if (err.code === "FORBIDDEN") return "You don't have permission to do that.";
-    if (err.code === "RATE_LIMITED") return "Too many requests. Wait a moment and try again.";
-    if (err.code === "VALIDATION" && err.fields) {
-      const first = Object.entries(err.fields)[0];
-      if (first) return `${err.message}: ${first[0]} (${first[1]})`;
+    if (err.code === "VALIDATION") {
+      const first = err.fields ? Object.entries(err.fields)[0] : undefined;
+      if (first) return `Champ invalide : ${fieldLabel(first[0])} (${FIELD_ERROR[first[1]] ?? first[1]})`;
+      return "Certains champs sont invalides.";
     }
-    return err.message || fallback;
+    if (err.code === "CONFLICT" && CONFLICT_MESSAGE[err.message]) return CONFLICT_MESSAGE[err.message];
+    return CODE_MESSAGE[err.code] ?? fallback;
   }
   return fallback;
 }

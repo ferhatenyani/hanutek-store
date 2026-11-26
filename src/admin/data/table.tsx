@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { Button, Checkbox, EmptyState, ErrorState, Skeleton } from "../ui/core";
 import { Menu, Popover, Select, type MenuItem } from "../ui/overlay";
 import { useStoredState } from "./state";
+import { errorMessage } from "../lib/client";
 
 export interface Column<T> {
   id: string;
@@ -44,13 +45,13 @@ export function useColumns<T>(tableId: string, columns: Column<T>[]) {
       align="end"
       className="w-56 p-1"
       trigger={(p) => (
-        <Button {...p} size="sm" aria-label="Choose columns">
+        <Button {...p} size="sm" aria-label="Choisir les colonnes">
           <Columns3 size={14} />
-          <span className="hidden lg:inline">Columns</span>
+          <span className="hidden lg:inline">Colonnes</span>
         </Button>
       )}
     >
-      <p className="px-2 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wide text-ad-faint">Visible columns</p>
+      <p className="px-2 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wide text-ad-faint">Colonnes visibles</p>
       {columns
         .filter((c) => c.hideable !== false && !c.primary)
         .map((c) => (
@@ -60,7 +61,7 @@ export function useColumns<T>(tableId: string, columns: Column<T>[]) {
         ))}
       <div className="-mx-1 my-1 h-px bg-ad-border" />
       <button type="button" onClick={() => setHidden(defaults)} className="w-full cursor-pointer rounded-md px-2 py-1.5 text-start text-[13px] text-ad-muted hover:bg-ad-hover hover:text-ad-fg">
-        Reset to default
+        Rétablir par défaut
       </button>
     </Popover>
   );
@@ -185,7 +186,7 @@ export function DataTable<T>({
             <tr>
               {selectable && (
                 <th scope="col" className="sticky top-0 z-[1] w-10 border-b border-ad-border bg-ad-panel ps-4 pe-1 text-start">
-                  <Checkbox checked={allOnPage} indeterminate={!allOnPage && someOnPage} onChange={toggleAll} aria-label="Select all rows on this page" />
+                  <Checkbox checked={allOnPage} indeterminate={!allOnPage && someOnPage} onChange={toggleAll} aria-label="Sélectionner toutes les lignes de la page" />
                 </th>
               )}
               {columns.map((c, ci) => {
@@ -260,7 +261,7 @@ export function DataTable<T>({
                 >
                   {selectable && (
                     <td className="border-b border-ad-border ps-4 pe-1" onClick={(e) => e.stopPropagation()}>
-                      <Checkbox checked={Boolean(isSel)} onChange={(_, e) => toggle(id, i, (e as React.MouseEvent).shiftKey)} aria-label="Select row" />
+                      <Checkbox checked={Boolean(isSel)} onChange={(_, e) => toggle(id, i, (e as React.MouseEvent).shiftKey)} aria-label="Sélectionner la ligne" />
                     </td>
                   )}
                   {columns.map((c, ci) => (
@@ -308,7 +309,7 @@ export function DataTable<T>({
             <li key={id} className={cn("relative flex items-start gap-3 px-4 py-3", selected?.has(id) && "bg-ad-subtle")}>
               {selectable && (
                 <div className="relative z-[1] pt-0.5">
-                  <Checkbox checked={Boolean(selected?.has(id))} onChange={(_, e) => toggle(id, i, (e as React.MouseEvent).shiftKey)} aria-label="Select row" />
+                  <Checkbox checked={Boolean(selected?.has(id))} onChange={(_, e) => toggle(id, i, (e as React.MouseEvent).shiftKey)} aria-label="Sélectionner la ligne" />
                 </div>
               )}
               <div className="min-w-0 flex-1">
@@ -344,10 +345,10 @@ export function DataTable<T>({
         })}
       </ul>
 
-      {isEmpty && (empty ?? <EmptyState title="Nothing here yet" />)}
+      {isEmpty && (empty ?? <EmptyState title="Rien à afficher pour le moment" />)}
       {error && rows ? (
         <p role="alert" className="border-t border-ad-border px-4 py-2 text-xs text-ad-red">
-          Couldn&apos;t refresh: {(error as Error).message}
+          Actualisation impossible : {errorMessage(error)}
         </p>
       ) : null}
     </div>
@@ -358,9 +359,9 @@ function RowMenu({ items }: { items: MenuItem[] }) {
   return (
     <Menu
       items={items}
-      label="Row actions"
+      label="Actions de la ligne"
       trigger={(p) => (
-        <Button {...p} variant="ghost" size="xs" icon aria-label="Row actions" className="opacity-70 group-hover:opacity-100">
+        <Button {...p} variant="ghost" size="xs" icon aria-label="Actions de la ligne" className="opacity-70 group-hover:opacity-100">
           <MoreHorizontal size={15} />
         </Button>
       )}
@@ -389,17 +390,17 @@ export function Pagination({
   return (
     <div className="flex flex-wrap items-center justify-between gap-3 border-t border-ad-border px-4 py-2.5 text-[12.5px] text-ad-muted">
       <p className="tnum" aria-live="polite">
-        {total === undefined ? "…" : total === 0 ? "No results" : `${from}–${to} of ${total.toLocaleString("en")}`}
+        {total === undefined ? "…" : total === 0 ? "Aucun résultat" : `${from}–${to} sur ${total.toLocaleString("fr-FR")}`}
       </p>
       <div className="flex items-center gap-2">
         {onPageSize && (
           <div className="hidden w-[104px] sm:block">
             <Select
               size="sm"
-              ariaLabel="Rows per page"
+              ariaLabel="Lignes par page"
               value={String(pageSize)}
               onChange={(v) => onPageSize(Number(v))}
-              options={sizes.map((s) => ({ value: String(s), label: `${s} / page` }))}
+              options={sizes.map((s) => ({ value: String(s), label: `${s} par page` }))}
               align="end"
             />
           </div>
@@ -407,10 +408,10 @@ export function Pagination({
         <span className="tnum hidden sm:inline">
           Page {page} of {pages}
         </span>
-        <Button size="sm" icon aria-label="Previous page" disabled={page <= 1} onClick={() => onPage(page - 1)}>
+        <Button size="sm" icon aria-label="Page précédente" disabled={page <= 1} onClick={() => onPage(page - 1)}>
           <ChevronLeft size={15} />
         </Button>
-        <Button size="sm" icon aria-label="Next page" disabled={page >= pages} onClick={() => onPage(page + 1)}>
+        <Button size="sm" icon aria-label="Page suivante" disabled={page >= pages} onClick={() => onPage(page + 1)}>
           <ChevronRight size={15} />
         </Button>
       </div>
@@ -422,12 +423,12 @@ export function Pagination({
 export function SelectionBar({ count, onClear, children, totalOnPage }: { count: number; onClear: () => void; children: ReactNode; totalOnPage?: number }) {
   if (count === 0) return null;
   return (
-    <div role="region" aria-label="Bulk actions" className="ad-anim-fade flex flex-wrap items-center gap-2 border-b border-ad-border bg-ad-subtle px-4 py-2">
+    <div role="region" aria-label="Actions groupées" className="ad-anim-fade flex flex-wrap items-center gap-2 border-b border-ad-border bg-ad-subtle px-4 py-2">
       <span className="tnum text-[13px] font-medium text-ad-fg">
-        {count} selected{totalOnPage !== undefined && count > totalOnPage ? " (across pages)" : ""}
+        {count} sélectionné{count > 1 ? "s" : ""}{totalOnPage !== undefined && count > totalOnPage ? " (sur plusieurs pages)" : ""}
       </span>
       <Button size="xs" variant="ghost" onClick={onClear}>
-        Clear
+        Effacer
       </Button>
       <div className="ms-auto flex flex-wrap items-center gap-2">{children}</div>
     </div>

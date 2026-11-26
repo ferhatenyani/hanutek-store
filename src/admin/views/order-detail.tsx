@@ -26,7 +26,7 @@ export function OrderDetailPage({ number }: { number: string }) {
   if (q.error && !o) {
     return (
       <>
-        <PageHeader title={number} back={{ href: "/admin/orders", label: "Orders" }} />
+        <PageHeader title={number} back={{ href: "/admin/orders", label: "Commandes" }} />
         <Card>
           <ErrorState error={q.error} onRetry={q.reload} />
         </Card>
@@ -53,7 +53,7 @@ export function OrderDetailPage({ number }: { number: string }) {
   return (
     <>
       <PageHeader
-        back={{ href: "/admin/orders", label: "Orders" }}
+        back={{ href: "/admin/orders", label: "Commandes" }}
         title={<Mono className="text-xl sm:text-[22px]">{o.number}</Mono>}
         meta={
           <>
@@ -63,7 +63,7 @@ export function OrderDetailPage({ number }: { number: string }) {
             <Badge tone={PAYMENT_STATUS[o.paymentStatus].tone}>{PAYMENT_STATUS[o.paymentStatus].label}</Badge>
           </>
         }
-        description={`Placed ${fmtFull(o.placedAt)} · Cash on delivery · ${o.locale === "ar" ? "Arabic" : "French"} storefront`}
+        description={`Passée le ${fmtFull(o.placedAt)} · Paiement à la livraison · Boutique en ${o.locale === "ar" ? "arabe" : "français"}`}
         actions={
           <>
             {writable &&
@@ -73,16 +73,16 @@ export function OrderDetailPage({ number }: { number: string }) {
                 </Button>
               ))}
             <Menu
-              label="More actions"
+              label="Plus d’actions"
               items={[
-                { label: "Copy order number", icon: <Copy size={14} />, onSelect: () => void navigator.clipboard?.writeText(o.number).then(() => toast("Copied")) },
-                { label: "Open customer view", icon: <ExternalLink size={14} />, onSelect: () => window.open(`/order/${o.number}`, "_blank", "noopener") },
+                { label: "Copier le numéro de commande", icon: <Copy size={14} />, onSelect: () => void navigator.clipboard?.writeText(o.number).then(() => toast("Copié")) },
+                { label: "Ouvrir la vue client", icon: <ExternalLink size={14} />, onSelect: () => window.open(`/order/${o.number}`, "_blank", "noopener") },
                 ...(writable && backward.length
                   ? [{ type: "separator" as const }, ...backward.map((s) => ({ label: TRANSITION_VERB[s], danger: true, onSelect: () => setTransition(s) }))]
                   : []),
               ]}
               trigger={(p) => (
-                <Button {...p} icon aria-label="More actions">
+                <Button {...p} icon aria-label="Plus d’actions">
                   <MoreHorizontal size={16} />
                 </Button>
               )}
@@ -95,7 +95,7 @@ export function OrderDetailPage({ number }: { number: string }) {
         <div className="min-w-0 space-y-4">
           <Card padded={false}>
             <div className="px-4 pt-4 sm:px-5">
-              <h2 className="text-sm font-semibold">Items</h2>
+              <h2 className="text-sm font-semibold">Articles</h2>
             </div>
             <ul className="mt-2 divide-y divide-ad-border">
               {o.items.map((it) => (
@@ -125,7 +125,7 @@ export function OrderDetailPage({ number }: { number: string }) {
           </Card>
 
           <Card>
-            <CardHeader title="Timeline" description="Status changes, newest last" />
+            <CardHeader title="Historique" description="Changements de statut, du plus ancien au plus récent" />
             <ol className="relative space-y-4">
               {o.events.map((e, i) => (
                 <li key={i} className="relative flex gap-3">
@@ -138,7 +138,7 @@ export function OrderDetailPage({ number }: { number: string }) {
                       <span className="font-medium">{ORDER_STATUS[e.status].label}</span>
                       <span className="text-xs text-ad-faint">{fmtFull(e.at)}</span>
                     </p>
-                    <p className="text-xs text-ad-muted">{e.actorName ? `by ${e.actorName}${e.actorRole && e.actorRole !== "customer" ? "" : " (customer)"}` : e.status === "pending" ? "Placed on the store" : "System"}</p>
+                    <p className="text-xs text-ad-muted">{e.actorName ? `par ${e.actorName}${e.actorRole && e.actorRole !== "customer" ? "" : " (client)"}` : e.status === "pending" ? "Passée sur la boutique" : "Système"}</p>
                     {e.note && <p className="mt-1 rounded-md bg-ad-subtle px-2.5 py-1.5 text-[13px] text-ad-fg">{e.note}</p>}
                   </div>
                 </li>
@@ -149,7 +149,7 @@ export function OrderDetailPage({ number }: { number: string }) {
 
         <div className="min-w-0 space-y-4">
           <Card>
-            <CardHeader title="Customer" />
+            <CardHeader title="Client" />
             <div className="space-y-3 text-[13px]">
               <div>
                 <p className="font-medium">{o.address.fullName}</p>
@@ -162,18 +162,18 @@ export function OrderDetailPage({ number }: { number: string }) {
                 <p className="text-ad-muted">
                   {can("customers:read") ? (
                     <Link href={`/admin/customers/${o.account.id}`} className="text-ad-fg underline-offset-2 hover:underline">
-                      Account · {o.account.orderCount} order{o.account.orderCount === 1 ? "" : "s"}
+                      Compte · {o.account.orderCount} commande{o.account.orderCount === 1 ? "" : "s"}
                     </Link>
                   ) : (
-                    `Account · ${o.account.orderCount} orders`
+                    `Compte · ${o.account.orderCount} commande${o.account.orderCount === 1 ? "" : "s"}`
                   )}
                 </p>
               ) : (
-                <Badge>Guest checkout</Badge>
+                <Badge>Commande invité</Badge>
               )}
               <Separator />
               <div>
-                <p className="mb-1 text-xs font-medium text-ad-muted">Ship to</p>
+                <p className="mb-1 text-xs font-medium text-ad-muted">Livrer à</p>
                 <p>{o.address.line1}</p>
                 <p>
                   {o.address.commune}
@@ -183,7 +183,7 @@ export function OrderDetailPage({ number }: { number: string }) {
               </div>
               {o.customerNote && (
                 <div>
-                  <p className="mb-1 text-xs font-medium text-ad-muted">Customer note</p>
+                  <p className="mb-1 text-xs font-medium text-ad-muted">Note du client</p>
                   <p className="rounded-md bg-ad-subtle px-2.5 py-1.5">{o.customerNote}</p>
                 </div>
               )}
@@ -223,25 +223,25 @@ function Totals({ order: o, writable, onSaved, orderKey }: { order: OrderDetail;
   const closed = ["delivered", "cancelled", "returned"].includes(o.status);
   const save = async () => {
     const v = Number(fee);
-    if (!Number.isInteger(v) || v < 0) return toast.error("Enter a whole amount in DA");
+    if (!Number.isInteger(v) || v < 0) return toast.error("Saisissez un montant entier en DA");
     setPending(true);
     try {
       await adminApi(orderKey, { method: "PATCH", body: { shippingFee: v } });
-      toast.success("Delivery fee updated");
+      toast.success("Frais de livraison mis à jour");
       setEditing(false);
       onSaved();
     } catch (err) {
-      toast.error("Couldn't update the fee", errorMessage(err));
+      toast.error("Impossible de modifier les frais", errorMessage(err));
     } finally {
       setPending(false);
     }
   };
   return (
     <dl className="space-y-2 px-4 py-4 text-[13px] sm:px-5">
-      <Row label="Subtotal" value={dzd(o.subtotal)} />
-      {o.discount > 0 && <Row label={<>Discount {o.promoCode && <Mono className="ms-1 text-ad-muted">{o.promoCode}</Mono>}</>} value={`− ${dzd(o.discount)}`} />}
+      <Row label="Sous-total" value={dzd(o.subtotal)} />
+      {o.discount > 0 && <Row label={<>Réduction {o.promoCode && <Mono className="ms-1 text-ad-muted">{o.promoCode}</Mono>}</>} value={`− ${dzd(o.discount)}`} />}
       <div className="flex items-center justify-between gap-3">
-        <dt className="text-ad-muted">Delivery fee</dt>
+        <dt className="text-ad-muted">Frais de livraison</dt>
         <dd className="flex items-center gap-2">
           {editing ? (
             <form
@@ -251,12 +251,12 @@ function Totals({ order: o, writable, onSaved, orderKey }: { order: OrderDetail;
                 void save();
               }}
             >
-              <Input inputSize="sm" aria-label="Delivery fee" inputMode="numeric" value={fee} onChange={(e) => setFee(e.target.value.replace(/\D/g, ""))} suffix="DA" className="w-28" autoFocus />
+              <Input inputSize="sm" aria-label="Frais de livraison" inputMode="numeric" value={fee} onChange={(e) => setFee(e.target.value.replace(/\D/g, ""))} suffix="DA" className="w-28" autoFocus />
               <Button size="sm" type="submit" variant="primary" loading={pending}>
-                Save
+                Enregistrer
               </Button>
               <Button size="sm" variant="ghost" onClick={() => setEditing(false)}>
-                Cancel
+                Annuler
               </Button>
             </form>
           ) : (
@@ -264,7 +264,7 @@ function Totals({ order: o, writable, onSaved, orderKey }: { order: OrderDetail;
               <span className="tnum">{dzd(o.shippingFee)}</span>
               {writable && !closed && (
                 <Button size="xs" variant="ghost" onClick={() => (setFee(String(o.shippingFee)), setEditing(true))}>
-                  Edit
+                  Modifier
                 </Button>
               )}
             </>
@@ -275,7 +275,7 @@ function Totals({ order: o, writable, onSaved, orderKey }: { order: OrderDetail;
         <dt>Total</dt>
         <dd className="tnum">{dzd(o.total)}</dd>
       </div>
-      <p className="text-xs text-ad-faint">{o.paymentStatus === "paid" ? "Cash collected on delivery." : o.paymentStatus === "refunded" ? "Refunded after return." : "To collect on delivery."}</p>
+      <p className="text-xs text-ad-faint">{o.paymentStatus === "paid" ? "Encaissé à la livraison." : o.paymentStatus === "refunded" ? "Remboursé après retour." : "À encaisser à la livraison."}</p>
     </dl>
   );
 }
@@ -298,7 +298,7 @@ export const trackingLink = (carriers: Carrier[], name: string | null, number: s
 function CarrierSelect({ value, onChange, carriers, id }: { value: string; onChange: (v: string) => void; carriers: Carrier[]; id?: string }) {
   const names = carriers.filter((c) => c.isActive || c.name === value).map((c) => c.name);
   if (value && !names.includes(value)) names.push(value);
-  return <Select id={id} ariaLabel="Carrier" value={value} onChange={onChange} placeholder="Choose a carrier" options={[{ value: "", label: "None", text: "None" }, ...names.map((n) => ({ value: n, label: n }))]} />;
+  return <Select id={id} ariaLabel="Transporteur" value={value} onChange={onChange} placeholder="Choisir un transporteur" options={[{ value: "", label: "Aucun", text: "Aucun" }, ...names.map((n) => ({ value: n, label: n }))]} />;
 }
 
 function Delivery({ order: o, carriers, writable, onSaved }: { order: OrderDetail; carriers: Carrier[]; writable: boolean; onSaved: () => void }) {
@@ -317,40 +317,40 @@ function Delivery({ order: o, carriers, writable, onSaved }: { order: OrderDetai
     setPending(true);
     try {
       await adminApi(`/admin/orders/${o.number}`, { method: "PATCH", body: { carrier: carrier || null, trackingNumber: tracking.trim() || null } });
-      toast.success("Delivery details saved");
+      toast.success("Informations de livraison enregistrées");
       onSaved();
     } catch (err) {
-      toast.error("Couldn't save", errorMessage(err));
+      toast.error("Enregistrement impossible", errorMessage(err));
     } finally {
       setPending(false);
     }
   };
   return (
     <Card>
-      <CardHeader title="Delivery" />
+      <CardHeader title="Livraison" />
       {writable ? (
         <div className="space-y-3">
-          <Field label="Carrier" htmlFor="carrier">
+          <Field label="Transporteur" htmlFor="carrier">
             <CarrierSelect id="carrier" value={carrier} onChange={setCarrier} carriers={carriers} />
           </Field>
-          <Field label="Tracking number" htmlFor="tracking">
-            <Input id="tracking" value={tracking} onChange={(e) => setTracking(e.target.value)} maxLength={80} placeholder="e.g. YAL-123456" />
+          <Field label="Numéro de suivi" htmlFor="tracking">
+            <Input id="tracking" value={tracking} onChange={(e) => setTracking(e.target.value)} maxLength={80} placeholder="ex. YAL-123456" />
           </Field>
           <div className="flex items-center justify-between gap-2">
             {link ? (
               <a href={link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-[13px] text-ad-muted hover:text-ad-fg">
-                Track parcel <ExternalLink size={12} />
+                Suivre le colis <ExternalLink size={12} />
               </a>
             ) : (
               <span />
             )}
             <Button size="sm" variant="primary" disabled={!dirty} loading={pending} onClick={save}>
-              Save
+              Enregistrer
             </Button>
           </div>
         </div>
       ) : (
-        <Details items={[{ label: "Carrier", value: o.carrier ?? "—" }, { label: "Tracking", value: o.trackingNumber ?? "—" }]} />
+        <Details items={[{ label: "Transporteur", value: o.carrier ?? "—" }, { label: "Suivi", value: o.trackingNumber ?? "—" }]} />
       )}
     </Card>
   );
@@ -367,10 +367,10 @@ function InternalNote({ order: o, writable, onSaved }: { order: OrderDetail; wri
   const dirty = note !== (o.internalNote ?? "");
   return (
     <Card>
-      <CardHeader title="Internal note" description="Only visible to staff." />
+      <CardHeader title="Note interne" description="Visible uniquement par l’équipe." />
       {writable ? (
         <div className="space-y-2">
-          <Textarea aria-label="Internal note" value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} rows={3} placeholder="Add context for the team…" />
+          <Textarea aria-label="Note interne" value={note} onChange={(e) => setNote(e.target.value)} maxLength={2000} rows={3} placeholder="Ajoutez du contexte pour l’équipe…" />
           <div className="flex justify-end">
             <Button
               size="sm"
@@ -380,21 +380,21 @@ function InternalNote({ order: o, writable, onSaved }: { order: OrderDetail; wri
                 setPending(true);
                 try {
                   await adminApi(`/admin/orders/${o.number}`, { method: "PATCH", body: { internalNote: note.trim() || null } });
-                  toast.success("Note saved");
+                  toast.success("Note enregistrée");
                   onSaved();
                 } catch (err) {
-                  toast.error("Couldn't save the note", errorMessage(err));
+                  toast.error("Impossible d’enregistrer la note", errorMessage(err));
                 } finally {
                   setPending(false);
                 }
               }}
             >
-              Save note
+              Enregistrer la note
             </Button>
           </div>
         </div>
       ) : (
-        <p className="text-[13px] text-ad-muted">{o.internalNote || "No note."}</p>
+        <p className="text-[13px] text-ad-muted">{o.internalNote || "Aucune note."}</p>
       )}
     </Card>
   );
@@ -423,21 +423,21 @@ function TransitionDialog({
   const shipping = to === "shipped";
   const danger = DESTRUCTIVE.includes(to);
   const submit = async () => {
-    if (shipping && !carrier) return toast.error("Choose a carrier before shipping");
+    if (shipping && !carrier) return toast.error("Choisissez un transporteur avant d’expédier");
     setPending(true);
     try {
       await adminApi(`/admin/orders/${o.number}/status`, {
         method: "POST",
         body: { status: to, note: note.trim() || null, ...(shipping ? { carrier, trackingNumber: tracking.trim() || null } : {}) },
       });
-      onDone(`Order ${ORDER_STATUS[to].label.toLowerCase()}`);
+      onDone(`Commande ${ORDER_STATUS[to].label.toLowerCase()}`);
     } catch (err) {
       setPending(false);
       if (err instanceof ApiError && err.code === "INVALID_TRANSITION") {
-        toast.error("This order changed in the meantime", "It was reloaded with its current status.");
+        toast.error("Cette commande a changé entre-temps", "Elle a été rechargée avec son statut actuel.");
         return onStale();
       }
-      toast.error("Couldn't update the order", errorMessage(err));
+      toast.error("Impossible de mettre à jour la commande", errorMessage(err));
     }
   };
   return (
@@ -448,7 +448,7 @@ function TransitionDialog({
       description={ORDER_STATUS[to].hint}
       footer={
         <>
-          <Button onClick={onClose}>Back</Button>
+          <Button onClick={onClose}>Retour</Button>
           <Button variant={danger ? "danger" : "primary"} loading={pending} onClick={submit}>
             {TRANSITION_VERB[to]}
           </Button>
@@ -464,21 +464,21 @@ function TransitionDialog({
       >
         {danger && (
           <p className="rounded-md bg-ad-amber-soft px-3 py-2 text-[13px] text-ad-amber">
-            {to === "cancelled" ? "Items go back into stock and the promo code use is released." : "Items go back into stock. A paid order is marked refunded."}
+            {to === "cancelled" ? "Les articles sont réintégrés au stock et l’utilisation du code promo est libérée." : "Les articles sont réintégrés au stock. Une commande payée est marquée remboursée."}
           </p>
         )}
-        {to === "delivered" && <p className="rounded-md bg-ad-subtle px-3 py-2 text-[13px] text-ad-muted">Marks {dzd(o.total)} as collected (cash on delivery).</p>}
+        {to === "delivered" && <p className="rounded-md bg-ad-subtle px-3 py-2 text-[13px] text-ad-muted">Marque {dzd(o.total)} comme encaissé (paiement à la livraison).</p>}
         {shipping && (
           <div className="grid gap-3 sm:grid-cols-2">
-            <Field label="Carrier" htmlFor="t-carrier">
+            <Field label="Transporteur" htmlFor="t-carrier">
               <CarrierSelect id="t-carrier" value={carrier} onChange={setCarrier} carriers={carriers} />
             </Field>
-            <Field label="Tracking number" htmlFor="t-tracking" optional>
+            <Field label="Numéro de suivi" htmlFor="t-tracking" optional>
               <Input id="t-tracking" value={tracking} onChange={(e) => setTracking(e.target.value)} maxLength={80} />
             </Field>
           </div>
         )}
-        <Field label="Note" optional hint="Shown on the order timeline.">
+        <Field label="Note" optional hint="Affichée dans l’historique de la commande.">
           <Textarea value={note} onChange={(e) => setNote(e.target.value)} maxLength={500} rows={2} data-autofocus={!shipping || undefined} />
         </Field>
       </form>

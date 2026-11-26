@@ -35,7 +35,7 @@ export function Select<V extends string>({
   value,
   onChange,
   options,
-  placeholder = "Select…",
+  placeholder = "Choisir…",
   ariaLabel,
   id,
   size = "md",
@@ -438,7 +438,7 @@ export function Dialog({
               </h2>
               {description && <p className="mt-1 text-[13px] text-ad-muted">{description}</p>}
             </div>
-            <Button variant="ghost" size="sm" icon aria-label="Close" data-close onClick={onClose} className="-me-1.5 -mt-1">
+            <Button variant="ghost" size="sm" icon aria-label="Fermer" data-close onClick={onClose} className="-me-1.5 -mt-1">
               <X size={15} />
             </Button>
           </div>
@@ -491,9 +491,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         description={state?.description}
         footer={
           <>
-            <Button onClick={() => done(false)}>Cancel</Button>
+            <Button onClick={() => done(false)}>Annuler</Button>
             <Button variant={state?.variant ?? "primary"} disabled={blocked} onClick={() => done(true)} data-autofocus={!state?.typeToConfirm || undefined}>
-              {state?.confirmLabel ?? "Confirm"}
+              {state?.confirmLabel ?? "Confirmer"}
             </Button>
           </>
         }
@@ -501,9 +501,9 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         {state?.typeToConfirm ? (
           <div className="pt-1">
             <p className="mb-2 text-[13px] text-ad-muted">
-              Type <span className="font-medium text-ad-fg">{state.typeToConfirm}</span> to confirm.
+              Saisissez <span className="font-medium text-ad-fg">{state.typeToConfirm}</span> pour confirmer.
             </p>
-            <Input value={typed} onChange={(e) => setTyped(e.target.value)} aria-label="Confirmation text" data-autofocus autoComplete="off" />
+            <Input value={typed} onChange={(e) => setTyped(e.target.value)} aria-label="Texte de confirmation" data-autofocus autoComplete="off" />
           </div>
         ) : null}
       </Dialog>
@@ -555,7 +555,7 @@ export function Drawer({
               </h2>
               {description && <p className="mt-0.5 text-[13px] text-ad-muted">{description}</p>}
             </div>
-            <Button variant="ghost" size="sm" icon aria-label="Close" data-close onClick={onClose} className="-me-1.5">
+            <Button variant="ghost" size="sm" icon aria-label="Fermer" data-close onClick={onClose} className="-me-1.5">
               <X size={15} />
             </Button>
           </div>
@@ -638,7 +638,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
                 {t.action.label}
               </Button>
             )}
-            <button type="button" aria-label="Dismiss" onClick={() => dismiss(t.id)} className="-me-1 mt-0.5 cursor-pointer rounded p-0.5 text-ad-faint hover:text-ad-fg">
+            <button type="button" aria-label="Ignorer" onClick={() => dismiss(t.id)} className="-me-1 mt-0.5 cursor-pointer rounded p-0.5 text-ad-faint hover:text-ad-fg">
               <X size={13} />
             </button>
           </div>

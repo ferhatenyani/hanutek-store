@@ -62,6 +62,10 @@ export function HomeView({ bestSellers, newArrivals }: { bestSellers: ProductDTO
     <NavTransition>
     <div>
       {/* ---------- Hero: brand film ---------- */}
+      {/* the film carries no text: this is the page's heading for screen readers and search engines */}
+      <h1 className="sr-only">
+        hanutek — {m.home.heroTitleA} {m.home.heroTitleB}
+      </h1>
       <HeroVideo />
 
       {/* ---------- Best sellers ---------- */}

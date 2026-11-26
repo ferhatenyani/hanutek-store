@@ -15,7 +15,7 @@ import { Menu, Tabs, useConfirm, useToast } from "../ui/overlay";
 import { useSession } from "../shell/session";
 
 export function StockCell({ stock, low }: { stock: number; low?: boolean }) {
-  if (stock === 0) return <Badge tone="red">Out of stock</Badge>;
+  if (stock === 0) return <Badge tone="red">Épuisé</Badge>;
   return <span className={low ? "font-medium text-ad-amber" : undefined}>{num(stock)}</span>;
 }
 
@@ -36,7 +36,7 @@ export function ProductsPage() {
     () => [
       {
         id: "product",
-        header: "Product",
+        header: "Produit",
         primary: true,
         hideable: false,
         sortKey: "name",
@@ -47,35 +47,35 @@ export function ProductsPage() {
               <span className="block truncate font-medium text-ad-fg">{p.name}</span>
               <span className="block truncate text-xs text-ad-muted">
                 {p.variantCount} variant{p.variantCount === 1 ? "" : "s"}
-                {p.isFeatured ? " · Featured" : ""}
-                {p.isBestSeller ? " · Best seller" : ""}
-                {p.isNew ? " · New" : ""}
+                {p.isFeatured ? " · Mis en avant" : ""}
+                {p.isBestSeller ? " · Top vente" : ""}
+                {p.isNew ? " · Nouveau" : ""}
               </span>
             </span>
           </span>
         ),
       },
-      { id: "status", header: "Status", mobile: true, width: "110px", cell: (p) => <Badge tone={PRODUCT_STATUS[p.status].tone} dot>{PRODUCT_STATUS[p.status].label}</Badge> },
-      { id: "category", header: "Category", width: "170px", cell: (p) => <span className="text-ad-muted">{catName(p.categorySlug)}</span> },
+      { id: "status", header: "Statut", mobile: true, width: "110px", cell: (p) => <Badge tone={PRODUCT_STATUS[p.status].tone} dot>{PRODUCT_STATUS[p.status].label}</Badge> },
+      { id: "category", header: "Catégorie", width: "170px", cell: (p) => <span className="text-ad-muted">{catName(p.categorySlug)}</span> },
       { id: "stock", header: "Stock", sortKey: "stock", align: "end", mobile: true, width: "110px", cell: (p) => <StockCell stock={p.totalStock} low={p.lowVariants > 0} /> },
       {
         id: "price",
-        header: "Price",
+        header: "Prix",
         sortKey: "price",
         align: "end",
         mobile: true,
         width: "120px",
         cell: (p) => (
           <span className="whitespace-nowrap">
-            {p.variantCount > 1 && <span className="text-ad-faint">from </span>}
+            {p.variantCount > 1 && <span className="text-ad-faint">dès </span>}
             {dzd(p.minPrice)}
-            {p.onSale && <Badge tone="red" className="ms-1.5">Sale</Badge>}
+            {p.onSale && <Badge tone="red" className="ms-1.5">Promo</Badge>}
           </span>
         ),
       },
       {
         id: "rating",
-        header: "Rating",
+        header: "Note",
         sortKey: "rating",
         align: "end",
         width: "100px",
@@ -88,7 +88,7 @@ export function ProductsPage() {
             <span className="text-ad-faint">—</span>
           ),
       },
-      { id: "updated", header: "Updated", sortKey: "updated", align: "end", width: "130px", defaultHidden: false, cell: (p) => <span className="whitespace-nowrap text-ad-muted">{ago(p.updatedAt)}</span> },
+      { id: "updated", header: "Modifié", sortKey: "updated", align: "end", width: "130px", defaultHidden: false, cell: (p) => <span className="whitespace-nowrap text-ad-muted">{ago(p.updatedAt)}</span> },
     ],
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [cats.data],
@@ -104,21 +104,21 @@ export function ProductsPage() {
     try {
       const r = await adminApi<{ updated: number }>("/admin/products/bulk", { method: "POST", body: { ids, patch } });
       invalidate("/admin/products", "/admin/inventory");
-      toast.success(`${r.updated} product${r.updated === 1 ? "" : "s"} ${label}`);
+      toast.success(`${label} · ${r.updated} produit${r.updated === 1 ? "" : "s"}`);
       setSelected(new Set());
     } catch (err) {
-      toast.error("Bulk update failed", errorMessage(err));
+      toast.error("Échec de la modification groupée", errorMessage(err));
     }
   };
 
   const archiveOne = async (p: ProductRow) => {
-    if (!(await confirm({ title: `Archive ${p.name}?`, description: "It disappears from the store. Order history is kept and you can reactivate it at any time.", confirmLabel: "Archive", variant: "danger" }))) return;
+    if (!(await confirm({ title: `Archiver ${p.name} ?`, description: "Il disparaît de la boutique. L’historique des commandes est conservé et vous pouvez le réactiver à tout moment.", confirmLabel: "Archiver", variant: "danger" }))) return;
     try {
       await adminApi(`/admin/products/${p.id}`, { method: "DELETE" });
       invalidate("/admin/products");
-      toast("Product archived", { action: { label: "Undo", onClick: () => void bulk({ status: p.status }, "restored", [p.id]) } });
+      toast("Produit archivé", { action: { label: "Annuler", onClick: () => void bulk({ status: p.status }, "Restauré", [p.id]) } });
     } catch (err) {
-      toast.error("Couldn't archive", errorMessage(err));
+      toast.error("Archivage impossible", errorMessage(err));
     }
   };
 
@@ -126,12 +126,12 @@ export function ProductsPage() {
   return (
     <>
       <PageHeader
-        title="Products"
-        description="Everything sold on the store, with variants, prices and stock."
+        title="Produits"
+        description="Tout ce qui est vendu sur la boutique, avec variantes, prix et stock."
         actions={
           writable && (
             <LinkButton href="/admin/products/new" variant="primary">
-              <Plus size={15} /> New product
+              <Plus size={15} /> Nouveau produit
             </LinkButton>
           )
         }
@@ -142,65 +142,65 @@ export function ProductsPage() {
             value={state.status}
             onChange={(v) => set({ status: v })}
             tabs={[
-              { value: "", label: "All" },
-              { value: "active", label: "Active" },
-              { value: "draft", label: "Draft" },
-              { value: "archived", label: "Archived" },
+              { value: "", label: "Tous" },
+              { value: "active", label: "Actifs" },
+              { value: "draft", label: "Brouillons" },
+              { value: "archived", label: "Archivés" },
             ]}
           />
         </div>
         {selected.size > 0 && writable ? (
           <SelectionBar count={selected.size} onClear={() => setSelected(new Set())} totalOnPage={q.data?.items.length}>
-            <Button size="sm" onClick={() => bulk({ status: "active" }, "published")}>
-              Publish
+            <Button size="sm" onClick={() => bulk({ status: "active" }, "Publiés")}>
+              Publier
             </Button>
-            <Button size="sm" onClick={() => bulk({ status: "draft" }, "moved to draft")}>
-              Move to draft
+            <Button size="sm" onClick={() => bulk({ status: "draft" }, "Passés en brouillon")}>
+              Passer en brouillon
             </Button>
             <Menu
-              label="More bulk actions"
+              label="Autres actions groupées"
               items={[
-                { type: "label", label: "Merchandising" },
-                { label: "Mark as featured", onSelect: () => void bulk({ isFeatured: true }, "featured") },
-                { label: "Remove featured", onSelect: () => void bulk({ isFeatured: false }, "updated") },
-                { label: "Mark as best seller", onSelect: () => void bulk({ isBestSeller: true }, "updated") },
-                { label: "Mark as new", onSelect: () => void bulk({ isNew: true }, "updated") },
-                { label: "Remove “new”", onSelect: () => void bulk({ isNew: false }, "updated") },
+                { type: "label", label: "Mise en avant" },
+                { label: "Mettre en avant", onSelect: () => void bulk({ isFeatured: true }, "Mis en avant") },
+                { label: "Retirer de la mise en avant", onSelect: () => void bulk({ isFeatured: false }, "Mis à jour") },
+                { label: "Marquer « Top vente »", onSelect: () => void bulk({ isBestSeller: true }, "Mis à jour") },
+                { label: "Marquer « Nouveau »", onSelect: () => void bulk({ isNew: true }, "Mis à jour") },
+                { label: "Retirer « Nouveau »", onSelect: () => void bulk({ isNew: false }, "Mis à jour") },
                 { type: "separator" },
-                { type: "label", label: "Move to category" },
-                ...(cats.data?.items ?? []).map((c) => ({ label: c.translations.fr?.name ?? c.slug, icon: <Tags size={14} />, onSelect: () => void bulk({ categorySlug: c.slug }, "moved") })),
+                { type: "label", label: "Déplacer vers la catégorie" },
+                ...(cats.data?.items ?? []).map((c) => ({ label: c.translations.fr?.name ?? c.slug, icon: <Tags size={14} />, onSelect: () => void bulk({ categorySlug: c.slug }, "Déplacés") })),
                 { type: "separator" },
                 {
-                  label: "Archive",
+                  label: "Archiver",
                   danger: true,
                   icon: <Archive size={14} />,
                   onSelect: async () => {
-                    if (await confirm({ title: `Archive ${selected.size} products?`, description: "They disappear from the store. You can reactivate them later.", confirmLabel: "Archive", variant: "danger" }))
-                      void bulk({ status: "archived" }, "archived");
+                    if (await confirm({ title: `Archiver ${selected.size} produits ?`, description: "Ils disparaissent de la boutique. Vous pourrez les réactiver plus tard.", confirmLabel: "Archiver", variant: "danger" }))
+                      void bulk({ status: "archived" }, "Archivés");
                   },
                 },
               ]}
               trigger={(p) => (
                 <Button {...p} size="sm">
-                  More…
+                  Plus…
                 </Button>
               )}
             />
           </SelectionBar>
         ) : (
           <Toolbar>
-            <SearchBox value={state.search} onChange={setSearch} placeholder="Name, slug or SKU…" label="Search products" />
-            <FilterSelect label="Category" value={state.category} onChange={(v) => set({ category: v })} width="w-[200px]" options={(cats.data?.items ?? []).map((c) => ({ value: c.slug, label: c.translations.fr?.name ?? c.slug, text: c.translations.fr?.name ?? c.slug }))} />
-            <FilterSelect label="Stock" value={state.stock as "" | "low"} onChange={(v) => set({ stock: v })} options={[{ value: "in" as "low", label: "In stock", text: "In stock" }, { value: "low", label: "Low stock", text: "Low stock" }, { value: "out" as "low", label: "Out of stock", text: "Out of stock" }]} />
+            <SearchBox value={state.search} onChange={setSearch} placeholder="Nom, identifiant ou SKU…" label="Rechercher des produits" />
+            <FilterSelect label="Catégorie" value={state.category} onChange={(v) => set({ category: v })} width="w-[200px]" options={(cats.data?.items ?? []).map((c) => ({ value: c.slug, label: c.translations.fr?.name ?? c.slug, text: c.translations.fr?.name ?? c.slug }))} />
+            <FilterSelect label="Stock" value={state.stock as "" | "low"} onChange={(v) => set({ stock: v })} options={[{ value: "in" as "low", label: "En stock", text: "En stock" }, { value: "low", label: "Stock faible", text: "Stock faible" }, { value: "out" as "low", label: "Épuisé", text: "Épuisé" }]} />
             <FilterSelect
-              label="Tag"
+              label="Étiquette"
               value={state.flag as "" | "sale"}
               onChange={(v) => set({ flag: v })}
               options={[
-                { value: "featured" as "sale", label: "Featured", text: "Featured" },
-                { value: "bestSeller" as "sale", label: "Best seller", text: "Best seller" },
-                { value: "new" as "sale", label: "New", text: "New" },
-                { value: "sale", label: "On sale", text: "On sale" },
+                { value: "featured" as "sale", label: "Mis en avant", text: "Mis en avant" },
+                { value: "bestSeller" as "sale", label: "Top vente", text: "Top vente" },
+                { value: "new" as "sale", label: "Nouveau", text: "Nouveau" },
+                { value: "sale", label: "En promo", text: "En promo" },
               ]}
             />
             <ResetFilters count={activeCount + (state.search ? 1 : 0)} onReset={reset} />
@@ -211,7 +211,7 @@ export function ProductsPage() {
           </Toolbar>
         )}
         <DataTable
-          label="Products"
+          label="Produits"
           rows={q.data?.items}
           rowId={(p) => p.id}
           columns={cols.visible}
@@ -226,16 +226,16 @@ export function ProductsPage() {
           rowHref={(p) => `/admin/products/${p.id}`}
           rowActions={(p) => [
             { label: writable ? "Edit" : "View", icon: <Pencil size={14} />, onSelect: () => router.push(`/admin/products/${p.id}`) },
-            { label: "View on store", icon: <ExternalLink size={14} />, disabled: p.status !== "active", onSelect: () => window.open(`/products/${p.slug}`, "_blank", "noopener") },
+            { label: "Voir sur la boutique", icon: <ExternalLink size={14} />, disabled: p.status !== "active", onSelect: () => window.open(`/products/${p.slug}`, "_blank", "noopener") },
             ...(writable ? [{ label: "Duplicate", icon: <Copy size={14} />, onSelect: () => router.push(`/admin/products/new?from=${p.id}`) }] : []),
-            ...(writable && p.status !== "archived" ? [{ type: "separator" as const }, { label: "Archive", danger: true, icon: <Archive size={14} />, onSelect: () => void archiveOne(p) }] : []),
+            ...(writable && p.status !== "archived" ? [{ type: "separator" as const }, { label: "Archiver", danger: true, icon: <Archive size={14} />, onSelect: () => void archiveOne(p) }] : []),
           ]}
           empty={
             <EmptyState
               icon={<Package size={18} />}
-              title={filtered ? "No products match these filters" : "No products yet"}
-              description={filtered ? "Try a different search or clear the filters." : "Create your first product to start selling."}
-              action={filtered ? <Button size="sm" onClick={reset}>Clear filters</Button> : writable ? <LinkButton size="sm" variant="primary" href="/admin/products/new">New product</LinkButton> : undefined}
+              title={filtered ? "Aucun produit ne correspond à ces filtres" : "Aucun produit pour le moment"}
+              description={filtered ? "Essayez une autre recherche ou effacez les filtres." : "Créez votre premier produit pour commencer à vendre."}
+              action={filtered ? <Button size="sm" onClick={reset}>Effacer les filtres</Button> : writable ? <LinkButton size="sm" variant="primary" href="/admin/products/new">Nouveau produit</LinkButton> : undefined}
             />
           }
         />

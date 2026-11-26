@@ -34,7 +34,7 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
   const { can } = useSession();
   const current = activeNav(pathname);
   return (
-    <nav aria-label="Admin" className="flex flex-col gap-5">
+    <nav aria-label="Administration" className="flex flex-col gap-5">
       {NAV.map((s, si) => {
         const items = s.items.filter((i) => !i.permission || can(i.permission));
         if (!items.length) return null;
@@ -71,10 +71,10 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
 function ThemeMenuItems(pref: ThemePref, setPref: (p: ThemePref) => void) {
   return [
-    { type: "label" as const, label: "Theme" },
-    { label: "Light", icon: <Sun size={14} />, onSelect: () => setPref("light"), shortcut: pref === "light" ? "✓" : undefined },
-    { label: "Dark", icon: <Moon size={14} />, onSelect: () => setPref("dark"), shortcut: pref === "dark" ? "✓" : undefined },
-    { label: "System", icon: <Monitor size={14} />, onSelect: () => setPref("system"), shortcut: pref === "system" ? "✓" : undefined },
+    { type: "label" as const, label: "Thème" },
+    { label: "Clair", icon: <Sun size={14} />, onSelect: () => setPref("light"), shortcut: pref === "light" ? "✓" : undefined },
+    { label: "Sombre", icon: <Moon size={14} />, onSelect: () => setPref("dark"), shortcut: pref === "dark" ? "✓" : undefined },
+    { label: "Système", icon: <Monitor size={14} />, onSelect: () => setPref("system"), shortcut: pref === "system" ? "✓" : undefined },
   ];
 }
 
@@ -101,7 +101,7 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
         <div ref={panel} role="dialog" aria-modal="true" aria-label="Navigation" className="ad-anim-fade absolute inset-y-0 start-0 flex w-[min(280px,85vw)] flex-col border-e border-ad-border bg-ad-panel">
           <div className="flex h-14 items-center justify-between border-b border-ad-border px-3">
             <Brand />
-            <Button variant="ghost" size="sm" icon aria-label="Close navigation" onClick={onClose}>
+            <Button variant="ghost" size="sm" icon aria-label="Fermer la navigation" onClick={onClose}>
               <X size={16} />
             </Button>
           </div>
@@ -115,13 +115,13 @@ function MobileNav({ open, onClose }: { open: boolean; onClose: () => void }) {
 }
 
 const SHORTCUTS: [string[], string][] = [
-  [["⌘", "K"], "Open command menu"],
-  [["/"], "Search the current list"],
-  [["G", "…"], "Go to a section (e.g. G then O = Orders)"],
-  [["J", "K"], "Move between table rows"],
-  [["X"], "Select the focused row"],
-  [["Enter"], "Open the focused row"],
-  [["?"], "Show keyboard shortcuts"],
+  [["⌘", "K"], "Ouvrir la palette de commandes"],
+  [["/"], "Rechercher dans la liste affichée"],
+  [["G", "…"], "Aller à une section (ex. G puis O = Commandes)"],
+  [["J", "K"], "Passer d’une ligne à l’autre"],
+  [["X"], "Sélectionner la ligne active"],
+  [["Entrée"], "Ouvrir la ligne active"],
+  [["?"], "Afficher les raccourcis clavier"],
 ];
 
 export function AdminShell({ children }: { children: ReactNode }) {
@@ -179,7 +179,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-dvh">
       <a href="#admin-main" className="sr-only z-[100] rounded-md bg-ad-ink px-3 py-2 text-ad-ink-fg focus:not-sr-only focus:fixed focus:start-3 focus:top-3">
-        Skip to content
+        Aller au contenu
       </a>
       {/* sidebar (desktop) */}
       <aside className="fixed inset-y-0 start-0 z-30 hidden w-60 flex-col border-e border-ad-border bg-ad-bg lg:flex">
@@ -193,7 +193,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
             className="flex h-8 w-full cursor-pointer items-center gap-2 rounded-md border border-ad-border bg-ad-panel px-2.5 text-[13px] text-ad-faint shadow-ad transition-colors hover:border-ad-border-strong hover:text-ad-muted"
           >
             <Search size={14} aria-hidden />
-            <span className="flex-1 text-start">Search…</span>
+            <span className="flex-1 text-start">Rechercher…</span>
             <Kbd>⌘K</Kbd>
           </button>
         </div>
@@ -203,18 +203,18 @@ export function AdminShell({ children }: { children: ReactNode }) {
         <div className="border-t border-ad-border p-3">
           <Menu
             align="start"
-            label="Account"
+            label="Compte"
             items={[
               { type: "label", label: user.email },
-              { label: "Settings", icon: <Settings size={14} />, onSelect: () => router.push("/admin/settings") },
-              { label: "View store", icon: <ExternalLink size={14} />, onSelect: () => window.open("/", "_blank", "noopener") },
+              { label: "Paramètres", icon: <Settings size={14} />, onSelect: () => router.push("/admin/settings") },
+              { label: "Voir la boutique", icon: <ExternalLink size={14} />, onSelect: () => window.open("/", "_blank", "noopener") },
               { type: "separator" },
               ...ThemeMenuItems(pref, setPref),
               { type: "separator" },
-              { label: "Sign out", icon: <LogOut size={14} />, onSelect: () => void signOut() },
+              { label: "Se déconnecter", icon: <LogOut size={14} />, onSelect: () => void signOut() },
             ]}
             trigger={(p) => (
-              <button {...p} type="button" className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1.5 text-start hover:bg-ad-hover" aria-label="Account menu">
+              <button {...p} type="button" className="flex w-full cursor-pointer items-center gap-2.5 rounded-md p-1.5 text-start hover:bg-ad-hover" aria-label="Menu du compte">
                 <Avatar name={user.name} size={28} />
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-[13px] font-medium text-ad-fg">{user.name}</span>
@@ -228,26 +228,26 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
       {/* top bar (tablet / phone) */}
       <header className="sticky top-0 z-30 flex h-14 items-center gap-2 border-b border-ad-border bg-ad-bg/95 px-3 backdrop-blur-sm lg:hidden">
-        <Button variant="ghost" size="sm" icon aria-label="Open navigation" onClick={() => setNavOpen(true)}>
+        <Button variant="ghost" size="sm" icon aria-label="Ouvrir la navigation" onClick={() => setNavOpen(true)}>
           <MenuIcon size={17} />
         </Button>
         <Brand />
         <span className="min-w-0 flex-1 truncate text-[13px] text-ad-muted max-sm:hidden">{current ? `/ ${current.label}` : ""}</span>
         <div className="ms-auto flex items-center gap-1">
-          <Button variant="ghost" size="sm" icon aria-label="Search" onClick={() => setCmdOpen(true)}>
+          <Button variant="ghost" size="sm" icon aria-label="Rechercher" onClick={() => setCmdOpen(true)}>
             <Search size={16} />
           </Button>
           <Menu
-            label="Account"
+            label="Compte"
             items={[
               { type: "label", label: user.email },
-              { label: "Settings", icon: <Settings size={14} />, onSelect: () => router.push("/admin/settings") },
+              { label: "Paramètres", icon: <Settings size={14} />, onSelect: () => router.push("/admin/settings") },
               ...ThemeMenuItems(pref, setPref),
               { type: "separator" },
-              { label: "Sign out", icon: <LogOut size={14} />, onSelect: () => void signOut() },
+              { label: "Se déconnecter", icon: <LogOut size={14} />, onSelect: () => void signOut() },
             ]}
             trigger={(p) => (
-              <button {...p} type="button" aria-label="Account menu" className="cursor-pointer rounded-full">
+              <button {...p} type="button" aria-label="Menu du compte" className="cursor-pointer rounded-full">
                 <Avatar name={user.name} size={30} />
               </button>
             )}
@@ -261,7 +261,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
 
       <MobileNav open={navOpen} onClose={closeNav} />
       <CommandPalette open={cmdOpen} onClose={closeCmd} />
-      <Dialog open={helpOpen} onClose={() => setHelpOpen(false)} size="sm" title="Keyboard shortcuts">
+      <Dialog open={helpOpen} onClose={() => setHelpOpen(false)} size="sm" title="Raccourcis clavier">
         <ul className="divide-y divide-ad-border">
           {SHORTCUTS.map(([keys, label]) => (
             <li key={label} className="flex items-center justify-between gap-4 py-2 text-[13px]">
@@ -275,7 +275,7 @@ export function AdminShell({ children }: { children: ReactNode }) {
           ))}
         </ul>
         <p className="mt-3 text-xs text-ad-faint">
-          <Badge>Tip</Badge> On Windows and Linux use Ctrl instead of ⌘.
+          <Badge>Astuce</Badge> Sous Windows et Linux, utilisez Ctrl au lieu de ⌘.
         </p>
       </Dialog>
     </div>

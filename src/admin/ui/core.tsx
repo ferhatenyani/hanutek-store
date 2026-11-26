@@ -6,6 +6,7 @@ import { AlertTriangle, Check, Minus, RotateCw } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { Tone } from "../lib/meta";
 import { initials } from "../lib/format";
+import { errorMessage } from "../lib/client";
 
 /* ------------------------------------------------------------------ Button */
 
@@ -77,7 +78,7 @@ export function Label({ htmlFor, children, optional, className }: { htmlFor?: st
   return (
     <label htmlFor={htmlFor} className={cn("mb-1.5 flex items-center gap-1.5 text-[13px] font-medium text-ad-fg", className)}>
       {children}
-      {optional && <span className="font-normal text-ad-faint">Optional</span>}
+      {optional && <span className="font-normal text-ad-faint">Facultatif</span>}
     </label>
   );
 }
@@ -400,18 +401,18 @@ export function EmptyState({ icon, title, description, action, className }: { ic
 }
 
 export function ErrorState({ error, onRetry, className }: { error: unknown; onRetry?: () => void; className?: string }) {
-  const msg = (error as { message?: string })?.message ?? "Something went wrong";
+  const msg = errorMessage(error);
   const forbidden = (error as { code?: string })?.code === "FORBIDDEN";
   return (
     <div role="alert" className={cn("flex flex-col items-center justify-center px-6 py-12 text-center", className)}>
       <div className="mb-3 grid size-10 place-items-center rounded-lg border border-ad-border bg-ad-red-soft text-ad-red">
         <AlertTriangle size={18} />
       </div>
-      <p className="text-sm font-medium text-ad-fg">{forbidden ? "You don't have access to this" : "Couldn't load this"}</p>
-      <p className="mt-1 max-w-sm text-[13px] text-ad-muted">{forbidden ? "Ask an admin for the required permission." : msg}</p>
+      <p className="text-sm font-medium text-ad-fg">{forbidden ? "Vous n’avez pas accès à ce contenu" : "Chargement impossible"}</p>
+      <p className="mt-1 max-w-sm text-[13px] text-ad-muted">{forbidden ? "Demandez l’autorisation nécessaire à un administrateur." : msg}</p>
       {onRetry && !forbidden && (
         <Button size="sm" className="mt-4" onClick={onRetry}>
-          <RotateCw size={13} /> Try again
+          <RotateCw size={13} /> Réessayer
         </Button>
       )}
     </div>

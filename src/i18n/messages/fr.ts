@@ -155,6 +155,13 @@ export const fr = {
     codBadge: "Paiement à la livraison",
     limitedStock: "Plus que {n} en stock — ajustez la quantité",
     promoMinSubtotal: "Montant minimum non atteint pour ce code",
+    promoMinSubtotalAmount: "Ce code s’applique dès {amount} d’achat",
+    promoExpired: "Ce code a expiré",
+    promoInactive: "Ce code n’est plus actif",
+    promoNotStarted: "Ce code n’est pas encore actif",
+    promoExhausted: "Ce code a atteint sa limite d’utilisation",
+    promoPerUser: "Vous avez déjà utilisé ce code",
+    promoNotEligibleNow: "Code enregistré, mais non appliqué : {reason}",
   },
   checkout: {
     title: "Commande",

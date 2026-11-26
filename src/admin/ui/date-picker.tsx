@@ -12,12 +12,12 @@ const parse = (s: string) => {
   const [y, m, d] = s.split("-").map(Number);
   return new Date(y, m - 1, d);
 };
-const monthFmt = new Intl.DateTimeFormat("en-GB", { month: "long", year: "numeric" });
-const labelFmt = new Intl.DateTimeFormat("en-GB", { day: "numeric", month: "short", year: "numeric" });
-const DOW = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"];
+const monthFmt = new Intl.DateTimeFormat("fr-FR", { month: "long", year: "numeric" });
+const labelFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short", year: "numeric" });
+const DOW = ["Lu", "Ma", "Me", "Je", "Ve", "Sa", "Di"];
 
 /** Calendar date picker (value "YYYY-MM-DD" or ""). Keyboard: arrows move, Enter picks, PageUp/Down change month. */
-export function DatePicker({ value, onChange, id, placeholder = "Pick a date", invalid, min }: { value: string; onChange: (v: string) => void; id?: string; placeholder?: string; invalid?: boolean; min?: string }) {
+export function DatePicker({ value, onChange, id, placeholder = "Choisir une date", invalid, min }: { value: string; onChange: (v: string) => void; id?: string; placeholder?: string; invalid?: boolean; min?: string }) {
   const fieldId = useFieldId(id);
   const [open, setOpen] = useState(false);
   const selected = value ? parse(value) : null;
@@ -79,13 +79,13 @@ export function DatePicker({ value, onChange, id, placeholder = "Pick a date", i
           }}
         >
           <div className="mb-2 flex items-center justify-between">
-            <button type="button" aria-label="Previous month" onClick={() => shiftMonth(-1)} className="grid size-7 cursor-pointer place-items-center rounded-md text-ad-muted hover:bg-ad-hover hover:text-ad-fg">
+            <button type="button" aria-label="Mois précédent" onClick={() => shiftMonth(-1)} className="grid size-7 cursor-pointer place-items-center rounded-md text-ad-muted hover:bg-ad-hover hover:text-ad-fg">
               <ChevronLeft size={15} />
             </button>
             <span className="text-[13px] font-medium" aria-live="polite">
               {monthFmt.format(view)}
             </span>
-            <button type="button" aria-label="Next month" onClick={() => shiftMonth(1)} className="grid size-7 cursor-pointer place-items-center rounded-md text-ad-muted hover:bg-ad-hover hover:text-ad-fg">
+            <button type="button" aria-label="Mois suivant" onClick={() => shiftMonth(1)} className="grid size-7 cursor-pointer place-items-center rounded-md text-ad-muted hover:bg-ad-hover hover:text-ad-fg">
               <ChevronRight size={15} />
             </button>
           </div>
@@ -128,7 +128,7 @@ export function DatePicker({ value, onChange, id, placeholder = "Pick a date", i
           </div>
           <div className="mt-2 flex justify-between border-t border-ad-border pt-2">
             <button type="button" onClick={() => pick(new Date())} className="cursor-pointer rounded px-1.5 py-1 text-[12.5px] text-ad-muted hover:bg-ad-hover hover:text-ad-fg">
-              Today
+              Aujourd’hui
             </button>
             {value && (
               <button
@@ -139,7 +139,7 @@ export function DatePicker({ value, onChange, id, placeholder = "Pick a date", i
                 }}
                 className="inline-flex cursor-pointer items-center gap-1 rounded px-1.5 py-1 text-[12.5px] text-ad-muted hover:bg-ad-hover hover:text-ad-fg"
               >
-                <X size={12} /> Clear
+                <X size={12} /> Effacer
               </button>
             )}
           </div>

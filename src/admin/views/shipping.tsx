@@ -6,7 +6,7 @@ import { ExternalLink, Pencil, Plus, Trash2, Truck } from "lucide-react";
 import type { OrderStatus } from "@/lib/api-types";
 import { ApiError, adminApi, errorMessage, invalidate, useApi, withQuery } from "../lib/client";
 import { ago, dzd, num, wilayaName } from "../lib/format";
-import { TRANSITION_VERB } from "../lib/meta";
+import { ORDER_STATUS, TRANSITION_VERB } from "../lib/meta";
 import type { Carrier, OrderRow, Paged } from "../lib/types";
 import { DataTable, type Column } from "../data/table";
 import { Badge, Button, Card, CardHeader, EmptyState, Field, Input, Mono, PageHeader, Skeleton, Switch, Textarea } from "../ui/core";
@@ -14,10 +14,10 @@ import { Dialog, Drawer, Select, useConfirm, useToast } from "../ui/overlay";
 import { useSession } from "../shell/session";
 
 const LANES: { key: string; title: string; status: string; next?: OrderStatus; hint: string }[] = [
-  { key: "confirm", title: "To confirm", status: "pending", next: "confirmed", hint: "Call the customer to confirm" },
-  { key: "pack", title: "To pack", status: "confirmed", next: "packed", hint: "Prepare the parcel" },
-  { key: "ship", title: "To ship", status: "packed", next: "shipped", hint: "Hand over to a carrier" },
-  { key: "transit", title: "In transit", status: "shipped,out_for_delivery", next: "delivered", hint: "Cash to collect" },
+  { key: "confirm", title: "À confirmer", status: "pending", next: "confirmed", hint: "Appeler le client pour confirmer" },
+  { key: "pack", title: "À préparer", status: "confirmed", next: "packed", hint: "Préparer le colis" },
+  { key: "ship", title: "À expédier", status: "packed", next: "shipped", hint: "Remettre au transporteur" },
+  { key: "transit", title: "En transit", status: "shipped,out_for_delivery", next: "delivered", hint: "Paiement à encaisser" },
 ];
 
 export function ShippingPage() {
@@ -26,7 +26,7 @@ export function ShippingPage() {
   const [ship, setShip] = useState<OrderRow | null>(null);
   return (
     <>
-      <PageHeader title="Shipping" description="Move orders from confirmation to delivery, and manage delivery carriers." />
+      <PageHeader title="Expéditions" description="Faites avancer les commandes de la confirmation à la livraison, et gérez les transporteurs." />
       <div className="grid gap-4 md:grid-cols-2 2xl:grid-cols-4">
         {LANES.map((l) => (
           <Lane key={l.key} lane={l} writable={can("orders:write")} onShip={setShip} />
@@ -48,12 +48,12 @@ function Lane({ lane, writable, onShip }: { lane: (typeof LANES)[number]; writab
     try {
       await adminApi(`/admin/orders/${o.number}/status`, { method: "POST", body: { status: lane.next } });
       invalidate("/admin/orders", "/admin/analytics");
-      toast.success(`${o.number} · ${TRANSITION_VERB[lane.next!].toLowerCase()}`);
+      toast.success(`${o.number} · ${ORDER_STATUS[lane.next!].label.toLowerCase()}`);
     } catch (err) {
       if (err instanceof ApiError && err.code === "INVALID_TRANSITION") {
-        toast.error("Already moved by someone else", "The board was refreshed.");
+        toast.error("Déjà traitée par quelqu’un d’autre", "Le tableau a été actualisé.");
         invalidate("/admin/orders");
-      } else toast.error("Couldn't update", errorMessage(err));
+      } else toast.error("Mise à jour impossible", errorMessage(err));
     } finally {
       setBusy(null);
     }
@@ -70,7 +70,7 @@ function Lane({ lane, writable, onShip }: { lane: (typeof LANES)[number]; writab
           <p className="mt-0.5 text-xs text-ad-muted">{lane.hint}</p>
         </div>
         <Link href={`/admin/orders?status=${encodeURIComponent(lane.status)}`} className="text-xs text-ad-muted hover:text-ad-fg">
-          View all
+          Tout voir
         </Link>
       </div>
       <ul className="flex-1 divide-y divide-ad-border">
@@ -80,7 +80,7 @@ function Lane({ lane, writable, onShip }: { lane: (typeof LANES)[number]; writab
               <Skeleton className="h-4 w-full" />
             </li>
           ))}
-        {q.data?.items.length === 0 && <li className="px-4 py-10 text-center text-[13px] text-ad-muted">All clear</li>}
+        {q.data?.items.length === 0 && <li className="px-4 py-10 text-center text-[13px] text-ad-muted">Rien à traiter</li>}
         {q.data?.items.map((o) => (
           <li key={o.number} className="flex items-center gap-3 px-4 py-2.5">
             <Link href={`/admin/orders/${o.number}`} className="min-w-0 flex-1">
@@ -95,7 +95,7 @@ function Lane({ lane, writable, onShip }: { lane: (typeof LANES)[number]; writab
             </Link>
             {writable && lane.next && (
               <Button size="xs" loading={busy === o.number} onClick={() => advance(o)}>
-                {lane.next === "delivered" ? "Delivered" : TRANSITION_VERB[lane.next]}
+                {lane.next === "delivered" ? "Livrée" : TRANSITION_VERB[lane.next]}
               </Button>
             )}
           </li>
@@ -112,15 +112,15 @@ function ShipDialog({ order, carriers, onClose }: { order: OrderRow; carriers: C
   const [tracking, setTracking] = useState(order.trackingNumber ?? "");
   const [pending, setPending] = useState(false);
   const submit = async () => {
-    if (!carrier) return toast.error("Choose a carrier");
+    if (!carrier) return toast.error("Choisissez un transporteur");
     setPending(true);
     try {
       await adminApi(`/admin/orders/${order.number}/status`, { method: "POST", body: { status: "shipped", carrier, trackingNumber: tracking.trim() || null } });
       invalidate("/admin/orders", "/admin/analytics", "/admin/carriers");
-      toast.success(`${order.number} shipped with ${carrier}`);
+      toast.success(`${order.number} expédiée avec ${carrier}`);
       onClose();
     } catch (err) {
-      toast.error("Couldn't ship", errorMessage(err));
+      toast.error("Expédition impossible", errorMessage(err));
       setPending(false);
     }
   };
@@ -128,13 +128,13 @@ function ShipDialog({ order, carriers, onClose }: { order: OrderRow; carriers: C
     <Dialog
       open
       onClose={onClose}
-      title={`Ship ${order.number}`}
-      description={`${order.customer.name} · ${wilayaName(order.wilaya)} · ${dzd(order.total)} to collect`}
+      title={`Expédier ${order.number}`}
+      description={`${order.customer.name} · ${wilayaName(order.wilaya)} · ${dzd(order.total)} à encaisser`}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>Annuler</Button>
           <Button variant="primary" loading={pending} onClick={submit}>
-            Ship order
+            Expédier la commande
           </Button>
         </>
       }
@@ -146,10 +146,10 @@ function ShipDialog({ order, carriers, onClose }: { order: OrderRow; carriers: C
           void submit();
         }}
       >
-        <Field label="Carrier" htmlFor="ship-carrier">
-          <Select id="ship-carrier" value={carrier} onChange={setCarrier} placeholder="Choose a carrier" options={active.map((c) => ({ value: c.name, label: c.name }))} />
+        <Field label="Transporteur" htmlFor="ship-carrier">
+          <Select id="ship-carrier" value={carrier} onChange={setCarrier} placeholder="Choisir un transporteur" options={active.map((c) => ({ value: c.name, label: c.name }))} />
         </Field>
-        <Field label="Tracking number" optional htmlFor="ship-tracking">
+        <Field label="Numéro de suivi" optional htmlFor="ship-tracking">
           <Input id="ship-tracking" value={tracking} maxLength={80} onChange={(e) => setTracking(e.target.value)} data-autofocus />
         </Field>
         <button type="submit" hidden />
@@ -167,13 +167,13 @@ function Carriers({ carriers, loading, error, reload, manage }: { carriers?: Car
       await adminApi(`/admin/carriers/${c.id}`, { method: "PATCH", body });
       invalidate("/admin/carriers");
     } catch (err) {
-      toast.error("Couldn't update", errorMessage(err));
+      toast.error("Mise à jour impossible", errorMessage(err));
     }
   };
   const columns: Column<Carrier>[] = [
     {
       id: "name",
-      header: "Carrier",
+      header: "Transporteur",
       primary: true,
       cell: (c) => (
         <span className="min-w-0">
@@ -182,31 +182,31 @@ function Carriers({ carriers, loading, error, reload, manage }: { carriers?: Car
         </span>
       ),
     },
-    { id: "tracking", header: "Tracking link", cell: (c) => (c.trackingUrl ? <Mono className="block max-w-[260px] truncate text-ad-muted">{c.trackingUrl}</Mono> : <span className="text-ad-faint">Not set</span>) },
-    { id: "transit", header: "In transit", align: "end", mobile: true, width: "100px", cell: (c) => num(c.inTransit) },
-    { id: "delivered", header: "Delivered", align: "end", width: "100px", cell: (c) => num(c.delivered) },
+    { id: "tracking", header: "Lien de suivi", cell: (c) => (c.trackingUrl ? <Mono className="block max-w-[260px] truncate text-ad-muted">{c.trackingUrl}</Mono> : <span className="text-ad-faint">Non défini</span>) },
+    { id: "transit", header: "En transit", align: "end", mobile: true, width: "100px", cell: (c) => num(c.inTransit) },
+    { id: "delivered", header: "Livrées", align: "end", width: "100px", cell: (c) => num(c.delivered) },
     {
       id: "returnRate",
-      header: "Return rate",
+      header: "Taux de retour",
       align: "end",
       width: "110px",
-      cell: (c) => (c.delivered + c.returned ? <span className={c.returned / (c.delivered + c.returned) > 0.1 ? "text-ad-amber" : "text-ad-muted"}>{((c.returned / (c.delivered + c.returned)) * 100).toFixed(1)}%</span> : <span className="text-ad-faint">—</span>),
+      cell: (c) => (c.delivered + c.returned ? <span className={c.returned / (c.delivered + c.returned) > 0.1 ? "text-ad-amber" : "text-ad-muted"}>{((c.returned / (c.delivered + c.returned)) * 100).toFixed(1).replace(".", ",")} %</span> : <span className="text-ad-faint">—</span>),
     },
     {
       id: "active",
-      header: "Active",
+      header: "Actif",
       align: "end",
       width: "80px",
       mobile: true,
       cell: (c) =>
         manage ? (
           <span data-no-row-click className="inline-flex">
-            <Switch checked={c.isActive} onChange={(v) => void patch(c, { isActive: v })} id={`carrier-${c.id}`} ariaLabel={`Active: ${c.name}`} />
+            <Switch checked={c.isActive} onChange={(v) => void patch(c, { isActive: v })} id={`carrier-${c.id}`} ariaLabel={`Actif : ${c.name}`} />
           </span>
         ) : c.isActive ? (
-          <Badge tone="green">Active</Badge>
+          <Badge tone="green">Actif</Badge>
         ) : (
-          <Badge>Off</Badge>
+          <Badge>Inactif</Badge>
         ),
     },
   ];
@@ -215,19 +215,19 @@ function Carriers({ carriers, loading, error, reload, manage }: { carriers?: Car
       <div className="px-4 pt-4 sm:px-5">
         <CardHeader
           className="mb-3"
-          title="Carriers"
-          description="Shown when shipping an order. Orders keep the carrier name, so edits never rewrite history."
+          title="Transporteurs"
+          description="Proposés lors de l’expédition d’une commande. Les commandes gardent le nom du transporteur : une modification ne réécrit jamais l’historique."
           actions={
             manage && (
               <Button size="sm" onClick={() => setEditing("new")}>
-                <Plus size={14} /> Add carrier
+                <Plus size={14} /> Ajouter un transporteur
               </Button>
             )
           }
         />
       </div>
       <DataTable
-        label="Carriers"
+        label="Transporteurs"
         rows={carriers}
         rowId={(c) => c.id}
         columns={columns}
@@ -238,28 +238,28 @@ function Carriers({ carriers, loading, error, reload, manage }: { carriers?: Car
         rowActions={
           manage
             ? (c) => [
-                { label: "Edit", icon: <Pencil size={14} />, onSelect: () => setEditing(c) },
-                ...(c.trackingUrl ? [{ label: "Open tracking site", icon: <ExternalLink size={14} />, onSelect: () => window.open(c.trackingUrl!.replace("{number}", ""), "_blank", "noopener") }] : []),
+                { label: "Modifier", icon: <Pencil size={14} />, onSelect: () => setEditing(c) },
+                ...(c.trackingUrl ? [{ label: "Ouvrir le site de suivi", icon: <ExternalLink size={14} />, onSelect: () => window.open(c.trackingUrl!.replace("{number}", ""), "_blank", "noopener") }] : []),
                 { type: "separator" as const },
                 {
-                  label: "Delete",
+                  label: "Supprimer",
                   icon: <Trash2 size={14} />,
                   danger: true,
                   onSelect: async () => {
-                    if (!(await confirm({ title: `Delete ${c.name}?`, description: "Existing orders keep the carrier name. You can also just deactivate it.", confirmLabel: "Delete", variant: "danger" }))) return;
+                    if (!(await confirm({ title: `Supprimer ${c.name} ?`, description: "Les commandes existantes gardent le nom du transporteur. Vous pouvez aussi simplement le désactiver.", confirmLabel: "Supprimer", variant: "danger" }))) return;
                     try {
                       await adminApi(`/admin/carriers/${c.id}`, { method: "DELETE" });
                       invalidate("/admin/carriers");
-                      toast.success("Carrier deleted");
+                      toast.success("Transporteur supprimé");
                     } catch (err) {
-                      toast.error("Couldn't delete", errorMessage(err));
+                      toast.error("Suppression impossible", errorMessage(err));
                     }
                   },
                 },
               ]
             : undefined
         }
-        empty={<EmptyState icon={<Truck size={18} />} title="No carriers yet" description="Add the delivery companies you work with." />}
+        empty={<EmptyState icon={<Truck size={18} />} title="Aucun transporteur pour le moment" description="Ajoutez les sociétés de livraison avec lesquelles vous travaillez." />}
       />
       {editing && <CarrierDrawer carrier={editing === "new" ? null : editing} onClose={() => setEditing(null)} />}
     </Card>
@@ -273,8 +273,8 @@ function CarrierDrawer({ carrier, onClose }: { carrier: Carrier | null; onClose:
   const [pending, setPending] = useState(false);
   const save = async () => {
     const e: Record<string, string> = {};
-    if (!f.name.trim()) e.name = "Required";
-    if (f.trackingUrl && !/^https?:\/\/\S+$/i.test(f.trackingUrl.trim())) e.trackingUrl = "Must start with https://";
+    if (!f.name.trim()) e.name = "Obligatoire";
+    if (f.trackingUrl && !/^https?:\/\/\S+$/i.test(f.trackingUrl.trim())) e.trackingUrl = "Doit commencer par https://";
     setErrors(e);
     if (Object.keys(e).length) return;
     setPending(true);
@@ -282,11 +282,11 @@ function CarrierDrawer({ carrier, onClose }: { carrier: Carrier | null; onClose:
       const body = { name: f.name.trim(), trackingUrl: f.trackingUrl.trim() || null, phone: f.phone.trim() || null, note: f.note.trim() || null, position: Number(f.position) || 0, isActive: f.isActive };
       await adminApi(carrier ? `/admin/carriers/${carrier.id}` : "/admin/carriers", { method: carrier ? "PATCH" : "POST", body });
       invalidate("/admin/carriers");
-      toast.success(carrier ? "Carrier saved" : "Carrier added");
+      toast.success(carrier ? "Transporteur enregistré" : "Transporteur ajouté");
       onClose();
     } catch (err) {
       if (err instanceof ApiError && err.fields) setErrors(err.fields);
-      toast.error("Couldn't save", errorMessage(err));
+      toast.error("Enregistrement impossible", errorMessage(err));
     } finally {
       setPending(false);
     }
@@ -295,12 +295,12 @@ function CarrierDrawer({ carrier, onClose }: { carrier: Carrier | null; onClose:
     <Drawer
       open
       onClose={onClose}
-      title={carrier ? `Edit ${carrier.name}` : "Add carrier"}
+      title={carrier ? `Modifier ${carrier.name}` : "Ajouter un transporteur"}
       footer={
         <>
-          <Button onClick={onClose}>Cancel</Button>
+          <Button onClick={onClose}>Annuler</Button>
           <Button variant="primary" loading={pending} onClick={save}>
-            {carrier ? "Save" : "Add carrier"}
+            {carrier ? "Enregistrer" : "Ajouter le transporteur"}
           </Button>
         </>
       }
@@ -312,14 +312,14 @@ function CarrierDrawer({ carrier, onClose }: { carrier: Carrier | null; onClose:
           void save();
         }}
       >
-        <Field label="Name" htmlFor="cr-name" error={errors.name}>
+        <Field label="Nom" htmlFor="cr-name" error={errors.name}>
           <Input id="cr-name" value={f.name} maxLength={60} invalid={Boolean(errors.name)} onChange={(e) => setF({ ...f, name: e.target.value })} data-autofocus />
         </Field>
-        <Field label="Tracking link" optional htmlFor="cr-url" error={errors.trackingUrl} hint="Use {number} where the tracking number goes.">
-          <Input id="cr-url" value={f.trackingUrl} maxLength={500} invalid={Boolean(errors.trackingUrl)} placeholder="https://carrier.example/track/{number}" onChange={(e) => setF({ ...f, trackingUrl: e.target.value })} />
+        <Field label="Lien de suivi" optional htmlFor="cr-url" error={errors.trackingUrl} hint="Utilisez {number} à l’endroit du numéro de suivi.">
+          <Input id="cr-url" value={f.trackingUrl} maxLength={500} invalid={Boolean(errors.trackingUrl)} placeholder="https://transporteur.exemple/suivi/{number}" onChange={(e) => setF({ ...f, trackingUrl: e.target.value })} />
         </Field>
         <div className="grid gap-3 sm:grid-cols-2">
-          <Field label="Support phone" optional htmlFor="cr-phone">
+          <Field label="Téléphone du support" optional htmlFor="cr-phone">
             <Input id="cr-phone" value={f.phone} maxLength={30} onChange={(e) => setF({ ...f, phone: e.target.value })} />
           </Field>
           <Field label="Position" htmlFor="cr-pos">
@@ -327,9 +327,9 @@ function CarrierDrawer({ carrier, onClose }: { carrier: Carrier | null; onClose:
           </Field>
         </div>
         <Field label="Note" optional htmlFor="cr-note">
-          <Textarea id="cr-note" rows={2} value={f.note} maxLength={300} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="e.g. Pickup every weekday at 14:00" />
+          <Textarea id="cr-note" rows={2} value={f.note} maxLength={300} onChange={(e) => setF({ ...f, note: e.target.value })} placeholder="ex. Enlèvement en semaine à 14 h" />
         </Field>
-        <Switch checked={f.isActive} onChange={(isActive) => setF({ ...f, isActive })} label="Active" description="Inactive carriers are hidden when shipping." />
+        <Switch checked={f.isActive} onChange={(isActive) => setF({ ...f, isActive })} label="Actif" description="Un transporteur inactif n’est pas proposé lors de l’expédition." />
         <button type="submit" hidden />
       </form>
     </Drawer>

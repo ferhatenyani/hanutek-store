@@ -14,7 +14,7 @@ import { Drawer, Tabs, useToast } from "../ui/overlay";
 
 export function Stars({ rating }: { rating: number }) {
   return (
-    <span className="inline-flex items-center gap-px text-ad-amber" role="img" aria-label={`${rating} out of 5 stars`}>
+    <span className="inline-flex items-center gap-px text-ad-amber" role="img" aria-label={`${rating} étoile${rating > 1 ? "s" : ""} sur 5`}>
       {Array.from({ length: 5 }).map((_, i) => (
         <Star key={i} size={12} className={i < rating ? "fill-current" : "opacity-25"} aria-hidden />
       ))}
@@ -35,18 +35,18 @@ export function ReviewsPage() {
     try {
       const r = await adminApi<{ updated: number }>("/admin/reviews/bulk", { method: "POST", body: { ids, status } });
       invalidate("/admin/reviews", "/admin/products");
-      toast.success(`${r.updated} review${r.updated === 1 ? "" : "s"} ${status === "hidden" ? "hidden" : "published"}`, status === "hidden" ? "Product ratings were recalculated." : undefined);
+      toast.success(`${r.updated} avis ${status === "hidden" ? (r.updated === 1 ? "masqué" : "masqués") : r.updated === 1 ? "publié" : "publiés"}`, status === "hidden" ? "Les notes des produits ont été recalculées." : undefined);
       setSelected(new Set());
       setOpen(null);
     } catch (err) {
-      toast.error("Couldn't update reviews", errorMessage(err));
+      toast.error("Impossible de mettre à jour les avis", errorMessage(err));
     }
   };
 
   const columns: Column<ReviewRow>[] = [
     {
       id: "review",
-      header: "Review",
+      header: "Avis",
       primary: true,
       cell: (r) => (
         <span className="block min-w-0 max-w-[520px]">
@@ -60,7 +60,7 @@ export function ReviewsPage() {
     },
     {
       id: "product",
-      header: "Product",
+      header: "Produit",
       mobile: true,
       cell: (r) => (
         <Link href={`/admin/products/${r.productId}`} className="block max-w-[200px] truncate text-ad-fg hover:underline">
@@ -70,59 +70,59 @@ export function ReviewsPage() {
     },
     {
       id: "author",
-      header: "Author",
+      header: "Auteur",
       cell: (r) => (
         <span className="flex items-center gap-1.5">
           <Link href={`/admin/customers/${r.userId}`} className="truncate hover:underline">
             {r.authorName}
           </Link>
-          {r.verified && <BadgeCheck size={14} className="shrink-0 text-ad-green" aria-label="Verified purchase" />}
+          {r.verified && <BadgeCheck size={14} className="shrink-0 text-ad-green" aria-label="Achat vérifié" />}
         </span>
       ),
     },
-    { id: "status", header: "Status", mobile: true, width: "110px", cell: (r) => (r.status === "published" ? <Badge tone="green" dot>Published</Badge> : <Badge dot>Hidden</Badge>) },
+    { id: "status", header: "Statut", mobile: true, width: "110px", cell: (r) => (r.status === "published" ? <Badge tone="green" dot>Publié</Badge> : <Badge dot>Masqué</Badge>) },
     { id: "date", header: "Date", sortKey: "created", align: "end", width: "120px", cell: (r) => <span className="whitespace-nowrap text-ad-muted">{ago(r.createdAt)}</span> },
   ];
   const setQ = useCallback((v: string) => set({ q: v }), [set]);
 
   return (
     <>
-      <PageHeader title="Reviews" description={counts ? `${counts.all} reviews from verified buyers · average ${counts.avg.toFixed(2)} / 5 on published reviews` : "Reviews from verified buyers."} />
+      <PageHeader title="Avis" description={counts ? `${counts.all} avis d’acheteurs vérifiés · moyenne de ${counts.avg.toFixed(2).replace(".", ",")} / 5 sur les avis publiés` : "Avis d’acheteurs vérifiés."} />
       <Card padded={false}>
         <div className="px-4 pt-1">
           <Tabs
             value={state.status}
             onChange={(v) => set({ status: v })}
             tabs={[
-              { value: "", label: "All", count: counts?.all },
-              { value: "published", label: "Published", count: counts?.published },
-              { value: "hidden", label: "Hidden", count: counts?.hidden },
+              { value: "", label: "Tous", count: counts?.all },
+              { value: "published", label: "Publiés", count: counts?.published },
+              { value: "hidden", label: "Masqués", count: counts?.hidden },
             ]}
           />
         </div>
         {selected.size > 0 ? (
           <SelectionBar count={selected.size} onClear={() => setSelected(new Set())}>
             <Button size="sm" onClick={() => moderate([...selected], "published")}>
-              <Eye size={14} /> Publish
+              <Eye size={14} /> Publier
             </Button>
             <Button size="sm" onClick={() => moderate([...selected], "hidden")}>
-              <EyeOff size={14} /> Hide
+              <EyeOff size={14} /> Masquer
             </Button>
           </SelectionBar>
         ) : (
           <Toolbar>
-            <SearchBox value={state.q} onChange={setQ} placeholder="Text, product or author…" label="Search reviews" />
-            <FilterSelect label="Rating" value={state.rating as "" | "5"} onChange={(v) => set({ rating: v })} options={["5", "4", "3", "2", "1"].map((n) => ({ value: n as "5", label: `${n} star${n === "1" ? "" : "s"}`, text: `${n} stars` }))} />
+            <SearchBox value={state.q} onChange={setQ} placeholder="Texte, produit ou auteur…" label="Rechercher des avis" />
+            <FilterSelect label="Note" value={state.rating as "" | "5"} onChange={(v) => set({ rating: v })} options={["5", "4", "3", "2", "1"].map((n) => ({ value: n as "5", label: `${n} étoile${n === "1" ? "" : "s"}`, text: `${n} étoiles` }))} />
             {state.product && (
               <Button size="sm" variant="ghost" onClick={() => set({ product: "" })}>
-                One product · show all
+                Un seul produit · tout afficher
               </Button>
             )}
             <ResetFilters count={activeCount + (state.q ? 1 : 0)} onReset={reset} />
           </Toolbar>
         )}
         <DataTable
-          label="Reviews"
+          label="Avis"
           rows={q.data?.items}
           rowId={(r) => r.id}
           columns={columns}
@@ -139,8 +139,8 @@ export function ReviewsPage() {
           onSelectedChange={setSelected}
           onRowClick={setOpen}
           rowClassName={(r) => (r.status === "hidden" ? "text-ad-muted" : undefined)}
-          rowActions={(r) => [r.status === "published" ? { label: "Hide", icon: <EyeOff size={14} />, onSelect: () => void moderate([r.id], "hidden") } : { label: "Publish", icon: <Eye size={14} />, onSelect: () => void moderate([r.id], "published") }]}
-          empty={<EmptyState icon={<MessageSquareText size={18} />} title="No reviews match" />}
+          rowActions={(r) => [r.status === "published" ? { label: "Masquer", icon: <EyeOff size={14} />, onSelect: () => void moderate([r.id], "hidden") } : { label: "Publier", icon: <Eye size={14} />, onSelect: () => void moderate([r.id], "published") }]}
+          empty={<EmptyState icon={<MessageSquareText size={18} />} title="Aucun avis ne correspond" />}
         />
         <Pagination page={Number(state.page)} pageSize={25} total={q.data?.total} onPage={(p) => set({ page: String(p) }, { keepPage: true })} />
       </Card>
@@ -148,18 +148,18 @@ export function ReviewsPage() {
         <Drawer
           open
           onClose={() => setOpen(null)}
-          title={open.title || "Review"}
+          title={open.title || "Avis"}
           description={`${open.productName} · ${fmtFull(open.createdAt)}`}
           footer={
             <>
-              <Button onClick={() => setOpen(null)}>Close</Button>
+              <Button onClick={() => setOpen(null)}>Fermer</Button>
               {open.status === "published" ? (
                 <Button variant="primary" onClick={() => moderate([open.id], "hidden")}>
-                  <EyeOff size={14} /> Hide review
+                  <EyeOff size={14} /> Masquer l’avis
                 </Button>
               ) : (
                 <Button variant="primary" onClick={() => moderate([open.id], "published")}>
-                  <Eye size={14} /> Publish review
+                  <Eye size={14} /> Publier l’avis
                 </Button>
               )}
             </>
@@ -168,8 +168,8 @@ export function ReviewsPage() {
           <div className="space-y-4 text-[13px]">
             <div className="flex flex-wrap items-center gap-2">
               <Stars rating={open.rating} />
-              {open.status === "hidden" ? <Badge>Hidden</Badge> : <Badge tone="green">Published</Badge>}
-              {open.verified && <Badge tone="green">Verified purchase</Badge>}
+              {open.status === "hidden" ? <Badge>Masqué</Badge> : <Badge tone="green">Publié</Badge>}
+              {open.verified && <Badge tone="green">Achat vérifié</Badge>}
             </div>
             <p className="whitespace-pre-wrap leading-relaxed" dir="auto">
               {open.body}
@@ -181,7 +181,7 @@ export function ReviewsPage() {
               </Link>{" "}
               · {open.authorEmail}
             </div>
-            <p className="text-xs text-ad-faint">Hidden reviews are removed from the product page and from its average rating.</p>
+            <p className="text-xs text-ad-faint">Un avis masqué disparaît de la page produit et de sa note moyenne.</p>
           </div>
         </Drawer>
       )}

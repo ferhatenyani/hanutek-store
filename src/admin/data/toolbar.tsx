@@ -14,7 +14,7 @@ export function Toolbar({ children, className }: { children: ReactNode; classNam
 const isTyping = (el: EventTarget | null) => el instanceof HTMLElement && (el.isContentEditable || ["INPUT", "TEXTAREA"].includes(el.tagName) || el.getAttribute("role") === "combobox");
 
 /** Debounced search box. "/" focuses it from anywhere on the page. */
-export function SearchBox({ value, onChange, placeholder = "Search…", className, label = "Search" }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string; label?: string }) {
+export function SearchBox({ value, onChange, placeholder = "Rechercher…", className, label = "Rechercher" }: { value: string; onChange: (v: string) => void; placeholder?: string; className?: string; label?: string }) {
   const [text, setText] = useState(value);
   const ref = useRef<HTMLInputElement>(null);
   const lastSent = useRef(value);
@@ -69,7 +69,7 @@ export function SearchBox({ value, onChange, placeholder = "Search…", classNam
       />
       <span className="absolute end-2 top-1/2 flex -translate-y-1/2 items-center">
         {text ? (
-          <button type="button" aria-label="Clear search" onClick={() => setText("")} className="cursor-pointer rounded p-0.5 text-ad-faint hover:text-ad-fg">
+          <button type="button" aria-label="Effacer la recherche" onClick={() => setText("")} className="cursor-pointer rounded p-0.5 text-ad-faint hover:text-ad-fg">
             <X size={13} />
           </button>
         ) : (
@@ -81,7 +81,7 @@ export function SearchBox({ value, onChange, placeholder = "Search…", classNam
 }
 
 /** Compact filter select with an "All" option. */
-export function FilterSelect<V extends string>({ label, value, onChange, options, allLabel = "All", width = "w-[150px]" }: { label: string; value: V | ""; onChange: (v: V | "") => void; options: Option<V>[]; allLabel?: string; width?: string }) {
+export function FilterSelect<V extends string>({ label, value, onChange, options, allLabel = "Tous", width = "w-[150px]" }: { label: string; value: V | ""; onChange: (v: V | "") => void; options: Option<V>[]; allLabel?: string; width?: string }) {
   const all: Option<V | "">[] = [{ value: "" as V | "", label: allLabel, text: allLabel }, ...options];
   return (
     <div className={width}>
@@ -102,7 +102,7 @@ export function ResetFilters({ count, onReset }: { count: number; onReset: () =>
   if (!count) return null;
   return (
     <Button size="sm" variant="ghost" onClick={onReset}>
-      <X size={13} /> Reset{count > 1 ? ` (${count})` : ""}
+      <X size={13} /> Réinitialiser{count > 1 ? ` (${count})` : ""}
     </Button>
   );
 }
@@ -120,7 +120,7 @@ export function SavedViews({ tableId, current, onApply }: { tableId: string; cur
         align="end"
         className="w-64 p-1"
         trigger={(p) => (
-          <Button {...p} size="sm" aria-label="Saved views">
+          <Button {...p} size="sm" aria-label="Vues enregistrées">
             <Bookmark size={14} className={activeView ? "fill-current" : undefined} />
             <span className="hidden max-w-28 truncate lg:inline">{activeView ? activeView.name : "Views"}</span>
           </Button>
@@ -128,8 +128,8 @@ export function SavedViews({ tableId, current, onApply }: { tableId: string; cur
       >
         {(close) => (
           <div>
-            <p className="px-2 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wide text-ad-faint">Saved views</p>
-            {views.length === 0 && <p className="px-2 py-2 text-[13px] text-ad-muted">Save the current filters to reuse them in one click.</p>}
+            <p className="px-2 pt-1.5 pb-1 text-[11px] font-medium uppercase tracking-wide text-ad-faint">Vues enregistrées</p>
+            {views.length === 0 && <p className="px-2 py-2 text-[13px] text-ad-muted">Enregistrez les filtres actuels pour les retrouver en un clic.</p>}
             {views.map((v) => (
               <div key={v.id} className="group flex items-center rounded-md hover:bg-ad-hover">
                 <button
@@ -142,7 +142,7 @@ export function SavedViews({ tableId, current, onApply }: { tableId: string; cur
                 >
                   {v.name}
                 </button>
-                <button type="button" aria-label={`Delete view ${v.name}`} onClick={() => remove(v.id)} className="me-1 cursor-pointer rounded p-1 text-ad-faint opacity-0 hover:text-ad-red group-hover:opacity-100 focus-visible:opacity-100">
+                <button type="button" aria-label={`Supprimer la vue ${v.name}`} onClick={() => remove(v.id)} className="me-1 cursor-pointer rounded p-1 text-ad-faint opacity-0 hover:text-ad-red group-hover:opacity-100 focus-visible:opacity-100">
                   <Trash2 size={13} />
                 </button>
               </div>
@@ -158,7 +158,7 @@ export function SavedViews({ tableId, current, onApply }: { tableId: string; cur
               }}
               className="w-full cursor-pointer rounded-md px-2 py-1.5 text-start text-[13px] text-ad-fg hover:bg-ad-hover disabled:cursor-not-allowed disabled:opacity-50"
             >
-              Save current filters…
+              Enregistrer les filtres actuels…
             </button>
           </div>
         )}
@@ -167,21 +167,21 @@ export function SavedViews({ tableId, current, onApply }: { tableId: string; cur
         open={naming}
         onClose={() => setNaming(false)}
         size="sm"
-        title="Save view"
-        description="Stores the current filters, search and sort on this device."
+        title="Enregistrer la vue"
+        description="Mémorise les filtres, la recherche et le tri actuels sur cet appareil."
         footer={
           <>
-            <Button onClick={() => setNaming(false)}>Cancel</Button>
+            <Button onClick={() => setNaming(false)}>Annuler</Button>
             <Button
               variant="primary"
               disabled={!name.trim()}
               onClick={() => {
                 save(name.trim(), current);
                 setNaming(false);
-                toast.success(`View “${name.trim()}” saved`);
+                toast.success(`Vue « ${name.trim()} » enregistrée`);
               }}
             >
-              Save view
+              Enregistrer la vue
             </Button>
           </>
         }
@@ -192,10 +192,10 @@ export function SavedViews({ tableId, current, onApply }: { tableId: string; cur
             if (!name.trim()) return;
             save(name.trim(), current);
             setNaming(false);
-            toast.success(`View “${name.trim()}” saved`);
+            toast.success(`Vue « ${name.trim()} » enregistrée`);
           }}
         >
-          <Input aria-label="View name" placeholder="e.g. To ship today" value={name} onChange={(e) => setName(e.target.value)} data-autofocus maxLength={40} />
+          <Input aria-label="Nom de la vue" placeholder="ex. À expédier aujourd’hui" value={name} onChange={(e) => setName(e.target.value)} data-autofocus maxLength={40} />
         </form>
       </Dialog>
     </>

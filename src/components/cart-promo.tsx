@@ -29,26 +29,63 @@ export function CartPromo() {
       setCodeError(null);
       toast(`${code.trim().toUpperCase()} · ${m.cart.promoApplied}`);
     } else {
-      setCodeError(res.reason === "min_subtotal" ? m.cart.promoMinSubtotal : res.reason === "network" ? m.common.actionFailed : m.cart.promoInvalid);
+      setCodeError(reasonText(res.reason));
     }
   };
+  /** Server eligibility reason → shopper-facing explanation. */
+  function reasonText(reason: string) {
+    switch (reason) {
+      case "min_subtotal":
+        return m.cart.promoMinSubtotal;
+      case "expired":
+        return m.cart.promoExpired;
+      case "inactive":
+        return m.cart.promoInactive;
+      case "not_started":
+        return m.cart.promoNotStarted;
+      case "exhausted":
+        return m.cart.promoExhausted;
+      case "per_user":
+        return m.cart.promoPerUser;
+      case "network":
+      case "RATE_LIMITED":
+        return reason === "RATE_LIMITED" ? m.common.tooMany : m.common.actionFailed;
+      default:
+        return m.cart.promoInvalid;
+    }
+  }
   const promoLabel = cart.promo ? (cart.promo.type === "percent" ? `−${cart.promo.value} %` : `−${price(cart.promo.value)}`) : "";
 
   if (promo) {
+    const why = cart.promo?.ineligible;
     return (
-      <div className="flex items-center justify-between rounded-card border border-volt/60 bg-volt-soft px-4 py-3.5">
-        <span className="flex items-center gap-2 text-sm font-medium text-accent-ink">
-          <Tag size={15} aria-hidden />
-          <span className="font-mono font-bold">{promo}</span> · {m.cart.promoApplied} (<span dir="ltr">{promoLabel}</span>)
-        </span>
-        <button
-          type="button"
-          aria-label={m.cart.remove}
-          onClick={() => void removePromo().catch(() => toast(m.common.actionFailed))}
-          className="grid h-7 w-7 cursor-pointer place-items-center rounded-full text-muted transition-colors duration-150 hover:bg-white/60 hover:text-foreground"
-        >
-          <X size={15} />
-        </button>
+      <div className={cn("rounded-card border px-4 py-2.5", why ? "border-line bg-accent-soft/60" : "border-volt/60 bg-volt-soft")}>
+        <div className="flex items-center justify-between gap-2">
+          <span className="flex min-w-0 items-center gap-2 text-sm font-medium text-accent-ink">
+            <Tag size={15} className="shrink-0" aria-hidden />
+            <span className="font-mono font-bold">{promo}</span>
+            {!why && (
+              <span className="truncate">
+                · {m.cart.promoApplied} (<span dir="ltr">{promoLabel}</span>)
+              </span>
+            )}
+          </span>
+          <button
+            type="button"
+            aria-label={`${m.cart.remove} ${promo}`}
+            onClick={() => void removePromo().catch(() => toast(m.common.actionFailed))}
+            className="-me-2 grid h-10 w-10 shrink-0 cursor-pointer place-items-center rounded-full text-muted transition-colors duration-150 hover:bg-white/60 hover:text-foreground"
+          >
+            <X size={15} />
+          </button>
+        </div>
+        {why && (
+          <p role="status" className="pb-1 text-xs text-danger">
+            {why === "min_subtotal" && cart.promo
+              ? m.cart.promoMinSubtotalAmount.replace("{amount}", price(cart.promo.minSubtotal))
+              : m.cart.promoNotEligibleNow.replace("{reason}", reasonText(why).toLowerCase())}
+          </p>
+        )}
       </div>
     );
   }
@@ -77,6 +114,10 @@ export function CartPromo() {
           placeholder={m.cart.promoPlaceholder}
           aria-label={m.cart.promoPlaceholder}
           autoCapitalize="characters"
+          autoComplete="off"
+          autoCorrect="off"
+          spellCheck={false}
+          enterKeyHint="go"
           className={cn(
             "h-11 min-w-0 flex-1 rounded-control border bg-surface px-3.5 font-mono text-sm uppercase text-foreground placeholder:font-sans placeholder:normal-case placeholder:text-faint focus:border-accent focus:outline-none focus:ring-2 focus:ring-accent/15",
             codeError ? "border-danger" : "border-line",
@@ -86,7 +127,7 @@ export function CartPromo() {
           {m.cart.promoApply}
         </Button>
       </div>
-      {codeError && <p className="mt-2 text-xs text-danger">{codeError}</p>}
+      {codeError && <p role="alert" className="mt-2 text-xs text-danger">{codeError}</p>}
     </form>
   );
 }

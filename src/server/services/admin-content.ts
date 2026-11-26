@@ -117,7 +117,8 @@ export async function listSubscribers(q: { q?: string; status?: "subscribed" | "
 export async function subscribersCsv() {
   const db = await getDb();
   const rows = await db.select().from(newsletterSubscribers).where(isNull(newsletterSubscribers.unsubscribedAt)).orderBy(asc(newsletterSubscribers.createdAt));
-  return ["email,locale,subscribed_at", ...rows.map((r) => `"${r.email.replace(/"/g, '""')}",${r.locale},${r.createdAt.toISOString()}`)].join("\r\n") + "\r\n";
+  // French headers: the export is for the (French-only) back office
+  return ["email,langue,inscrit_le", ...rows.map((r) => `"${r.email.replace(/"/g, '""')}",${r.locale},${r.createdAt.toISOString()}`)].join("\r\n") + "\r\n";
 }
 
 // ------------------------------------------------------------ carriers

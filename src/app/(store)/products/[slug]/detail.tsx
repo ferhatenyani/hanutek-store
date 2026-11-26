@@ -126,7 +126,7 @@ export function ProductDetail({ product, related }: { product: ProductDTO; relat
 
       <div className="grid gap-10 md:grid-cols-2 md:gap-14">
         {/* Imagery */}
-        <div>
+        <div className="min-w-0">
           <div className="relative aspect-square overflow-hidden rounded-card border border-line bg-surface">
             <ProductMorph slug={product.slug} variant="hero" className="rounded-[13px]">
               <Image
@@ -147,9 +147,9 @@ export function ProductDetail({ product, related }: { product: ProductDTO; relat
         </div>
 
         {/* Info + buy box */}
-        <div>
+        <div className="min-w-0">
           <p className="font-mono text-[11px] tracking-[0.18em] text-accent-ink uppercase rtl:tracking-normal">{catName}</p>
-          <h1 dir="ltr" className="mt-2 text-balance text-3xl font-semibold tracking-tight text-foreground md:text-4xl rtl:text-right rtl:tracking-normal">
+          <h1 dir="ltr" className="mt-2 text-balance text-3xl font-semibold tracking-tight text-foreground [overflow-wrap:anywhere] md:text-4xl rtl:text-right rtl:tracking-normal">
             {product.name}
           </h1>
           <p className="mt-3 text-[15px] leading-relaxed text-muted">{tr(product.short, locale)}</p>

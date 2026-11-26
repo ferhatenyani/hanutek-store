@@ -42,7 +42,7 @@ const FloatingDockDesktop = ({
   return (
     <div
       className={cn(
-        "mx-auto flex h-16 items-end gap-4 rounded-2xl bg-gray-50 px-4 pb-3 shadow-lift dark:bg-neutral-900",
+        "mx-auto flex h-16 items-end gap-2 rounded-2xl bg-gray-50 px-3 pb-3 shadow-lift min-[360px]:gap-4 min-[360px]:px-4 dark:bg-neutral-900",
         className,
       )}
     >
@@ -58,8 +58,10 @@ function IconContainer({ title, icon, href, onClick, active, badge, transitionTy
 
   const inner = (
     <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
+      // mouse only: iOS/Android fire emulated mouse events on tap, which left
+      // the label tooltip stuck on screen after every tap ("sticky hover")
+      onPointerEnter={(e) => e.pointerType === "mouse" && setHovered(true)}
+      onPointerLeave={() => setHovered(false)}
       className={cn(
         "relative grid h-10 w-10 place-items-center rounded-full",
         active
